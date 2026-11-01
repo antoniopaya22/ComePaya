@@ -21,5 +21,8 @@ export default defineConfig({
     url: "http://localhost:5199",
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
+    // Los datos de ejemplo se fechan con el "hoy" del servidor: misma zona que el navegador,
+    // o cerca de medianoche el servidor y la app no coinciden en qué día es hoy.
+    env: { TZ: "Europe/Madrid" },
   },
 });
