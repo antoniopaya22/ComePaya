@@ -100,6 +100,37 @@ export function buscarIngrediente<T extends IngredienteBuscable>(texto: string, 
   return ingredientes.find((i) => mismoNombre(texto, i.nombre)) ?? null;
 }
 
+/** Lista pendiente como texto para mandar por WhatsApp o similar, por secciones. */
+export function textoParaCompartir(grupos: GrupoSeccion<ItemAgrupable & { texto: string; cantidad: string | null }>[]): string {
+  const secciones = grupos
+    .map((g) => ({ seccion: g.seccion, items: g.items.filter((i) => !i.marcado) }))
+    .filter((g) => g.items.length)
+    .map((g) => [`*${g.seccion}*`, ...g.items.map((i) => `• ${i.texto}${i.cantidad ? ` (${i.cantidad})` : ""}`)].join("\n"));
+  return secciones.length ? `🛒 Lista de la compra\n\n${secciones.join("\n\n")}` : "🛒 La lista de la compra está vacía";
+}
+
+/** "leche, dos kilos de tomates y pan" dictado → ["leche", "dos kilos de tomates", "pan"]. */
+export function dividirDictado(texto: string): string[] {
+  return texto
+    .split(/\s*,\s*|\s+y\s+|\s+e\s+/i)
+    .map((t) => t.trim().replace(/\.$/, ""))
+    .filter(Boolean);
+}
+
+/**
+ * Lo que más se compra (por número de compras) y no está ya pendiente en la lista,
+ * para añadirlo con un toque.
+ */
+export function habituales(compras: string[], pendientes: Set<string>, limite = 8): string[] {
+  const cuenta = new Map<string, number>();
+  for (const id of compras) cuenta.set(id, (cuenta.get(id) ?? 0) + 1);
+  return [...cuenta.entries()]
+    .filter(([id, n]) => n >= 2 && !pendientes.has(id))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limite)
+    .map(([id]) => id);
+}
+
 /** Secciones a ofrecer al elegir: las de la tienda en su orden, más las que ya usan los ingredientes. */
 export function seccionesDisponibles(ordenTienda: string[], usadas: string[]): string[] {
   const base = ordenTienda.length ? ordenTienda : SECCIONES_POR_DEFECTO;

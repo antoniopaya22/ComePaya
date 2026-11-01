@@ -16,9 +16,23 @@ import type { Ingrediente } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { CLAVES_NUTRIENTES, GRUPOS_ALIMENTO, type GrupoAlimento } from "@/dominio/nutricion";
 import type { Nutrientes100 } from "@/dominio/producto-externo";
-import { claves, useIngredientes, useNutrientesIngredientes, useTiendas } from "../datos";
+import { claves, useIngredientes, useNutrientesIngredientes, useProductos, useRecetas, useTiendas } from "../datos";
 import { cargarIngredientesBase } from "../despensa/altas";
+import { SelectorAlergenos } from "../salud/Alergenos";
 import { useHogar } from "../hogar/HogarProvider";
+
+/** Equivalencias propias de medidas caseras; las vacías usan las estándar. */
+function equivalenciasDe(cucharada: string, vaso: string): Record<string, number> | null {
+  const resultado: Record<string, number> = {};
+  const c = Number(cucharada.replace(",", "."));
+  const v = Number(vaso.replace(",", "."));
+  if (cucharada.trim() && c > 0) {
+    resultado.cucharada = c;
+    resultado.cucharadita = Math.round((c / 3) * 10) / 10;
+  }
+  if (vaso.trim() && v > 0) resultado.vaso = v;
+  return Object.keys(resultado).length ? resultado : null;
+}
 
 function nutrientesManuales(valores: Partial<Record<keyof Nutrientes100, string>>): Nutrientes100 | null {
   const resultado: Nutrientes100 = {};
@@ -129,14 +143,28 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
   const [caducidadDias, setCaducidadDias] = useState("");
   const [grupo, setGrupo] = useState<GrupoAlimento | "">("");
   const [pesoUnidad, setPesoUnidad] = useState("");
+  const [alergenos, setAlergenos] = useState<string[]>([]);
+  const [diasAbrir, setDiasAbrir] = useState("");
+  const [eqCucharada, setEqCucharada] = useState("");
+  const [eqVaso, setEqVaso] = useState("");
   const [nutrientes, setNutrientes] = useState<Partial<Record<keyof Nutrientes100, string>>>({});
   const calculados = useNutrientesIngredientes();
+  const { data: productos = [] } = useProductos();
+  const { data: recetas = [] } = useRecetas();
+  const enUso =
+    ingrediente !== null &&
+    ingrediente !== "nuevo" &&
+    (productos.some((p) => p.ingrediente_id === ingrediente.id) || recetas.some((r) => r.ingredientes.some((ri) => ri.ingrediente_id === ingrediente.id)));
 
   useEffect(() => {
     if (!ingrediente) return;
     const i = ingrediente === "nuevo" ? null : ingrediente;
     setGrupo(i?.grupo_alimento ?? "");
     setPesoUnidad(i?.peso_unidad_g?.toString() ?? "");
+    setAlergenos(i?.alergenos ?? []);
+    setDiasAbrir(i?.dias_tras_abrir?.toString() ?? "");
+    setEqCucharada(i?.equivalencias?.cucharada?.toString().replace(".", ",") ?? "");
+    setEqVaso(i?.equivalencias?.vaso?.toString().replace(".", ",") ?? "");
     setNutrientes(
       Object.fromEntries(Object.entries(i?.nutrientes_100 ?? {}).map(([clave, valor]) => [clave, String(valor).replace(".", ",")])),
     );
@@ -168,6 +196,9 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
       grupo_alimento: grupo || null,
       peso_unidad_g: unidad === "ud" && pesoUnidad ? Number(pesoUnidad.replace(",", ".")) : null,
       nutrientes_100: nutrientesManuales(nutrientes),
+      alergenos,
+      dias_tras_abrir: diasAbrir ? Math.round(Number(diasAbrir)) || null : null,
+      equivalencias: equivalenciasDe(eqCucharada, eqVaso),
     };
     const { error } =
       ingrediente === "nuevo"
@@ -213,8 +244,15 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
             <Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Garbanzos cocidos" />
           </Campo>
         </div>
-        <Campo etiqueta="Se mide en" ayuda={ingrediente !== "nuevo" ? "Cambiarlo no convierte las cantidades ya guardadas." : undefined}>
-          <Opciones opciones={UNIDADES_BASE} valor={unidad} onChange={setUnidad} />
+        <Campo
+          etiqueta="Se mide en"
+          ayuda={enUso ? "No se puede cambiar: ya tiene productos o recetas, y sus cantidades dejarían de cuadrar." : undefined}
+        >
+          {enUso ? (
+            <span className="text-[15px] font-medium">{UNIDADES_BASE.find((u) => u.valor === unidad)?.etiqueta}</span>
+          ) : (
+            <Opciones opciones={UNIDADES_BASE} valor={unidad} onChange={setUnidad} />
+          )}
         </Campo>
         <Campo etiqueta="Sección del súper">
           <Selector value={seccion} onChange={(e) => setSeccion(e.target.value)}>
@@ -244,6 +282,24 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
             <Entrada inputMode="decimal" value={pesoUnidad} onChange={(e) => setPesoUnidad(e.target.value)} placeholder="—" className="w-32" />
           </Campo>
         )}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-suave">Alérgenos</span>
+          <SelectorAlergenos valor={alergenos} onChange={setAlergenos} />
+          <span className="text-xs text-suave">Los de sus productos escaneados se suman solos.</span>
+        </div>
+        {unidad !== "ud" && (
+          <div className="grid grid-cols-2 gap-3">
+            <Campo etiqueta={`1 cucharada = (${unidad})`} ayuda="Por defecto, 15.">
+              <Entrada inputMode="decimal" value={eqCucharada} onChange={(e) => setEqCucharada(e.target.value)} placeholder="15" />
+            </Campo>
+            <Campo etiqueta={`1 vaso = (${unidad})`} ayuda="Por defecto, 200.">
+              <Entrada inputMode="decimal" value={eqVaso} onChange={(e) => setEqVaso(e.target.value)} placeholder="200" />
+            </Campo>
+          </div>
+        )}
+        <Campo etiqueta="Una vez abierto, dura (días)" ayuda="Al marcar un envase como abierto, su caducidad se acorta a esto.">
+          <Entrada inputMode="numeric" value={diasAbrir} onChange={(e) => setDiasAbrir(e.target.value.replace(/\D/g, ""))} placeholder="—" className="w-28" />
+        </Campo>
         <details className="rounded-xl border border-borde px-3.5 py-3">
           <summary className="cursor-pointer text-sm font-medium">Valores nutricionales por 100 g</summary>
           <p className="mt-2 text-xs text-suave">

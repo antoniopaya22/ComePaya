@@ -1,11 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarPlus, Carrot, ChartColumn, ChevronRight, Copy, HeartPulse, LogOut, Plus, RefreshCw, Share2, Store, Users } from "lucide-react";
+import { Bug, CalendarPlus, Carrot, ChartColumn, ChevronRight, Copy, HeartPulse, LogOut, Plus, RefreshCw, Share2, Store, Users } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Contador, Interruptor, Selector } from "@/components/ui/campos";
 import { Cabecera, Etiqueta, Tarjeta } from "@/components/ui/varios";
+import { urlReportarProblema, VERSION } from "@/lib/errores";
 import { supabase } from "@/lib/supabase";
 import type { Tienda } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
@@ -175,6 +176,14 @@ export function AjustesPage() {
                 }}
               />
             )}
+          </Tarjeta>
+        </Bloque>
+
+        <Bloque titulo="Ayuda">
+          <Tarjeta>
+            <a href={urlReportarProblema()} target="_blank" rel="noreferrer" className="block">
+              <Fila icono={<Bug />} titulo="Reportar un problema o una idea" detalle={`Abre un aviso en GitHub con los datos del móvil · versión ${VERSION}`} />
+            </a>
           </Tarjeta>
         </Bloque>
 

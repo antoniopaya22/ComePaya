@@ -11,7 +11,8 @@ import { formatearCantidad, formatearLote } from "@/dominio/unidades";
 import { supabase } from "@/lib/supabase";
 import { mensajeError } from "@/lib/utils";
 import { IngredienteHoja } from "../ajustes/IngredientesPage";
-import { claves, useIngredientes, useLotes, useNutrientesIngredientes, useProductos, useRecetas } from "../datos";
+import { claves, useAlergenosIngredientes, useIngredientes, useLotes, useNutrientesIngredientes, useProductos, useRecetas } from "../datos";
+import { ChipsAlergenos } from "../salud/Alergenos";
 import { useHogar } from "../hogar/HogarProvider";
 import { FichaEsqueleto } from "./ProductoPage";
 
@@ -26,6 +27,7 @@ export function IngredientePage() {
   const { data: lotes = [] } = useLotes();
   const { data: recetas = [] } = useRecetas();
   const nutrientes = useNutrientesIngredientes();
+  const alergenos = useAlergenosIngredientes();
   const [editando, setEditando] = useState(false);
   const ingrediente = ingredientes?.find((i) => i.id === id);
 
@@ -88,6 +90,13 @@ export function IngredientePage() {
           <p className="text-sm text-suave">stock mínimo</p>
         </Tarjeta>
       </div>
+
+      {(alergenos.get(ingrediente.id) ?? []).length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold">Alérgenos</h2>
+          <ChipsAlergenos alergenos={alergenos.get(ingrediente.id) ?? []} />
+        </section>
+      )}
 
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Productos</h2>

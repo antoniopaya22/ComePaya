@@ -1,7 +1,7 @@
 import { EAN_VALIDO } from "../src/dominio/producto-externo";
 import { guardarCatalogo, leerCatalogo } from "./_lib/catalogo";
 import { buscarEnOpenFoodFacts } from "./_lib/openfoodfacts";
-import { json } from "./_lib/supabase-servidor";
+import { json, servidorConfigurado, tokenDe, usuarioDeToken } from "./_lib/supabase-servidor";
 
 /**
  * GET /api/producto?ean=8410188012092
@@ -10,17 +10,18 @@ import { json } from "./_lib/supabase-servidor";
  * 200 → ProductoExterno · 404 → no encontrado · 400 → EAN no válido · 502 → la fuente externa ha fallado.
  */
 export async function GET(request: Request): Promise<Response> {
+  if (servidorConfigurado && !(await usuarioDeToken(tokenDe(request)))) return json({ error: "Sin sesión" }, 401);
   const ean = new URL(request.url).searchParams.get("ean")?.trim() ?? "";
   if (!EAN_VALIDO.test(ean)) return json({ error: "EAN no válido" }, 400);
 
   const enCache = await leerCatalogo(ean);
-  if (enCache) return json(enCache, 200, "public, s-maxage=86400");
+  if (enCache) return json(enCache, 200, "private, max-age=86400");
 
   try {
     const producto = await buscarEnOpenFoodFacts(ean);
-    if (!producto) return json({ error: "Producto no encontrado" }, 404, "public, s-maxage=3600");
+    if (!producto) return json({ error: "Producto no encontrado" }, 404, "private, max-age=3600");
     await guardarCatalogo(producto);
-    return json(producto, 200, "public, s-maxage=86400, stale-while-revalidate=604800");
+    return json(producto, 200, "private, max-age=86400");
   } catch (error) {
     console.error("Fallo consultando Open Food Facts", ean, error);
     return json({ error: "Open Food Facts no responde" }, 502);

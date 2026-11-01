@@ -194,7 +194,10 @@ function EditarProductoHoja({ producto, onCerrar }: { producto: ProductoConIngre
     setIngrediente(producto.ingrediente.nombre);
   }
 
-  const destino = buscarIngrediente(ingrediente, ingredientes);
+  const encontrado = buscarIngrediente(ingrediente, ingredientes);
+  // Solo a un ingrediente con la misma unidad: si no, "6 ud" pasaría a leerse como "6 g".
+  const otraUnidad = Boolean(encontrado && producto && encontrado.unidad_base !== producto.ingrediente.unidad_base);
+  const destino = otraUnidad ? undefined : encontrado;
 
   async function guardar() {
     if (!producto || !destino) return;
@@ -240,7 +243,16 @@ function EditarProductoHoja({ producto, onCerrar }: { producto: ProductoConIngre
         <Campo etiqueta={`Contenido del envase (${destino?.unidad_base ?? producto?.ingrediente.unidad_base})`} ayuda="Cambiarlo no recalcula los lotes que ya hay.">
           <Entrada inputMode="decimal" value={envase} onChange={(e) => setEnvase(e.target.value)} />
         </Campo>
-        <Campo etiqueta="Ingrediente" ayuda={destino ? undefined : "Elige un ingrediente que exista (Ajustes → Ingredientes)."}>
+        <Campo
+          etiqueta="Ingrediente"
+          ayuda={
+            otraUnidad
+              ? "Ese ingrediente se mide en otra unidad: elige uno que se mida igual."
+              : destino
+                ? undefined
+                : "Elige un ingrediente que exista (Ajustes → Ingredientes)."
+          }
+        >
           <Entrada list="producto-ingredientes" value={ingrediente} onChange={(e) => setIngrediente(e.target.value)} />
           <datalist id="producto-ingredientes">
             {ingredientes.map((i) => (

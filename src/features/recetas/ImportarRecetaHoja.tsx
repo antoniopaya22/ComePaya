@@ -5,7 +5,7 @@ import { Boton } from "@/components/ui/boton";
 import { Entrada } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
 import type { RecetaWeb } from "@/dominio/importar";
-import { supabase } from "@/lib/supabase";
+import { llamarApi } from "@/lib/api";
 
 export interface RecetaImportada {
   receta: RecetaWeb;
@@ -24,10 +24,7 @@ export function ImportarRecetaHoja({ abierta, onCerrar }: { abierta: boolean; on
     setCargando(true);
     setError(null);
     try {
-      const { data } = await supabase.auth.getSession();
-      const respuesta = await fetch(`/api/importar-receta?url=${encodeURIComponent(url.trim())}`, {
-        headers: { Authorization: `Bearer ${data.session?.access_token ?? ""}` },
-      });
+      const respuesta = await llamarApi(`/api/importar-receta?url=${encodeURIComponent(url.trim())}`);
       const cuerpo = await respuesta.json().catch(() => ({ error: "Respuesta no válida" }));
       if (!respuesta.ok) return setError(cuerpo.error ?? "No se ha podido importar");
       onCerrar();

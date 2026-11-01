@@ -7,3 +7,8 @@ dev-dist
 *.log
 .env.*.local
 .claude/settings.local.json
+playwright-report
+test-results
+.env.vercel
+instalar-supabase.sql
+programar-recordatorios.sql

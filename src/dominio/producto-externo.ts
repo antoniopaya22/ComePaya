@@ -13,6 +13,8 @@ export interface ProductoExterno {
   nova: 1 | 2 | 3 | 4 | null;
   niveles_nutrientes: Partial<Record<"grasa" | "saturadas" | "azucares" | "sal", NivelNutriente>> | null;
   aditivos: string[];
+  /** Alérgenos oficiales (etiquetas en:gluten…). */
+  alergenos: string[];
   /** 0–1: proporción de datos clave presentes. Por debajo de ~0,6 no se debe dar valoración (§8.1). */
   completitud_datos: number;
   fuente: "openfoodfacts" | "mercadona";

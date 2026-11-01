@@ -9,15 +9,15 @@ import { AreaTexto, Campo, Contador, Entrada, Opciones } from "@/components/ui/c
 import { Estrellas } from "@/components/ui/estrellas";
 import { Cargando, Tarjeta } from "@/components/ui/varios";
 import { parsearLineaIngrediente } from "@/dominio/importar";
-import { datosBaseDe } from "@/dominio/ingredientes-base";
 import { subirFoto } from "@/lib/fotos";
 import { buscarIngrediente } from "@/dominio/lista";
 import { normalizar } from "@/dominio/texto";
-import type { UnidadBase } from "@/dominio/unidades";
+import { formatearCantidad, MEDIDAS_CASERAS, medidaABase, type MedidaCasera, type UnidadBase } from "@/dominio/unidades";
 import { supabase } from "@/lib/supabase";
 import type { RecetaCompleta } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
 import { claves, useIngredientes, useRecetas } from "../datos";
+import { obtenerOCrearIngrediente } from "../despensa/altas";
 import { useHogar } from "../hogar/HogarProvider";
 import type { RecetaImportada } from "./ImportarRecetaHoja";
 
@@ -30,6 +30,8 @@ interface FilaIngrediente {
   /** Texto de la web al importar, para revisar las cantidades aproximadas. */
   original?: string;
   revisar?: boolean;
+  /** "base" (g, ml, ud) o una medida casera que se convierte al guardar. */
+  medida?: "base" | MedidaCasera;
 }
 
 interface FilaPaso {
@@ -163,6 +165,13 @@ export function EditorRecetaPage() {
   const cambiarPaso = (clave: string, cambio: Partial<FilaPaso>) => setPasos(pasos.map((p) => (p.clave === clave ? { ...p, ...cambio } : p)));
 
   const filasUsadas = filas.filter((f) => f.nombre.trim());
+  /** Cantidad de una fila en la unidad base del ingrediente (convierte las medidas caseras). */
+  function cantidadEnBase(f: FilaIngrediente): number | null {
+    if (!f.medida || f.medida === "base") return null;
+    const existente = buscarIngrediente(f.nombre, ingredientes);
+    return medidaABase(numero(f.cantidad), f.medida, existente?.unidad_base ?? f.unidadNueva, existente?.equivalencias ?? null);
+  }
+
   const errorCantidad = filasUsadas.some((f) => !(numero(f.cantidad) > 0));
   const valida = nombre.trim() && filasUsadas.length > 0 && !errorCantidad;
 
@@ -174,18 +183,12 @@ export function EditorRecetaPage() {
       const creados = new Map<string, string>();
       const lineas = [];
       for (const f of filasUsadas) {
-        let ingredienteId = buscarIngrediente(f.nombre, ingredientes)?.id ?? creados.get(normalizar(f.nombre));
+        let ingredienteId = creados.get(normalizar(f.nombre));
         if (!ingredienteId) {
-          const { data, error } = await supabase
-            .from("ingrediente")
-            .insert({ ...datosBaseDe(f.nombre), hogar_id: hogar.id, nombre: f.nombre.trim(), unidad_base: f.unidadNueva })
-            .select("id")
-            .single();
-          if (error) throw error;
-          ingredienteId = data.id as string;
+          ingredienteId = await obtenerOCrearIngrediente(hogar.id, f.nombre, { unidad_base: f.unidadNueva }, ingredientes);
           creados.set(normalizar(f.nombre), ingredienteId);
         }
-        lineas.push({ ingrediente_id: ingredienteId, cantidad: numero(f.cantidad), opcional: f.opcional });
+        lineas.push({ ingrediente_id: ingredienteId, cantidad: cantidadEnBase(f) ?? numero(f.cantidad), opcional: f.opcional });
       }
 
       const { data: recetaId, error } = await supabase.rpc("guardar_receta", {
@@ -332,16 +335,32 @@ export function EditorRecetaPage() {
             <Tarjeta key={f.clave} className="flex flex-col gap-2 p-3">
               <div className="flex gap-2">
                 <Entrada list="receta-ingredientes" value={f.nombre} onChange={(e) => cambiarFila(f.clave, { nombre: e.target.value })} placeholder="Ingrediente" />
-                <div className="relative w-28 shrink-0">
+                <div className={cn("relative shrink-0", unidad === "ud" ? "w-28" : "w-36")}>
                   <Entrada
                     inputMode="decimal"
                     value={f.cantidad}
                     onChange={(e) => cambiarFila(f.clave, { cantidad: e.target.value })}
                     placeholder="0"
-                    className={cn("pr-9 text-right", cantidadMal && "border-peligro")}
+                    className={cn(unidad === "ud" ? "pr-9" : "pr-16", "text-right", cantidadMal && "border-peligro")}
                     aria-label="Cantidad"
                   />
-                  <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-suave">{unidad}</span>
+                  {unidad === "ud" ? (
+                    <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-suave">{unidad}</span>
+                  ) : (
+                    <select
+                      aria-label="Medida"
+                      value={f.medida ?? "base"}
+                      onChange={(e) => cambiarFila(f.clave, { medida: e.target.value as FilaIngrediente["medida"] })}
+                      className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-md bg-transparent py-1 text-sm text-suave outline-none"
+                    >
+                      <option value="base">{unidad}</option>
+                      {MEDIDAS_CASERAS.map((m) => (
+                        <option key={m.valor} value={m.valor}>
+                          {m.etiqueta}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <Boton variante="fantasma" tamano="icono" aria-label="Quitar ingrediente" onClick={() => setFilas(filas.length > 1 ? filas.filter((x) => x.clave !== f.clave) : [filaIngredienteVacia()])}>
                   <X />
@@ -370,6 +389,12 @@ export function EditorRecetaPage() {
                   Opcional
                 </label>
               </div>
+              {f.medida && f.medida !== "base" && numero(f.cantidad) > 0 && unidad !== "ud" && (
+                <p className="text-xs text-suave">
+                  ≈ {formatearCantidad(medidaABase(numero(f.cantidad), f.medida, unidad, existente?.equivalencias ?? null) ?? 0, unidad)}
+                  {existente?.equivalencias?.[f.medida] ? "" : " (equivalencia estándar; ajústala en el ingrediente)"}
+                </p>
+              )}
               {f.original && f.revisar && (
                 <p className="rounded-lg bg-aviso-suave px-2.5 py-1.5 text-xs text-aviso">
                   Revisa la cantidad. En la web: «{f.original}»

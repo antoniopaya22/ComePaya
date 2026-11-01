@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, CircleCheck, Copy, ListChecks, Plane, Plus, Repeat } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleCheck, Copy, ListChecks, Plane, Plus, Repeat, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
@@ -11,11 +11,12 @@ import { supabase } from "@/lib/supabase";
 import { useTiempoReal } from "@/lib/tiempo-real";
 import type { FranjaMenu } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
-import { claves, consultarFranjas, useFranjas, useIngredientes, useLista, useLotes, useRecetas } from "../datos";
+import { claves, consultarFranjas, useFranjas, useIngredientes, useLotes, useRecetas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
 import { describirGeneracion, generarListaDesdeMenu } from "../lista/generar";
 import { EquilibrioSemana } from "../salud/EquilibrioSemana";
 import { FranjaHoja } from "./FranjaHoja";
+import { PlanificarHoja } from "./PlanificarHoja";
 
 const MESES = ["ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "sept.", "oct.", "nov.", "dic."];
 
@@ -35,7 +36,6 @@ export function MenuPage() {
   const { data: recetas = [] } = useRecetas();
   const { data: ingredientes = [] } = useIngredientes();
   const { data: lotes = [] } = useLotes();
-  const { data: items = [] } = useLista();
   useTiempoReal("franja_menu", hogar.id, claves.franjas(hogar.id));
   const [abierta, setAbierta] = useState<{ fecha: FechaISO; tipo: TipoFranja } | null>(null);
   const [generando, setGenerando] = useState(false);
@@ -44,6 +44,7 @@ export function MenuPage() {
   const nombreReceta = (id: string | null) => recetas.find((r) => r.id === id)?.nombre ?? "Receta borrada";
   const planificadas = franjas.filter((f) => f.receta_id || f.fuera_de_casa).length;
   const [copiando, setCopiando] = useState(false);
+  const [planificando, setPlanificando] = useState(false);
 
   // Al abrir, llevar la vista al día de hoy (el domingo, la semana ya va muy abajo).
   useEffect(() => {
@@ -90,8 +91,8 @@ export function MenuPage() {
   async function generarLista() {
     setGenerando(true);
     try {
-      const resultado = await generarListaDesdeMenu({ hogarId: hogar.id, dias: 7, ingredientes, recetas, lotes, items });
-      queryClient.invalidateQueries({ queryKey: claves.lista(hogar.id) });
+      const resultado = await generarListaDesdeMenu({ hogarId: hogar.id, dias: 7, ingredientes, recetas, lotes });
+      await queryClient.invalidateQueries({ queryKey: claves.lista(hogar.id) });
       toast.success(describirGeneracion(resultado), { description: "Con el menú de los próximos 7 días y lo que hay en casa." });
     } catch (error) {
       toast.error(mensajeError(error));
@@ -106,9 +107,14 @@ export function MenuPage() {
         titulo="Menú"
         subtitulo={`${planificadas} de 14 franjas planificadas`}
         accion={
-          <Boton variante="secundario" tamano="sm" onClick={generarLista} disabled={generando}>
-            <ListChecks /> {generando ? "Calculando…" : "A la lista"}
-          </Boton>
+          <div className="flex gap-1.5">
+            <Boton variante="secundario" tamano="icono-sm" aria-label="Rellenar la semana" title="Rellenar la semana" onClick={() => setPlanificando(true)}>
+              <Sparkles />
+            </Boton>
+            <Boton variante="secundario" tamano="sm" onClick={generarLista} disabled={generando}>
+              <ListChecks /> {generando ? "Calculando…" : "A la lista"}
+            </Boton>
+          </div>
         }
       />
 
@@ -197,6 +203,7 @@ export function MenuPage() {
         <EquilibrioSemana franjas={franjas} />
       </div>
 
+      <PlanificarHoja abierta={planificando} lunes={lunes} franjas={franjas} onCerrar={() => setPlanificando(false)} />
       <FranjaHoja
         hueco={abierta}
         franja={abierta ? buscar(abierta.fecha, abierta.tipo) : undefined}

@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { alergenosDeReceta, conflictos } from "@/dominio/alergenos";
 import { diasHasta, hoyISO, sumarDias, type FechaISO } from "@/dominio/caducidad";
 import { contarGrupos, gruposDeReceta, type GrupoAlimento } from "@/dominio/nutricion";
+import type { ContextoSemana } from "@/dominio/planificar";
 import { puntuarRecetas, type Sugerencia } from "@/dominio/sugerencias";
 import { supabase } from "@/lib/supabase";
-import type { FranjaMenu } from "@/lib/tipos";
-import { consultarFranjas, useIngredientes, useLotes, useRecetas, useReglas } from "../datos";
+import type { FranjaMenu, RecetaCompleta } from "@/lib/tipos";
+import { consultarFranjas, useAlergenosIngredientes, useIngredientes, useLotes, useRecetas, useReglas } from "../datos";
 import { stockDeLotes } from "../despensa/stock";
 import { useHogar } from "../hogar/HogarProvider";
 
@@ -14,18 +16,23 @@ const DIAS_RECHAZO = 3;
 
 export const claveRechazos = (hogarId: string) => ["rechazos", hogarId];
 
-/** Sugerencias de recetas para una franja (§9.1), con todo lo que la puntuación necesita saber. */
-export function useSugerencias(fecha: FechaISO, raciones: number, franjaId: string | undefined, franjasSemana: FranjaMenu[]): Sugerencia[] {
+/**
+ * Todo lo que la puntuación de recetas necesita saber de la semana (§9): recetas aptas (sin alérgenos del hogar),
+ * stock, caducidades, grupos ya planificados, cuándo se comió cada plato y rechazos recientes.
+ * `excluir`: franja que se está editando (no cuenta como ya planificada).
+ */
+export function useContextoSemana(desde: FechaISO, franjasSemana: FranjaMenu[], excluir?: string): { aptas: RecetaCompleta[]; base: ContextoSemana } {
   const { hogar } = useHogar();
   const { data: recetas = [] } = useRecetas();
   const { data: ingredientes = [] } = useIngredientes();
   const { data: lotes = [] } = useLotes();
   const { data: reglas = [] } = useReglas();
+  const alergenosIngrediente = useAlergenosIngredientes();
   const hoy = hoyISO();
 
   const { data: historial = [] } = useQuery({
-    queryKey: ["franjas", hogar.id, "historial", fecha],
-    queryFn: () => consultarFranjas(hogar.id, sumarDias(fecha, -30), sumarDias(fecha, -1)),
+    queryKey: ["franjas", hogar.id, "historial", desde],
+    queryFn: () => consultarFranjas(hogar.id, sumarDias(desde, -30), sumarDias(desde, -1)),
   });
   const { data: rechazadas = [] } = useQuery({
     queryKey: [...claveRechazos(hogar.id), hoy],
@@ -50,29 +57,49 @@ export function useSugerencias(fecha: FechaISO, raciones: number, franjaId: stri
     const caducanPronto = new Map<string, { dias: number; nombre: string; fecha: FechaISO }>();
     for (const l of lotes) {
       if (!l.fecha_caducidad) continue;
-      const dias = diasHasta(l.fecha_caducidad, fecha);
-      if (dias < 0 || dias > 5) continue;
+      const dias = diasHasta(l.fecha_caducidad, desde);
+      if (dias < 0 || dias > 10) continue;
       const id = l.producto.ingrediente_id;
       if (dias < (caducanPronto.get(id)?.dias ?? Infinity)) caducanPronto.set(id, { dias, nombre: nombre.get(id) ?? l.producto.nombre, fecha: l.fecha_caducidad });
     }
 
     const ultimaVez = new Map<string, FechaISO>();
-    for (const f of [...historial, ...franjasSemana.filter((f) => f.fecha < fecha)]) {
+    for (const f of [...historial, ...franjasSemana.filter((f) => f.id !== excluir)]) {
       if (f.receta_id && !f.fuera_de_casa && (ultimaVez.get(f.receta_id) ?? "") < f.fecha) ultimaVez.set(f.receta_id, f.fecha);
     }
 
-    return puntuarRecetas(recetas, {
-      fecha,
-      hoy,
-      raciones,
-      stock: stockDeLotes(lotes),
-      basicos: new Set(ingredientes.filter((i) => i.siempre_disponible).map((i) => i.id)),
-      caducanPronto,
-      gruposPorReceta,
-      cuentaGrupos: contarGrupos(franjasSemana.filter((f) => f.id !== franjaId), gruposPorReceta),
-      reglas,
-      ultimaVez,
-      rechazadas: new Set(rechazadas),
-    });
-  }, [recetas, ingredientes, lotes, reglas, historial, rechazadas, franjasSemana, fecha, hoy, raciones, franjaId]);
+    // Nunca se sugiere un plato con alérgenos que afecten al hogar.
+    const aptas = recetas.filter(
+      (r) =>
+        !conflictos(
+          alergenosDeReceta(r.ingredientes.map((ri) => ({ opcional: ri.opcional, alergenos: alergenosIngrediente.get(ri.ingrediente_id) ?? [] }))).contiene,
+          hogar.alergenos ?? [],
+        ).length,
+    );
+
+    return {
+      aptas,
+      base: {
+        hoy,
+        stock: stockDeLotes(lotes),
+        basicos: new Set(ingredientes.filter((i) => i.siempre_disponible).map((i) => i.id)),
+        caducanPronto,
+        gruposPorReceta,
+        cuentaGrupos: contarGrupos(franjasSemana.filter((f) => f.id !== excluir), gruposPorReceta),
+        reglas,
+        ultimaVez,
+        rechazadas: new Set(rechazadas),
+      },
+    };
+  }, [recetas, ingredientes, lotes, reglas, historial, rechazadas, franjasSemana, desde, hoy, excluir, alergenosIngrediente, hogar.alergenos]);
+}
+
+/** Sugerencias de recetas para una franja (§9.1). */
+export function useSugerencias(fecha: FechaISO, raciones: number, franjaId: string | undefined, franjasSemana: FranjaMenu[]): Sugerencia[] {
+  const { aptas, base } = useContextoSemana(fecha, franjasSemana, franjaId);
+  return useMemo(() => {
+    // Para este día, la variedad solo mira hacia atrás.
+    const ultimaVez = new Map([...base.ultimaVez].filter(([, f]) => f < fecha));
+    return puntuarRecetas(aptas, { ...base, fecha, raciones, ultimaVez });
+  }, [aptas, base, fecha, raciones]);
 }

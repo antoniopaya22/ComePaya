@@ -26,6 +26,32 @@ export function formatearLote(cantidad: number, unidad: UnidadBase, cantidadEnva
   return `${numero.format(cantidad / cantidadEnvase)} × ${formatearCantidad(cantidadEnvase, unidad)}`;
 }
 
+/** Medidas caseras y su equivalencia por defecto en ml (para ingredientes en g se toma densidad 1). */
+export const MEDIDAS_CASERAS = [
+  { valor: "cucharada", etiqueta: "cda", nombre: "cucharada", porDefecto: 15 },
+  { valor: "cucharadita", etiqueta: "cdta", nombre: "cucharadita", porDefecto: 5 },
+  { valor: "vaso", etiqueta: "vaso", nombre: "vaso", porDefecto: 200 },
+  { valor: "taza", etiqueta: "taza", nombre: "taza", porDefecto: 240 },
+  { valor: "pizca", etiqueta: "pizca", nombre: "pizca", porDefecto: 0.5 },
+] as const;
+
+export type MedidaCasera = (typeof MEDIDAS_CASERAS)[number]["valor"];
+
+/**
+ * Cuánto es una medida casera en la unidad base del ingrediente. Usa la equivalencia propia del ingrediente
+ * (una cucharada de harina son ~8 g, no 15) o la de por defecto. Los que se cuentan por unidades no admiten medidas.
+ */
+export function equivalencia(medida: MedidaCasera, unidad: UnidadBase, propias: Record<string, number> | null): number | null {
+  if (unidad === "ud") return null;
+  return propias?.[medida] ?? MEDIDAS_CASERAS.find((m) => m.valor === medida)!.porDefecto;
+}
+
+/** "2 cucharadas" de un ingrediente → cantidad en su unidad base (redondeada a 0,1). */
+export function medidaABase(cantidad: number, medida: MedidaCasera, unidad: UnidadBase, propias: Record<string, number> | null): number | null {
+  const factor = equivalencia(medida, unidad, propias);
+  return factor === null ? null : Math.round(cantidad * factor * 10) / 10;
+}
+
 /** Envases → unidad base (lo que se guarda en la base de datos). */
 export function envasesABase(envases: number, cantidadEnvase: number | null): number {
   return envases * (cantidadEnvase ?? 1);

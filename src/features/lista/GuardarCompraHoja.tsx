@@ -12,6 +12,8 @@ import { supabase } from "@/lib/supabase";
 import { UBICACIONES, type Ingrediente, type ItemLista, type ProductoConIngrediente, type Ubicacion } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
 import { claves, useIngredientes, useProductos } from "../datos";
+import { aplicarCambiosDespensa, type CambiosDespensa } from "../despensa/cambios";
+import { SELECT_PRODUCTO } from "../despensa/altas";
 import { useHogar } from "../hogar/HogarProvider";
 
 const NUEVO = "nuevo";
@@ -42,15 +44,15 @@ export function GuardarCompraHoja({ items, abierta, onCerrar }: { items: ItemLis
       items.flatMap((item) => {
         const ingrediente = item.ingrediente_id ? porId.get(item.ingrediente_id) : undefined;
         if (!ingrediente || ingrediente.siempre_disponible) return [];
-        const delIngrediente = productosDe(productos, ingrediente.id);
-        const producto = delIngrediente[0];
+        const producto = productosDe(productos, ingrediente.id)[0];
+        const eleccion = producto?.id ?? NUEVO;
         return [
           {
             item,
             ingrediente,
             incluir: Boolean(producto) || puedeCrearGenerico(item, ingrediente),
-            producto: producto?.id ?? NUEVO,
-            envases: envasesParaCubrir(item.cantidad_base, producto?.cantidad_envase ?? null),
+            producto: eleccion,
+            envases: envasesParaCubrir(item.cantidad_base, envaseDe(eleccion, item, ingrediente)),
             ubicacion: ubicacionPorSeccion(item.seccion_super),
           },
         ];
@@ -59,53 +61,59 @@ export function GuardarCompraHoja({ items, abierta, onCerrar }: { items: ItemLis
     // Se calcula al abrir; después manda lo que el usuario cambie.
   }, [abierta]);
 
-  const cambiar = (id: string, cambio: Partial<Linea>) => setLineas(lineas.map((l) => (l.item.id === id ? { ...l, ...cambio } : l)));
+  /** Contenido de un envase según lo elegido: el del producto, o para uno genérico, 1 ud o la cantidad de la lista. */
+  function envaseDe(eleccion: string, item: ItemLista, ingrediente: Ingrediente): number | null {
+    if (eleccion === NUEVO) return ingrediente.unidad_base === "ud" ? 1 : item.cantidad_base;
+    return productos.find((p) => p.id === eleccion)?.cantidad_envase ?? 1;
+  }
+
+  const cambiar = (id: string, cambio: Partial<Linea>) =>
+    setLineas((previas) =>
+      previas.map((l) => {
+        if (l.item.id !== id) return l;
+        const nueva = { ...l, ...cambio };
+        // Al cambiar de producto se recalculan los envases para cubrir lo que pedía la lista.
+        if (cambio.producto && cambio.producto !== l.producto) nueva.envases = envasesParaCubrir(l.item.cantidad_base, envaseDe(cambio.producto, l.item, l.ingrediente));
+        return nueva;
+      }),
+    );
   const sinDespensa = items.filter((i) => !lineas.some((l) => l.item.id === i.id));
   const aGuardar = lineas.filter((l) => l.incluir);
-
-  async function quitarDeLista() {
-    const { error } = await supabase.from("item_lista").delete().in("id", items.map((i) => i.id));
-    if (error) throw error;
-    queryClient.invalidateQueries({ queryKey: claves.lista(hogar.id) });
-  }
 
   async function guardar(conDespensa: boolean) {
     setGuardando(true);
     try {
+      const cambios: CambiosDespensa = { items_borrar: items.map((i) => i.id), lotes_crear: [], movimientos: [] };
       if (conDespensa) {
         const hoy = hoyISO();
         for (const l of aGuardar) {
           let producto = productos.find((p) => p.id === l.producto);
           if (!producto) {
+            // Producto genérico: se crea una vez y se recuerda en la línea, para no duplicarlo si hay que reintentar.
             const { data, error } = await supabase
               .from("producto")
               .insert({
                 hogar_id: hogar.id,
                 ingrediente_id: l.ingrediente.id,
                 nombre: l.ingrediente.nombre,
-                cantidad_envase: l.ingrediente.unidad_base === "ud" ? 1 : l.item.cantidad_base,
+                cantidad_envase: envaseDe(NUEVO, l.item, l.ingrediente),
               })
-              .select("*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super)")
+              .select(SELECT_PRODUCTO)
               .single();
             if (error) throw error;
             producto = data as ProductoConIngrediente;
+            queryClient.setQueryData<ProductoConIngrediente[]>(claves.productos(hogar.id), (lista) => [...(lista ?? []), producto!]);
+            cambiar(l.item.id, { producto: producto.id });
           }
           const cantidad = envasesABase(l.envases, producto.cantidad_envase);
           const dias = producto.caducidad_habitual_dias ?? l.ingrediente.caducidad_defecto_dias;
-          const { error } = await supabase.from("lote_despensa").insert({
-            hogar_id: hogar.id,
-            producto_id: producto.id,
-            cantidad,
-            ubicacion: l.ubicacion,
-            fecha_caducidad: dias ? sumarDias(hoy, dias) : null,
-          });
-          if (error) throw error;
-          await supabase.from("movimiento_despensa").insert({ hogar_id: hogar.id, producto_id: producto.id, cantidad, tipo: "alta", motivo: "Compra" });
+          cambios.lotes_crear!.push({ producto_id: producto.id, cantidad, ubicacion: l.ubicacion, fecha_caducidad: dias ? sumarDias(hoy, dias) : null });
+          cambios.movimientos!.push({ producto_id: producto.id, cantidad, tipo: "alta", motivo: "Compra" });
         }
-        queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
-        queryClient.invalidateQueries({ queryKey: claves.productos(hogar.id) });
       }
-      await quitarDeLista();
+      // Lotes, movimientos y quitar de la lista, todo o nada: un reintento no duplica la compra.
+      await aplicarCambiosDespensa(hogar.id, cambios);
+      for (const clave of [claves.lotes, claves.productos, claves.lista]) queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
       toast.success(conDespensa && aGuardar.length ? `${aGuardar.length} guardados en la despensa` : `${items.length} quitados de la lista`);
       onCerrar();
     } catch (error) {

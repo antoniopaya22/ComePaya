@@ -11,7 +11,9 @@ export function useCamara(alDetectar: (ean: string) => void) {
   const flujo = useRef<MediaStream | null>(null);
   const detector = useRef<Detector | null>(null);
   const pitido = useRef<(() => void) | null>(null);
-  const ultimo = useRef<{ ean: string; momento: number } | null>(null);
+  // Último momento en que se vio cada código: la espera se aplica por código, no solo al último
+  // (con dos códigos en el encuadre se alternarían y contarían como pasadas nuevas).
+  const vistos = useRef(new Map<string, number>());
   const activo = useRef(false);
   const callback = useRef(alDetectar);
   callback.current = alDetectar;
@@ -31,11 +33,9 @@ export function useCamara(alDetectar: (ean: string) => void) {
 
   const detectado = useCallback((ean: string) => {
     const ahora = Date.now();
-    if (ultimo.current?.ean === ean && ahora - ultimo.current.momento < ESPERA_MISMO_CODIGO_MS) {
-      ultimo.current.momento = ahora;
-      return;
-    }
-    ultimo.current = { ean, momento: ahora };
+    const anterior = vistos.current.get(ean);
+    vistos.current.set(ean, ahora);
+    if (anterior !== undefined && ahora - anterior < ESPERA_MISMO_CODIGO_MS) return;
     pitido.current?.();
     navigator.vibrate?.(80);
     callback.current(ean);

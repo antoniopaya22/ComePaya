@@ -33,7 +33,6 @@ Debe usarse cómodamente desde el móvil, incluido escanear códigos de barras c
 ### Propuesto, pendiente de confirmar
 
 - Procesado del ticket de compra para cargar la despensa (ver §7.4).
-- Planificación semanal automática (ver §9.3).
 
 > Regla para el agente: no tomar como definitivo nada de esta sección sin confirmarlo con el usuario.
 
@@ -318,8 +317,22 @@ Mejoras posteriores (2026-11-01):
 - **Fotos de recetas** (Supabase Storage, reducidas en el móvil) e **importación desde una web** que publique schema.org/Recipe. No contradice "las recetas las crea el usuario": no se genera nada, se copia lo que publica la web y se revisa en el editor (las medidas caseras se convierten de forma aproximada y se marcan para revisar).
 - Tipografía propia (Inter y Fraunces, incluidas en la app), esqueletos de carga, diálogos de confirmación propios y carga diferida de las pantallas menos usadas.
 
+Calidad y mejoras (2026-11-01, segunda tanda):
+- Revisión de código independiente: 20 fallos arreglados (SSRF en la importación, catálogo compartido sobrescribible, lista sin conexión desordenada, operaciones de despensa no atómicas, duplicados al reintentar, etc.).
+- Los cambios de despensa que tocan varias filas (cocinar, guardar la compra, escanear, retirar, abrir) van en una sola transacción: función SQL `aplicar_cambios_despensa`, con cambios relativos para no pisar a otro miembro.
+- **Modo demo** (`npm run dev:demo`): Supabase simulada en memoria con datos de ejemplo. Base de los **tests de pantalla** (Playwright). **CI** en GitHub Actions: tipos, tests, compilación y tests de pantalla.
+- Errores del navegador guardados en `error_cliente`; botón «Reportar un problema» que abre un issue en GitHub con los datos del móvil.
+- **Alérgenos** (14 de la UE): del hogar, por ingrediente (manual + productos de Open Food Facts), avisos en productos y recetas; las sugerencias y la planificación excluyen lo que afecta al hogar.
+- **Producto abierto**: "Lo he abierto" acorta la caducidad según `dias_tras_abrir` del ingrediente, separa el envase abierto del resto y lo pasa a la nevera.
+- **Escáner en modo sacar**: retira un envase por pasada, empezando por lo que antes caduca.
+- **Lista**: habituales con un toque, deslizar para quitar, compartir (WhatsApp), dictado por voz.
+- **Medidas caseras** en recetas (cucharada, cucharadita, vaso, taza, pizca) con equivalencias por ingrediente.
+- Accesos directos al mantener pulsado el icono y contador de caducidades sobre él.
+- Funciones de servidor con sesión obligatoria en producción.
+- **Planificación automática (§9.3), confirmada**: algoritmo voraz sobre la puntuación de sugerencias; no repite plato en la semana, descuenta lo que gasta cada elección y cubre los grupos que faltan. Botón ✨ en el menú.
+
 Pendiente de la fase 7:
-- **Ticket de compra** (§7.4) y **planificación automática** (§9.3): marcados como "propuesto", sin confirmar. El ticket necesitaría un modelo de visión de pago.
+- **Ticket de compra** (§7.4): sin confirmar; con fotos necesitaría un modelo de visión de pago. Alternativa gratuita a estudiar: leer el PDF del ticket digital de Mercadona (hace falta un ticket de ejemplo).
 - **Bot de Telegram**: necesita crear el bot y su token.
 - **Gasto y coste por ración**: requiere guardar precios.
 

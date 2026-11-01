@@ -1,9 +1,8 @@
-import { datosBaseDe } from "@/dominio/ingredientes-base";
-import { buscarIngrediente } from "@/dominio/lista";
 import { dividirRecetas, markdownAReceta, recetaAMarkdown, SEPARADOR_RECETAS, type RecetaMarkdown } from "@/dominio/markdown";
 import { normalizar } from "@/dominio/texto";
 import { supabase } from "@/lib/supabase";
 import type { Ingrediente, RecetaCompleta } from "@/lib/tipos";
+import { obtenerOCrearIngrediente } from "../despensa/altas";
 
 export function aMarkdown(r: RecetaCompleta): string {
   return recetaAMarkdown({
@@ -66,18 +65,9 @@ export async function importar(
     try {
       const lineas = [];
       for (const ing of receta.ingredientes) {
-        let existente = buscarIngrediente(ing.nombre, conocidos);
-        if (!existente) {
-          const { data, error } = await supabase
-            .from("ingrediente")
-            .insert({ ...datosBaseDe(ing.nombre), hogar_id: hogarId, nombre: ing.nombre, unidad_base: ing.unidad })
-            .select("*")
-            .single();
-          if (error) throw error;
-          existente = data as Ingrediente;
-          conocidos.push(existente);
-        }
-        lineas.push({ ingrediente_id: existente.id, cantidad: ing.cantidad, opcional: ing.opcional });
+        const id = await obtenerOCrearIngrediente(hogarId, ing.nombre, { unidad_base: ing.unidad }, conocidos);
+        if (!conocidos.some((c) => c.id === id)) conocidos.push({ id, nombre: ing.nombre } as Ingrediente);
+        lineas.push({ ingrediente_id: id, cantidad: ing.cantidad, opcional: ing.opcional });
       }
       const { error } = await supabase.rpc("guardar_receta", {
         p_receta: {

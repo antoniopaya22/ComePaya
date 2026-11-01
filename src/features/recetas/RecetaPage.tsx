@@ -7,14 +7,16 @@ import { Contador } from "@/components/ui/campos";
 import { Estrellas } from "@/components/ui/estrellas";
 import { Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
 import { diasHasta, hoyISO, sumarDias } from "@/dominio/caducidad";
+import { alergenosDeReceta } from "@/dominio/alergenos";
 import { escalar } from "@/dominio/menu";
 import { supabase } from "@/lib/supabase";
 import { useHogar } from "../hogar/HogarProvider";
 import { FichaEsqueleto } from "../productos/ProductoPage";
 import { formatearCantidad } from "@/dominio/unidades";
 import { cn } from "@/lib/utils";
-import { useIngredientes, useLotes, useRecetas } from "../datos";
+import { useAlergenosIngredientes, useIngredientes, useLotes, useRecetas } from "../datos";
 import { stockDeLotes } from "../despensa/stock";
+import { ChipsAlergenos } from "../salud/Alergenos";
 import { NutricionReceta } from "../salud/NutricionReceta";
 import { aMarkdown, descargar, nombreArchivo } from "./markdown";
 
@@ -45,6 +47,7 @@ export function RecetaPage() {
       return { veces: data.length, ultima: (data[0]?.fecha as string | undefined) ?? null };
     },
   });
+  const alergenosIngrediente = useAlergenosIngredientes();
   const describirHace = (fecha: string) => {
     const dias = diasHasta(hoy, fecha);
     return dias === 0 ? "hoy" : dias === 1 ? "ayer" : `hace ${dias} días`;
@@ -54,6 +57,9 @@ export function RecetaPage() {
   if (!receta) return <Vacio icono={<ArrowLeft />} titulo="Esta receta ya no existe" />;
 
   const racionesVista = raciones ?? receta.raciones;
+  const alergenos = alergenosDeReceta(
+    receta.ingredientes.map((ri) => ({ opcional: ri.opcional, alergenos: alergenosIngrediente.get(ri.ingrediente_id) ?? [] })),
+  );
   const stock = stockDeLotes(lotes);
   const basicos = new Set(ingredientes.filter((i) => i.siempre_disponible).map((i) => i.id));
 
@@ -162,6 +168,13 @@ export function RecetaPage() {
           })}
         </Tarjeta>
       </section>
+
+      {(alergenos.contiene.length > 0 || alergenos.opcionales.length > 0) && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold">Alérgenos</h2>
+          <ChipsAlergenos alergenos={alergenos.contiene} opcionales={alergenos.opcionales} />
+        </section>
+      )}
 
       <NutricionReceta receta={receta} />
 

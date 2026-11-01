@@ -1,11 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Trash2, Utensils } from "lucide-react";
+import { ChevronRight, PackageOpen, Trash2, Utensils } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Contador, Entrada, Opciones } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
+import { abrirEnvase } from "@/dominio/alergenos";
 import { describirCaducidad, hoyISO, type FechaISO } from "@/dominio/caducidad";
 import { baseAEnvases, envasesABase, formatearLote } from "@/dominio/unidades";
 import { supabase } from "@/lib/supabase";
@@ -13,6 +14,7 @@ import { UBICACIONES, type LoteConProducto, type Ubicacion } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { claves } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
+import { aplicarCambiosDespensa } from "./cambios";
 import { SelectorCaducidad } from "./SelectorCaducidad";
 
 /** Retirar todo o parte de un lote (consumido o tirado, §4.1), moverlo de sitio o corregir su caducidad y cantidad. */
@@ -43,13 +45,11 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
     setGuardando(true);
     try {
       const cantidad = Math.min(actual.cantidad, envasesABase(envases, producto.cantidad_envase));
-      const restante = actual.cantidad - cantidad;
-      const { error } =
-        restante > 0
-          ? await supabase.from("lote_despensa").update({ cantidad: restante }).eq("id", actual.id)
-          : await supabase.from("lote_despensa").delete().eq("id", actual.id);
-      if (error) throw error;
-      await supabase.from("movimiento_despensa").insert({ hogar_id: hogar.id, producto_id: producto.id, cantidad: -cantidad, tipo });
+      // Relativo: si otro miembro ha cambiado el lote mientras tanto, no se pisa.
+      await aplicarCambiosDespensa(hogar.id, {
+        lotes_delta: [{ id: actual.id, delta: -cantidad }],
+        movimientos: [{ producto_id: producto.id, cantidad: -cantidad, tipo }],
+      });
       refrescar();
       toast.success(tipo === "consumo" ? "Marcado como consumido" : "Marcado como tirado");
       onCerrar();
@@ -73,12 +73,44 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
     if (!actual) return;
     const nueva = Number(cantidadReal.replace(",", "."));
     if (!(nueva > 0) || nueva === actual.cantidad) return;
-    const { error } = await supabase.from("lote_despensa").update({ cantidad: nueva }).eq("id", actual.id);
-    if (error) return toast.error(mensajeError(error));
-    await supabase.from("movimiento_despensa").insert({ hogar_id: hogar.id, producto_id: producto.id, cantidad: nueva - actual.cantidad, tipo: "ajuste" });
+    try {
+      await aplicarCambiosDespensa(hogar.id, {
+        lotes_actualizar: [{ id: actual.id, cantidad: nueva }],
+        movimientos: [{ producto_id: producto.id, cantidad: nueva - actual.cantidad, tipo: "ajuste" }],
+      });
+    } catch (error) {
+      return toast.error(mensajeError(error));
+    }
     setActual({ ...actual, cantidad: nueva });
     refrescar();
     toast.success("Cantidad corregida");
+  }
+
+  /** Producto abierto: se acorta la caducidad y, si había varios envases, el abierto se separa. */
+  async function abrir() {
+    if (!actual) return;
+    const hoy = hoyISO();
+    const { abierto, restoCerrado } = abrirEnvase(actual, producto.cantidad_envase, producto.ingrediente.dias_tras_abrir, hoy);
+    // Lo que se abre y caduca rápido va a la nevera.
+    const ubicacion: Ubicacion = producto.ingrediente.dias_tras_abrir && actual.ubicacion === "despensa" ? "nevera" : actual.ubicacion;
+    try {
+      await aplicarCambiosDespensa(
+        hogar.id,
+        restoCerrado
+          ? {
+              lotes_actualizar: [{ id: restoCerrado.id, cantidad: restoCerrado.cantidad }],
+              lotes_crear: [{ producto_id: producto.id, cantidad: abierto.cantidad, ubicacion, fecha_caducidad: abierto.fecha_caducidad, abierto_en: hoy }],
+            }
+          : { lotes_actualizar: [{ id: actual.id, ubicacion, fecha_caducidad: abierto.fecha_caducidad, abierto_en: hoy }] },
+      );
+    } catch (error) {
+      return toast.error(mensajeError(error));
+    }
+    refrescar();
+    toast.success("Marcado como abierto", {
+      description: abierto.fecha_caducidad ? `Ahora ${describirCaducidad(abierto.fecha_caducidad, hoy).toLowerCase()}${ubicacion !== actual.ubicacion ? " · a la nevera" : ""}.` : undefined,
+    });
+    onCerrar();
   }
 
   async function mover(ubicacion: Ubicacion) {
@@ -110,6 +142,14 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
         <Campo etiqueta={`Cuánto retiras (hay ${formatearLote(actual.cantidad, producto.ingrediente.unidad_base, producto.cantidad_envase)})`}>
           <Contador valor={envases} onChange={(v) => setEnvases(Math.min(v, total))} min={0} paso={producto.cantidad_envase ? 1 : total > 10 ? 10 : 1} />
         </Campo>
+        {actual.abierto_en ? (
+          <p className="rounded-xl bg-superficie-2 px-3 py-2 text-sm text-suave">Abierto el {new Date(actual.abierto_en + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long" })}</p>
+        ) : (
+          <Boton variante="secundario" onClick={abrir} className="self-start">
+            <PackageOpen /> Lo he abierto
+            {producto.ingrediente.dias_tras_abrir ? <span className="font-normal text-suave">· dura {producto.ingrediente.dias_tras_abrir} días</span> : null}
+          </Boton>
+        )}
         <Campo etiqueta="Mover a">
           <Opciones opciones={UBICACIONES} valor={actual.ubicacion} onChange={mover} />
         </Campo>

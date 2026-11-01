@@ -1,5 +1,5 @@
 import { useMutation, useMutationState, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Check, CloudOff, ListChecks, Pencil, Plus, Refrigerator, Store } from "lucide-react";
+import { CalendarDays, Check, CloudOff, ListChecks, Mic, Pencil, Plus, Refrigerator, Share2, Store } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -7,7 +7,8 @@ import { Boton } from "@/components/ui/boton";
 import { Entrada, Selector } from "@/components/ui/campos";
 import { Cabecera, ListaEsqueleto, Vacio } from "@/components/ui/varios";
 import { emojiPara } from "@/dominio/ingredientes-base";
-import { agruparPorSeccion, buscarIngrediente, parsearEntrada, SECCION_OTROS } from "@/dominio/lista";
+import { agruparPorSeccion, buscarIngrediente, dividirDictado, parsearEntrada, SECCION_OTROS, textoParaCompartir } from "@/dominio/lista";
+import { supabase } from "@/lib/supabase";
 import { useTiempoReal } from "@/lib/tiempo-real";
 import type { ItemLista } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
@@ -16,7 +17,9 @@ import { useHogar } from "../hogar/HogarProvider";
 import { EditarItemHoja } from "./EditarItemHoja";
 import { describirGeneracion, generarListaDesdeMenu } from "./generar";
 import { GuardarCompraHoja } from "./GuardarCompraHoja";
-import { CLAVE_ALTERNAR, CLAVE_ANADIR, useEnLinea, type FilaNueva } from "./sin-conexion";
+import { Habituales } from "./Habituales";
+import { useDictado } from "./useDictado";
+import { AMBITO_LISTA, CLAVE_ALTERNAR, CLAVE_ANADIR, useEnLinea, type FilaNueva } from "./sin-conexion";
 
 export function ListaPage() {
   const { hogar } = useHogar();
@@ -48,6 +51,7 @@ export function ListaPage() {
   // Marcar y añadir son optimistas y funcionan sin conexión: en el súper no se puede esperar a la red.
   const alternar = useMutation<void, Error, { id: string; marcado: boolean }, { anterior?: ItemLista[] }>({
     mutationKey: CLAVE_ALTERNAR,
+    scope: AMBITO_LISTA,
     onMutate: async ({ id, marcado }) => {
       await queryClient.cancelQueries({ queryKey: clave });
       const anterior = queryClient.getQueryData<ItemLista[]>(clave);
@@ -64,6 +68,7 @@ export function ListaPage() {
 
   const anadirFila = useMutation<void, Error, FilaNueva>({
     mutationKey: CLAVE_ANADIR,
+    scope: AMBITO_LISTA,
     onMutate: async (fila) => {
       await queryClient.cancelQueries({ queryKey: clave });
       queryClient.setQueryData<ItemLista[]>(clave, (lista) => [
@@ -77,11 +82,51 @@ export function ListaPage() {
 
   function anadir(e: FormEvent) {
     e.preventDefault();
-    const { texto: nombre, cantidad } = parsearEntrada(texto);
-    if (!nombre) return;
-    const ingrediente = buscarIngrediente(nombre, ingredientes);
+    if (!texto.trim()) return;
+    anadirTexto(texto);
     setTexto("");
     entrada.current?.focus();
+  }
+
+  /** Dictado: "leche, dos kilos de tomates y pan" son tres entradas. */
+  const dictado = useDictado((frase) => {
+    const partes = dividirDictado(frase);
+    partes.forEach(anadirTexto);
+    toast.success(partes.length === 1 ? `Añadido: ${partes[0]}` : `${partes.length} añadidos`);
+  });
+
+  async function compartir() {
+    const texto = textoParaCompartir(grupos);
+    try {
+      if (navigator.share) await navigator.share({ text: texto });
+      else {
+        await navigator.clipboard.writeText(texto);
+        toast.success("Lista copiada");
+      }
+    } catch {
+      // Se cerró el diálogo de compartir.
+    }
+  }
+
+  async function borrar(item: ItemLista) {
+    const { error } = await supabase.from("item_lista").delete().eq("id", item.id);
+    if (error) return toast.error(mensajeError(error));
+    queryClient.invalidateQueries({ queryKey: clave });
+    toast(`${item.texto} quitado`, {
+      action: {
+        label: "Deshacer",
+        onClick: async () => {
+          await supabase.from("item_lista").insert(item);
+          queryClient.invalidateQueries({ queryKey: clave });
+        },
+      },
+    });
+  }
+
+  function anadirTexto(entradaTexto: string) {
+    const { texto: nombre, cantidad } = parsearEntrada(entradaTexto);
+    if (!nombre) return;
+    const ingrediente = buscarIngrediente(nombre, ingredientes);
     anadirFila.mutate({
       id: crypto.randomUUID(),
       hogar_id: hogar.id,
@@ -96,8 +141,8 @@ export function ListaPage() {
   async function desdeElMenu() {
     setGenerando(true);
     try {
-      const resultado = await generarListaDesdeMenu({ hogarId: hogar.id, dias: 7, ingredientes, recetas, lotes, items: items ?? [] });
-      queryClient.invalidateQueries({ queryKey: clave });
+      const resultado = await generarListaDesdeMenu({ hogarId: hogar.id, dias: 7, ingredientes, recetas, lotes });
+      await queryClient.invalidateQueries({ queryKey: clave });
       toast.success(describirGeneracion(resultado), { description: "Con el menú de los próximos 7 días y lo que hay en casa." });
     } catch (error) {
       toast.error(mensajeError(error));
@@ -112,7 +157,13 @@ export function ListaPage() {
         titulo="Lista de la compra"
         subtitulo={items ? (pendientes ? `${pendientes} por comprar` : "Todo comprado") : undefined}
         accion={
-          tiendas.length > 1 && (
+          <div className="flex items-center gap-1">
+          {(items?.length ?? 0) > 0 && (
+            <Boton variante="fantasma" tamano="icono-sm" aria-label="Compartir la lista" title="Compartir (WhatsApp…)" onClick={compartir}>
+              <Share2 />
+            </Boton>
+          )}
+          {tiendas.length > 1 && (
             <label className="flex items-center gap-1.5 text-suave">
               <Store className="size-4" />
               <Selector
@@ -131,7 +182,8 @@ export function ListaPage() {
                 ))}
               </Selector>
             </label>
-          )
+          )}
+          </div>
         }
       />
 
@@ -144,10 +196,25 @@ export function ListaPage() {
         )}
         <form onSubmit={anadir} className="sticky top-0 z-10 -mx-4 flex gap-2 bg-fondo/90 px-4 py-2 backdrop-blur md:mx-0 md:px-0">
           <Entrada ref={entrada} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Añadir… (p. ej. 2 kg tomates)" enterKeyHint="done" />
+          {dictado.disponible && (
+            <Boton
+              type="button"
+              variante={dictado.escuchando ? "peligro" : "secundario"}
+              tamano="icono"
+              aria-label={dictado.escuchando ? "Dejar de escuchar" : "Dictar por voz"}
+              onClick={dictado.escuchando ? dictado.parar : dictado.empezar}
+              className={cn(dictado.escuchando && "animate-pulse")}
+            >
+              <Mic />
+            </Boton>
+          )}
           <Boton type="submit" tamano="icono" aria-label="Añadir" disabled={!texto.trim()}>
             <Plus />
           </Boton>
         </form>
+        {dictado.error && <p className="-mt-3 text-sm text-peligro">{dictado.error}</p>}
+
+        <Habituales items={items ?? []} onAnadir={anadirTexto} />
 
         <Boton variante="secundario" onClick={desdeElMenu} disabled={generando} className="-mt-2 self-start">
           <CalendarDays /> {generando ? "Calculando…" : "Completar desde el menú"}
@@ -177,7 +244,15 @@ export function ListaPage() {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="border-b border-borde last:border-b-0"
+                        className="touch-pan-y border-b border-borde bg-superficie last:border-b-0"
+                        // Deslizar hacia la izquierda quita el elemento (con deshacer).
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        dragElastic={{ left: 0.6, right: 0 }}
+                        dragSnapToOrigin
+                        onDragEnd={(_e, info) => {
+                          if (info.offset.x < -110) borrar(item);
+                        }}
                       >
                         <div className="flex items-center">
                           <button

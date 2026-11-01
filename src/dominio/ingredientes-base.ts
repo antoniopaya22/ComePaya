@@ -15,6 +15,8 @@ export interface IngredienteBase {
   peso_unidad_g: number | null;
   siempre_disponible: boolean;
   emoji: string;
+  alergenos: string[];
+  dias_tras_abrir: number | null;
 }
 
 type Fila = [nombre: string, unidad: UnidadBase, grupo: GrupoAlimento | null, caducidad: number | null, emoji: string, peso?: number, basico?: boolean];
@@ -163,6 +165,40 @@ const POR_SECCION: Record<string, Fila[]> = {
   ],
 };
 
+// Alérgenos habituales de cada ingrediente base (los productos concretos pueden traer más).
+const ALERGENOS_BASE: Record<string, string[]> = {
+  "en:gluten": ["Pan", "Pan de molde", "Pan rallado", "Pasta", "Espaguetis", "Harina", "Copos de avena", "Cuscús", "Galletas", "Cereales de desayuno", "Cerveza", "Croquetas congeladas", "Pizza congelada"],
+  "en:milk": ["Leche", "Yogur natural", "Mantequilla", "Nata para cocinar", "Queso curado", "Queso fresco", "Queso rallado", "Mozzarella", "Helado", "Chocolate", "Pizza congelada", "Croquetas congeladas"],
+  "en:eggs": ["Huevo", "Mayonesa"],
+  "en:fish": ["Merluza", "Salmón", "Bacalao", "Dorada", "Lubina", "Sardinas", "Atún en lata"],
+  "en:crustaceans": ["Gambas"],
+  "en:molluscs": ["Mejillones", "Calamares"],
+  "en:nuts": ["Frutos secos"],
+  "en:sulphur-dioxide-and-sulphites": ["Vino", "Vinagre"],
+};
+
+// Días que aguanta en la nevera una vez abierto (orientativo).
+const DIAS_TRAS_ABRIR: Record<string, number> = {
+  Leche: 4,
+  "Nata para cocinar": 4,
+  "Tomate triturado": 4,
+  "Tomate frito": 5,
+  "Atún en lata": 2,
+  "Garbanzos cocidos": 3,
+  "Lentejas cocidas": 3,
+  "Maíz dulce": 3,
+  Zumo: 4,
+  "Caldo de pollo": 4,
+  "Caldo de verduras": 4,
+  "Jamón cocido": 4,
+  "Jamón serrano": 21,
+  "Queso rallado": 14,
+  Mozzarella: 3,
+  "Pan de molde": 7,
+  Mayonesa: 30,
+  Aceitunas: 14,
+};
+
 export const INGREDIENTES_BASE: IngredienteBase[] = Object.entries(POR_SECCION).flatMap(([seccion, filas]) =>
   filas.map(([nombre, unidad, grupo, caducidad, emoji, peso, basico]) => ({
     nombre,
@@ -173,6 +209,10 @@ export const INGREDIENTES_BASE: IngredienteBase[] = Object.entries(POR_SECCION).
     peso_unidad_g: peso ?? null,
     siempre_disponible: basico ?? false,
     emoji,
+    alergenos: Object.entries(ALERGENOS_BASE)
+      .filter(([, nombres]) => nombres.includes(nombre))
+      .map(([alergeno]) => alergeno),
+    dias_tras_abrir: DIAS_TRAS_ABRIR[nombre] ?? null,
   })),
 );
 

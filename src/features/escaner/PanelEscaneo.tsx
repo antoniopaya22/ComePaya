@@ -8,7 +8,7 @@ import { ingredienteSugerido } from "@/dominio/escaneo";
 import { buscarIngrediente, seccionesDisponibles } from "@/dominio/lista";
 import type { ProductoExterno } from "@/dominio/producto-externo";
 import { envasesABase, formatearCantidad, UNIDADES_BASE, type UnidadBase } from "@/dominio/unidades";
-import { supabase } from "@/lib/supabase";
+import { llamarApi } from "@/lib/api";
 import type { ProductoConIngrediente, Ubicacion } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
 import { useIngredientes, useTiendas } from "../datos";
@@ -133,11 +133,9 @@ export function PanelEscaneo({
         ));
       if (mercadona) {
         // Que el próximo hogar que escanee este código lo encuentre ya (caché compartida).
-        const { data } = await supabase.auth.getSession();
-        fetch("/api/mercadona", {
+        llamarApi("/api/mercadona", {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}` },
-          body: JSON.stringify({ ean: escaneado.ean, producto: mercadona }),
+          body: JSON.stringify({ ean: escaneado.ean, mercadona_id: mercadona.mercadona_id }),
         }).catch(() => {});
       }
       const loteId = await anadirLote(hogar.id, producto, envasesABase(envases, producto.cantidad_envase), ubicacion, caducidad, "Escaneo");
@@ -250,7 +248,7 @@ function BuscadorMercadona({
     if (texto.trim().length < 2) return;
     setBuscando(true);
     try {
-      const respuesta = await fetch(`/api/mercadona?q=${encodeURIComponent(texto.trim())}`);
+      const respuesta = await llamarApi(`/api/mercadona?q=${encodeURIComponent(texto.trim())}`);
       setResultados(respuesta.ok ? await respuesta.json() : []);
     } catch {
       setResultados([]);

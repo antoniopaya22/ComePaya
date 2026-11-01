@@ -10,7 +10,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "iconos": "pwa-assets-generator --preset minimal-2023 public/favicon.svg"
+    "iconos": "pwa-assets-generator --preset minimal-2023 public/favicon.svg",
+    "dev:demo": "vite --config vite.demo.config.ts --mode demo",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",
@@ -34,6 +36,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",

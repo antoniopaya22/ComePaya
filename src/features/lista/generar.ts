@@ -23,9 +23,12 @@ export async function generarListaDesdeMenu(datos: {
   ingredientes: Ingrediente[];
   recetas: RecetaCompleta[];
   lotes: LoteConProducto[];
-  items: ItemLista[];
 }): Promise<ResultadoGeneracion> {
-  const { hogarId, ingredientes, items } = datos;
+  const { hogarId, ingredientes } = datos;
+  // La lista se lee aquí, recién consultada: con la de la caché, dos toques seguidos (o dos miembros) duplicarían.
+  const { data: filasLista, error: errorLista } = await supabase.from("item_lista").select("*").eq("hogar_id", hogarId);
+  if (errorLista) throw errorLista;
+  const items = (filasLista ?? []) as ItemLista[];
   const hoy = hoyISO();
   const franjas = await consultarFranjas(hogarId, hoy, sumarDias(hoy, datos.dias - 1));
   const recetas = new Map<string, RecetaPlan>(datos.recetas.map((r) => [r.id, r]));

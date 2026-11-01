@@ -10,6 +10,7 @@ import { mensajeError } from "@/lib/utils";
 import { useUsuario } from "../sesion/SesionProvider";
 import { claves, useReglas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
+import { SelectorAlergenos } from "./Alergenos";
 
 type Fila = { minimo: string; maximo: string };
 
@@ -18,13 +19,15 @@ export function SaludHoja({ abierta, onCerrar }: { abierta: boolean; onCerrar: (
   const { hogar, rol } = useHogar();
   const usuario = useUsuario();
   const queryClient = useQueryClient();
-  const { data: reglas = [] } = useReglas();
+  const { data: reglas = [], isPending: cargandoReglas } = useReglas();
   const [filas, setFilas] = useState<Record<GrupoAlimento, Fila>>({} as Record<GrupoAlimento, Fila>);
   const [aditivos, setAditivos] = useState("");
+  const [alergenos, setAlergenos] = useState<string[]>([]);
   const [guardando, setGuardando] = useState(false);
 
+  // Se rellena al abrir, cuando ya han llegado las reglas (si no, guardar las borraría).
   useEffect(() => {
-    if (!abierta) return;
+    if (!abierta || cargandoReglas) return;
     const inicial = {} as Record<GrupoAlimento, Fila>;
     for (const g of GRUPOS_ALIMENTO) {
       const r = reglas.find((x) => x.grupo_alimento === g.valor);
@@ -32,7 +35,8 @@ export function SaludHoja({ abierta, onCerrar }: { abierta: boolean; onCerrar: (
     }
     setFilas(inicial);
     setAditivos((hogar.aditivos_vigilados ?? []).join(", "));
-  }, [abierta]);
+    setAlergenos(hogar.alergenos ?? []);
+  }, [abierta, cargandoReglas]);
 
   async function guardar() {
     setGuardando(true);
@@ -46,15 +50,19 @@ export function SaludHoja({ abierta, onCerrar }: { abierta: boolean; onCerrar: (
       if (nuevas.some((r) => r.minimo_semana !== null && r.maximo_semana !== null && r.minimo_semana > r.maximo_semana)) {
         throw new Error("El mínimo no puede ser mayor que el máximo");
       }
-      const { error: errorBorrar } = await supabase.from("regla_semanal").delete().eq("hogar_id", hogar.id);
-      if (errorBorrar) throw errorBorrar;
+      // Primero se guardan las nuevas y después se quitan las que sobran: si algo falla, no se pierden las anteriores.
       if (nuevas.length) {
-        const { error } = await supabase.from("regla_semanal").insert(nuevas);
+        const { error } = await supabase.from("regla_semanal").upsert(nuevas, { onConflict: "hogar_id,grupo_alimento" });
+        if (error) throw error;
+      }
+      const sobran = GRUPOS_ALIMENTO.map((g) => g.valor).filter((g) => !nuevas.some((n) => n.grupo_alimento === g));
+      if (sobran.length) {
+        const { error } = await supabase.from("regla_semanal").delete().eq("hogar_id", hogar.id).in("grupo_alimento", sobran);
         if (error) throw error;
       }
       if (rol === "admin") {
         const vigilados = [...new Set(aditivos.split(/[,\s]+/).map((a) => a.trim().toUpperCase()).filter((a) => /^E\d{3,4}[A-Z]?$/.test(a)))];
-        const { error } = await supabase.from("hogar").update({ aditivos_vigilados: vigilados }).eq("id", hogar.id);
+        const { error } = await supabase.from("hogar").update({ aditivos_vigilados: vigilados, alergenos }).eq("id", hogar.id);
         if (error) throw error;
       }
       queryClient.invalidateQueries({ queryKey: claves.reglas(hogar.id) });
@@ -101,6 +109,11 @@ export function SaludHoja({ abierta, onCerrar }: { abierta: boolean; onCerrar: (
         <Boton variante="fantasma" tamano="sm" className="self-start" onClick={restablecer}>
           Volver a las de referencia
         </Boton>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-suave">Alergias e intolerancias del hogar</span>
+          <SelectorAlergenos valor={alergenos} onChange={setAlergenos} desactivado={rol !== "admin"} />
+          <span className="text-xs text-suave">Se avisará en productos, recetas y sugerencias que los lleven.</span>
+        </div>
         <Campo
           etiqueta="Aditivos que os preocupan"
           ayuda={rol === "admin" ? "E-números separados por comas. Se destacarán en las fichas de producto." : "Solo un administrador del hogar puede cambiarlos."}

@@ -12,6 +12,13 @@ describe("ingredientes base", () => {
     expect(repetidos.map((r) => r.nombre)).toEqual([]);
   });
 
+  it("los alérgenos y días tras abrir apuntan a ingredientes que existen", () => {
+    const conAlergenos = INGREDIENTES_BASE.filter((i) => i.alergenos.length).map((i) => i.nombre);
+    expect(conAlergenos).toContain("Pan");
+    expect(INGREDIENTES_BASE.find((i) => i.nombre === "Leche")).toMatchObject({ alergenos: ["en:milk"], dias_tras_abrir: 4 });
+    expect(INGREDIENTES_BASE.find((i) => i.nombre === "Pizza congelada")?.alergenos).toEqual(["en:gluten", "en:milk"]);
+  });
+
   it("los que se cuentan por unidades llevan peso salvo los no comestibles", () => {
     const sinPeso = INGREDIENTES_BASE.filter((i) => i.unidad_base === "ud" && !i.peso_unidad_g && !["Droguería", "Higiene"].includes(i.seccion_super));
     expect(sinPeso).toEqual([]);

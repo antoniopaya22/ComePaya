@@ -1,3 +1,4 @@
+import { filtrarAlergenos } from "../../src/dominio/alergenos";
 import type { NivelNutriente, Nutrientes100, ProductoExterno } from "../../src/dominio/producto-externo";
 
 // Open Food Facts pide un User-Agent que identifique la app (§6). OFF_CONTACTO permite añadir un contacto.
@@ -18,6 +19,7 @@ const CAMPOS = [
   "nova_group",
   "nutrient_levels",
   "additives_tags",
+  "allergens_tags",
 ].join(",");
 
 /** Busca un EAN en Open Food Facts. Devuelve null si no existe; lanza si el servicio falla. */
@@ -47,6 +49,7 @@ export interface ProductoOFF {
   nova_group?: number | string;
   nutrient_levels?: Record<string, string | undefined>;
   additives_tags?: string[];
+  allergens_tags?: string[];
 }
 
 const NUTRIENTES: [keyof Nutrientes100, string][] = [
@@ -114,6 +117,7 @@ export function normalizarProductoOFF(ean: string, p: ProductoOFF): ProductoExte
     nova,
     niveles_nutrientes: Object.keys(niveles).length ? niveles : null,
     aditivos: (p.additives_tags ?? []).map((tag) => tag.replace(/^en:/, "").toUpperCase()),
+    alergenos: filtrarAlergenos(p.allergens_tags),
     completitud_datos: Math.round((claves.filter((v) => v !== null && v !== undefined).length / claves.length) * 100) / 100,
     fuente: "openfoodfacts",
   };

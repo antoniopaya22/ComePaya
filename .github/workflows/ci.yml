@@ -1,0 +1,37 @@
+# En cada push y pull request: tipos, tests de dominio, compilación y tests de pantalla en modo demo.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tipos
+        run: npm run typecheck
+      - name: Tests de dominio
+        run: npm test
+      - name: Compilación
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://ejemplo.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci
+      - name: Navegador para los tests de pantalla
+        run: npx playwright install --with-deps chromium
+      - name: Tests de pantalla (modo demo)
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: informe-playwright
+          path: playwright-report
+          retention-days: 7

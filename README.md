@@ -18,10 +18,14 @@ Stack: React + Vite + Tailwind en Vercel, Supabase (Postgres, login con Google, 
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173 (también sirve /api)
+npm run dev        # http://localhost:5173 contra tu Supabase (.env.local); también sirve /api
+npm run dev:demo   # http://localhost:5199 con una Supabase simulada y datos de ejemplo, sin cuentas
 npm test           # tests de dominio (Vitest)
+npm run test:e2e   # tests de pantalla (Playwright) contra el modo demo
 npm run build      # comprobación de tipos + compilación
 ```
+
+Cada push a `main` pasa por GitHub Actions ([ci.yml](.github/workflows/ci.yml)): tipos, tests, compilación y tests de pantalla. Los fallos que veáis en el móvil se pueden reportar desde *Ajustes → Reportar un problema* (abre un issue con los datos del dispositivo); los errores del navegador quedan además en la tabla `error_cliente`.
 
 El código de dominio (`src/dominio/`) es TypeScript puro y es donde van los tests. `api/` son funciones de servidor que Vercel despliega solas; en desarrollo las sirve un plugin de Vite (las variables de servidor deben estar en el entorno de la terminal; sin ellas, la caché compartida simplemente no se usa).
 

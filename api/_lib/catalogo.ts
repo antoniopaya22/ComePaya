@@ -23,12 +23,13 @@ export async function leerCatalogo(ean: string): Promise<ProductoExterno | null>
   }
 }
 
-export async function guardarCatalogo(producto: ProductoExterno, mercadonaId?: string): Promise<void> {
+/** `sobrescribir: false` solo crea la ficha si no existía (para datos que no vienen de Open Food Facts). */
+export async function guardarCatalogo(producto: ProductoExterno, mercadonaId?: string, { sobrescribir = true } = {}): Promise<void> {
   if (!servidorConfigurado) return;
   try {
     await rest("catalogo_ean?on_conflict=ean", {
       method: "POST",
-      prefer: "resolution=merge-duplicates,return=minimal",
+      prefer: `resolution=${sobrescribir ? "merge" : "ignore"}-duplicates,return=minimal`,
       body: { ...producto, mercadona_id: mercadonaId ?? null, actualizado: new Date().toISOString() },
     });
   } catch (error) {

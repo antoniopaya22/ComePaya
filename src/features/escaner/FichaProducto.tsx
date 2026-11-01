@@ -4,6 +4,7 @@ import type { NivelNutriente, ProductoExterno } from "@/dominio/producto-externo
 import type { Producto } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { useHogar } from "../hogar/HogarProvider";
+import { ChipsAlergenos } from "../salud/Alergenos";
 
 const COLOR_NUTRISCORE = { a: "#038141", b: "#85bb2f", c: "#fecb02", d: "#ee8100", e: "#e63e11" } as const;
 const COLOR_NOVA = { 1: "#00aa00", 2: "#ffcc00", 3: "#ff6600", 4: "#ff0000" } as const;
@@ -38,6 +39,7 @@ export function productoAExterno(p: Producto): ProductoExterno {
     nova: p.nova,
     niveles_nutrientes: p.niveles_nutrientes,
     aditivos: p.aditivos ?? [],
+    alergenos: p.alergenos ?? [],
     completitud_datos: p.completitud_datos ?? 0,
     fuente: p.fuente === "mercadona" ? "mercadona" : "openfoodfacts",
   };
@@ -128,6 +130,8 @@ export function FichaProducto({ producto, compacta = false }: { producto: Produc
           )}
         </>
       )}
+
+      {producto.alergenos?.length > 0 && <ChipsAlergenos alergenos={producto.alergenos} />}
 
       {vigilados.length > 0 && (
         <p className="flex gap-2 rounded-xl bg-peligro-suave p-3 text-sm font-medium text-peligro">

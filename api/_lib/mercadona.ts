@@ -56,6 +56,30 @@ export function normalizarHitMercadona(hit: HitMercadona): ResultadoMercadona {
   };
 }
 
+interface DetalleMercadona extends HitMercadona {
+  ean?: string | null;
+  photos?: { regular?: string; thumbnail?: string }[];
+}
+
+/** Ficha de un producto de Mercadona por su id, con su código de barras. Null si no existe. */
+export async function obtenerProductoMercadona(id: string, fetchFn: typeof fetch = fetch): Promise<(ResultadoMercadona & { ean: string | null }) | null> {
+  if (!/^\d+(\.\d+)?$/.test(id)) return null;
+  const respuesta = await fetchFn(`https://tienda.mercadona.es/api/products/${id}/`, {
+    headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 (compatible; Despensa/0.1)" },
+    signal: AbortSignal.timeout(5000),
+  });
+  if (respuesta.status === 404) return null;
+  if (!respuesta.ok) throw new Error(`Mercadona respondió ${respuesta.status}`);
+  return normalizarDetalleMercadona((await respuesta.json()) as DetalleMercadona);
+}
+
+export function normalizarDetalleMercadona(d: DetalleMercadona): ResultadoMercadona & { ean: string | null } {
+  return {
+    ...normalizarHitMercadona({ ...d, thumbnail: d.photos?.[0]?.regular ?? d.thumbnail }),
+    ean: d.ean && /^\d{8,14}$/.test(d.ean) ? d.ean : null,
+  };
+}
+
 /** 0,4 kg → 400 g; 1 l → 1000 ml; 250 g → 250 g. Otros formatos (ud, docenas) no se convierten. */
 function envase(tamano: number | null | undefined, formato: string | null | undefined): { cantidad: number | null; unidad: "g" | "ml" | null } {
   if (!tamano || tamano <= 0 || !formato) return { cantidad: null, unidad: null };

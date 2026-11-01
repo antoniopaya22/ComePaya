@@ -49,6 +49,9 @@ function leerCuerpo(req: NodeJS.ReadableStream): Promise<Buffer> {
 }
 
 export default defineConfig({
+  define: {
+    __VERSION__: JSON.stringify(process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local"),
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -75,6 +78,12 @@ export default defineConfig({
         orientation: "portrait",
         background_color: "#f7f6f2",
         theme_color: "#2f6b4f",
+        // Al mantener pulsado el icono de la app en Android.
+        shortcuts: [
+          { name: "Escanear", short_name: "Escanear", url: "/escanear", icons: [{ src: "pwa-192x192.png", sizes: "192x192" }] },
+          { name: "Lista de la compra", short_name: "Lista", url: "/lista", icons: [{ src: "pwa-192x192.png", sizes: "192x192" }] },
+          { name: "Menú de la semana", short_name: "Menú", url: "/menu", icons: [{ src: "pwa-192x192.png", sizes: "192x192" }] },
+        ],
         icons: [
           { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },
           { src: "pwa-512x512.png", sizes: "512x512", type: "image/png" },

@@ -15,7 +15,7 @@ export async function cargarIngredientesBase(hogarId: string, existentes: { nomb
   return faltan.length;
 }
 
-const SELECT_PRODUCTO = "*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super)";
+export const SELECT_PRODUCTO = "*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super, dias_tras_abrir)";
 
 export interface DatosProductoNuevo {
   nombre: string;
@@ -30,23 +30,53 @@ export interface DatosProductoNuevo {
   mercadonaId?: string | null;
 }
 
+const CLAVE_DUPLICADA = "23505";
+
+/**
+ * Id del ingrediente con ese nombre; si no existe, lo crea (con los datos base si es uno habitual).
+ * Mira en la base y no solo en la caché: tras un fallo a medias u otro miembro creándolo a la vez,
+ * reintentar no choca con el índice único de nombre.
+ */
+export async function obtenerOCrearIngrediente(
+  hogarId: string,
+  nombre: string,
+  datos: { unidad_base: UnidadBase; seccion_super?: string },
+  conocidos: Ingrediente[] = [],
+): Promise<string> {
+  const enCache = buscarIngrediente(nombre, conocidos);
+  if (enCache) return enCache.id;
+  const limpio = nombre.trim();
+  const buscar = async () => {
+    const { data } = await supabase
+      .from("ingrediente")
+      .select("id")
+      .eq("hogar_id", hogarId)
+      .ilike("nombre", limpio.replace(/[\\%_]/g, (c) => `\\${c}`))
+      .limit(1);
+    return (data?.[0]?.id as string | undefined) ?? null;
+  };
+  const existente = await buscar();
+  if (existente) return existente;
+  const { data, error } = await supabase
+    .from("ingrediente")
+    .insert({ ...datosBaseDe(limpio), hogar_id: hogarId, nombre: limpio, ...datos })
+    .select("id")
+    .single();
+  if (error?.code === CLAVE_DUPLICADA) {
+    const otra = await buscar();
+    if (otra) return otra;
+  }
+  if (error) throw error;
+  return data.id as string;
+}
+
 /** Crea (si hace falta) el ingrediente y el producto. Con datos externos guarda también su información de salud. */
 export async function crearProducto(hogarId: string, datos: DatosProductoNuevo, ingredientes: Ingrediente[]): Promise<ProductoConIngrediente> {
-  let ingredienteId = buscarIngrediente(datos.ingrediente, ingredientes)?.id;
-  if (!ingredienteId) {
-    const { data, error } = await supabase
-      .from("ingrediente")
-      .insert({
-        ...datosBaseDe(datos.ingrediente),
-        hogar_id: hogarId,
-        nombre: datos.ingrediente.trim(),
-        unidad_base: datos.unidad,
-        seccion_super: datos.seccion,
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-    ingredienteId = data.id as string;
+  const ingredienteId = await obtenerOCrearIngrediente(hogarId, datos.ingrediente, { unidad_base: datos.unidad, seccion_super: datos.seccion }, ingredientes);
+  if (datos.ean) {
+    // Si el producto con ese código ya existe (reintento u otro miembro), se usa.
+    const { data: existente } = await supabase.from("producto").select(SELECT_PRODUCTO).eq("hogar_id", hogarId).eq("ean", datos.ean).maybeSingle();
+    if (existente) return existente as ProductoConIngrediente;
   }
   const externo = datos.externo;
   const { data, error } = await supabase
@@ -65,6 +95,7 @@ export async function crearProducto(hogarId: string, datos: DatosProductoNuevo, 
       nova: externo?.nova ?? null,
       niveles_nutrientes: externo?.niveles_nutrientes ?? null,
       aditivos: externo?.aditivos?.length ? externo.aditivos : null,
+      alergenos: externo?.alergenos?.length ? externo.alergenos : null,
       completitud_datos: externo?.completitud_datos ?? null,
       mercadona_id: datos.mercadonaId ?? null,
     })

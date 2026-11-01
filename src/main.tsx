@@ -1,5 +1,3 @@
-import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
-import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -7,19 +5,14 @@ import { Toaster } from "sonner";
 import { App } from "./App";
 import { ConfirmarProvider } from "./components/ui/confirmar";
 import { registrarMutacionesLista } from "./features/lista/sin-conexion";
+import { persister, queryClient } from "./lib/cache";
+import { instalarCapturaDeErrores } from "./lib/errores";
 import "@fontsource-variable/inter";
 import "@fontsource-variable/fraunces";
 import "./index.css";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    // gcTime largo: lo cacheado se guarda en el dispositivo para abrir la app sin conexión (§4.2).
-    queries: { staleTime: 30_000, gcTime: 7 * 24 * 60 * 60 * 1000, retry: 1 },
-  },
-});
 registrarMutacionesLista(queryClient);
-
-const persister = createSyncStoragePersister({ storage: window.localStorage, key: "despensa.cache" });
+instalarCapturaDeErrores();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

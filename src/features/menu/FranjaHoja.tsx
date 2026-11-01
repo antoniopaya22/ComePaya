@@ -7,15 +7,15 @@ import { Boton } from "@/components/ui/boton";
 import { Campo, Contador, Entrada, Interruptor, Opciones } from "@/components/ui/campos";
 import { Estrellas } from "@/components/ui/estrellas";
 import { Hoja } from "@/components/ui/hoja";
-import type { FechaISO } from "@/dominio/caducidad";
+import { hoyISO, type FechaISO } from "@/dominio/caducidad";
 import { DIAS_SEMANA, racionesACocinar, type TipoFranja } from "@/dominio/menu";
 import { normalizar } from "@/dominio/texto";
 import { supabase } from "@/lib/supabase";
 import type { FranjaMenu } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
-import { claves, useIngredientes, useLotes, useRecetas } from "../datos";
+import { claves, consultarLotes, useIngredientes, useRecetas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
-import { descontarReceta } from "./cocinar";
+import { cocinarFranja } from "./cocinar";
 import { claveRechazos, useSugerencias } from "./useSugerencias";
 
 type Modo = "receta" | "sobras" | "fuera";
@@ -37,7 +37,6 @@ export function FranjaHoja({
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
   const { data: recetas = [] } = useRecetas();
-  const { data: lotes = [] } = useLotes();
   const { data: ingredientes = [] } = useIngredientes();
 
   const [modo, setModo] = useState<Modo>("receta");
@@ -71,7 +70,7 @@ export function FranjaHoja({
   const sugerencias = useSugerencias(actual?.fecha ?? hueco?.fecha ?? "2000-01-01", raciones, franja?.id, franjasSemana);
 
   async function rechazar(id: string) {
-    const { error } = await supabase.from("rechazo_sugerencia").insert({ hogar_id: hogar.id, receta_id: id });
+    const { error } = await supabase.from("rechazo_sugerencia").insert({ hogar_id: hogar.id, receta_id: id, fecha: hoyISO() });
     if (error) return toast.error(mensajeError(error));
     queryClient.invalidateQueries({ queryKey: claveRechazos(hogar.id) });
   }
@@ -92,6 +91,8 @@ export function FranjaHoja({
       raciones,
       fuera_de_casa: modo === "fuera",
       es_sobra_de: modo === "sobras" ? sobraDe : null,
+      // Otro plato distinto ya no está cocinado (si no, dejaría de contar para la lista y los avisos).
+      ...(franja?.cocinado && (modo !== "receta" || franja.receta_id !== recetaId) ? { cocinado: false } : {}),
     };
     setOcupado(true);
     const { error } = await supabase.from("franja_menu").upsert(fila, { onConflict: "hogar_id,fecha,tipo" });
@@ -114,24 +115,33 @@ export function FranjaHoja({
     if (!franja) return;
     setOcupado(true);
     try {
-      const cocinado = !franja.cocinado;
-      if (cocinado && descontar && receta) {
-        // Se cocina también para las franjas que comerán sobras de esta.
-        const racionesCocinadas = racionesACocinar(franjasSemana).get(franja.id) ?? franja.raciones;
-        const faltaba = await descontarReceta({ hogarId: hogar.id, receta, raciones: racionesCocinadas, lotes, ingredientes });
-        queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
-        if (faltaba.length) toast.info("Descontado de la despensa", { description: `No había: ${faltaba.join(", ")}.` });
-        else toast.success("Descontado de la despensa");
-      }
-      if (cocinado && congelar > 0 && receta) {
-        const { error } = await supabase
-          .from("racion_congelada")
-          .insert({ hogar_id: hogar.id, receta_id: receta.id, descripcion: receta.nombre, raciones: congelar });
+      if (franja.cocinado || !receta) {
+        // Desmarcar no devuelve nada a la despensa.
+        const { error } = await supabase.from("franja_menu").update({ cocinado: !franja.cocinado }).eq("id", franja.id);
         if (error) throw error;
+      } else {
+        // Se cocina también para las franjas que comerán sobras de esta. Lotes recién leídos, no de la caché.
+        const racionesCocinadas = racionesACocinar(franjasSemana).get(franja.id) ?? franja.raciones;
+        const lotesFrescos = descontar
+          ? await queryClient.fetchQuery({ queryKey: claves.lotes(hogar.id), queryFn: () => consultarLotes(hogar.id), staleTime: 0 })
+          : [];
+        const faltaba = await cocinarFranja({
+          hogarId: hogar.id,
+          franjaId: franja.id,
+          receta,
+          raciones: racionesCocinadas,
+          descontar,
+          congelar,
+          lotes: lotesFrescos,
+          ingredientes,
+        });
+        queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
         queryClient.invalidateQueries({ queryKey: claves.raciones(hogar.id) });
+        if (descontar) {
+          if (faltaba.length) toast.info("Descontado de la despensa", { description: `No había: ${faltaba.join(", ")}.` });
+          else toast.success("Descontado de la despensa");
+        }
       }
-      const { error } = await supabase.from("franja_menu").update({ cocinado }).eq("id", franja.id);
-      if (error) throw error;
       refrescar();
       onCerrar();
     } catch (error) {

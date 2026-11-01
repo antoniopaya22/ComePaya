@@ -1,8 +1,12 @@
 import { BookOpen, CalendarDays, House, ListChecks, Refrigerator, Settings } from "lucide-react";
 import { motion } from "motion/react";
-import { Suspense } from "react";
-import { NavLink, Outlet } from "react-router";
+import { Suspense, useEffect } from "react";
+import { NavLink, Outlet, useLocation } from "react-router";
+import { FalloPantalla } from "@/components/FalloPantalla";
 import { Cargando } from "@/components/ui/varios";
+import { estadoCaducidad, hoyISO } from "@/dominio/caducidad";
+import { useLotes } from "@/features/datos";
+import { modoDemo } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { useHogar } from "@/features/hogar/HogarProvider";
 
@@ -14,9 +18,23 @@ const SECCIONES = [
   { ruta: "/recetas", etiqueta: "Recetas", icono: BookOpen },
 ];
 
+/** Número sobre el icono de la app instalada: lo que está caducado o caduca en los próximos días. */
+function useContadorEnIcono() {
+  const { data: lotes } = useLotes();
+  useEffect(() => {
+    if (!lotes || !("setAppBadge" in navigator)) return;
+    const hoy = hoyISO();
+    const n = lotes.filter((l) => ["caducado", "pronto"].includes(estadoCaducidad(l.fecha_caducidad, hoy))).length;
+    (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {});
+  }, [lotes]);
+}
+
 /** Móvil: navegación inferior. Escritorio (md+): barra lateral. */
 export function Estructura() {
   const { hogar } = useHogar();
+  // Al cambiar de pantalla se reinicia el aviso de fallo.
+  const location = useLocation();
+  useContadorEnIcono();
 
   return (
     <div className="min-h-dvh md:flex">
@@ -61,9 +79,16 @@ export function Estructura() {
       </aside>
 
       <main className="mx-auto w-full max-w-2xl pb-28 md:px-8 md:pb-12">
-        <Suspense fallback={<Cargando className="min-h-[60dvh]" />}>
-          <Outlet />
-        </Suspense>
+        {modoDemo && (
+          <p className="mx-4 mt-3 rounded-full bg-aviso-suave px-3 py-1 text-center text-xs font-medium text-aviso md:mx-0">
+            Modo demo: datos de ejemplo, se reinician al reiniciar el servidor
+          </p>
+        )}
+        <FalloPantalla key={location.pathname}>
+          <Suspense fallback={<Cargando className="min-h-[60dvh]" />}>
+            <Outlet />
+          </Suspense>
+        </FalloPantalla>
       </main>
 
       <nav className="pb-seguro fixed inset-x-0 bottom-0 z-30 border-t border-borde bg-superficie/90 backdrop-blur-lg md:hidden">

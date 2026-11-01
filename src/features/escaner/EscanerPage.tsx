@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Camera, Flashlight, FlashlightOff, LoaderCircle, ScanBarcode, Undo2, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
@@ -10,12 +10,14 @@ import { Hoja } from "@/components/ui/hoja";
 import { Cabecera, Etiqueta, Tarjeta } from "@/components/ui/varios";
 import { preguntarCaducidad } from "@/dominio/escaneo";
 import type { ProductoExterno } from "@/dominio/producto-externo";
-import { envasesABase } from "@/dominio/unidades";
-import { supabase } from "@/lib/supabase";
-import { UBICACIONES, type Ubicacion } from "@/lib/tipos";
+import { planDescuento } from "@/dominio/despensa";
+import { envasesABase, formatearLote } from "@/dominio/unidades";
+import { llamarApi } from "@/lib/api";
+import { UBICACIONES, type LoteConProducto, type Ubicacion } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
-import { claves, useProductos } from "../datos";
+import { claves, useLotes, useProductos } from "../datos";
 import { anadirLote } from "../despensa/altas";
+import { aplicarCambiosDespensa } from "../despensa/cambios";
 import { useHogar } from "../hogar/HogarProvider";
 import { PanelEscaneo, type Escaneado, type Guardado } from "./PanelEscaneo";
 import { useCamara } from "./useCamara";
@@ -28,11 +30,14 @@ export function EscanerPage() {
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
   const { data: productos = [] } = useProductos();
+  useLotes(); // el modo sacar los necesita cargados
   const [ubicacion, setUbicacion] = useState<Ubicacion>("nevera");
   const [pendientes, setPendientes] = useState<Escaneado[]>([]);
   const [guardados, setGuardados] = useState<Guardado[]>([]);
   const [abierto, setAbierto] = useState<string | null>(null);
   const [repeticiones, setRepeticiones] = useState(0);
+  const [modo, setModo] = useState<"meter" | "sacar">("meter");
+  const enCurso = useRef(new Set<string>());
 
   const refrescar = () => {
     queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
@@ -41,13 +46,54 @@ export function EscanerPage() {
   };
 
   async function sumarUno(guardado: Guardado) {
-    const { data } = await supabase.from("lote_despensa").select("cantidad").eq("id", guardado.loteId).single();
-    const nueva = (data?.cantidad ?? 0) + envasesABase(1, guardado.producto.cantidad_envase);
-    const { error } = await supabase.from("lote_despensa").update({ cantidad: nueva }).eq("id", guardado.loteId);
-    if (error) return toast.error(mensajeError(error));
+    const cantidad = envasesABase(1, guardado.producto.cantidad_envase);
+    try {
+      // Suma atómica sobre lo que haya; falla si el lote ya no existe (se ha consumido entretanto).
+      await aplicarCambiosDespensa(hogar.id, {
+        lotes_delta: [{ id: guardado.loteId, delta: cantidad }],
+        movimientos: [{ producto_id: guardado.producto.id, cantidad, tipo: "alta", motivo: "Escaneo" }],
+      });
+    } catch (error) {
+      return toast.error(mensajeError(error));
+    }
     setGuardados((lista) => lista.map((g) => (g.loteId === guardado.loteId ? { ...g, envases: g.envases + 1 } : g)));
     refrescar();
     toast.success(`+1 ${guardado.producto.nombre}`);
+  }
+
+  /** Modo sacar: retira un envase del producto escaneado, empezando por lo que antes caduca. */
+  async function sacarUno(ean: string) {
+    const producto = productos.find((p) => p.ean === ean);
+    if (!producto) return toast.error("Ese producto no está en vuestra despensa");
+    const lotes = (queryClient.getQueryData<LoteConProducto[]>(claves.lotes(hogar.id)) ?? []).filter((l) => l.producto_id === producto.id);
+    const plan = planDescuento(lotes, envasesABase(1, producto.cantidad_envase));
+    if (!plan.lotes.length) return toast.error(`No queda ${producto.nombre.toLowerCase()} en casa`);
+    try {
+      await aplicarCambiosDespensa(hogar.id, {
+        lotes_delta: plan.lotes.map((c) => ({ id: c.id, delta: -c.consumido })),
+        movimientos: plan.lotes.map((c) => ({ producto_id: producto.id, cantidad: -c.consumido, tipo: "consumo" as const, motivo: "Escaneo" })),
+      });
+    } catch (error) {
+      return toast.error(mensajeError(error));
+    }
+    refrescar();
+    const quedan = lotes.reduce((t, l) => t + l.cantidad, 0) - plan.lotes.reduce((t, c) => t + c.consumido, 0);
+    toast.success(`−1 ${producto.nombre}`, {
+      description: quedan > 0 ? `Quedan ${formatearLote(quedan, producto.ingrediente.unidad_base, producto.cantidad_envase)}` : "Ya no queda",
+      action: {
+        label: "Deshacer",
+        onClick: async () => {
+          await aplicarCambiosDespensa(hogar.id, {
+            lotes_crear: plan.lotes.map((c) => {
+              const lote = lotes.find((l) => l.id === c.id)!;
+              return { producto_id: producto.id, cantidad: c.consumido, ubicacion: lote.ubicacion, fecha_caducidad: lote.fecha_caducidad, abierto_en: lote.abierto_en };
+            }),
+            movimientos: plan.lotes.map((c) => ({ producto_id: producto.id, cantidad: c.consumido, tipo: "ajuste" as const, motivo: "Deshacer escaneo" })),
+          }).catch((e) => toast.error(mensajeError(e)));
+          refrescar();
+        },
+      },
+    });
   }
 
   async function anadirDirecto(ean: string, producto: Guardado["producto"]) {
@@ -60,6 +106,18 @@ export function EscanerPage() {
   }
 
   async function alDetectar(ean: string) {
+    // Un código ya en proceso (red lenta) no se vuelve a procesar: crearía otro lote.
+    if (enCurso.current.has(ean)) return;
+    enCurso.current.add(ean);
+    try {
+      if (modo === "sacar") await sacarUno(ean);
+      else await meter(ean);
+    } finally {
+      enCurso.current.delete(ean);
+    }
+  }
+
+  async function meter(ean: string) {
     // Escanear dos veces el mismo producto suma una unidad (§7.1).
     const yaGuardado = guardados.find((g) => g.ean === ean);
     if (yaGuardado && abierto !== ean) return sumarUno(yaGuardado);
@@ -94,8 +152,14 @@ export function EscanerPage() {
   }
 
   async function deshacer(guardado: Guardado) {
-    const { error } = await supabase.from("lote_despensa").delete().eq("id", guardado.loteId);
-    if (error) return toast.error(mensajeError(error));
+    try {
+      await aplicarCambiosDespensa(hogar.id, {
+        lotes_borrar: [guardado.loteId],
+        movimientos: [{ producto_id: guardado.producto.id, cantidad: -envasesABase(guardado.envases, guardado.producto.cantidad_envase), tipo: "ajuste", motivo: "Deshacer escaneo" }],
+      });
+    } catch (error) {
+      return toast.error(mensajeError(error));
+    }
     setGuardados((lista) => lista.filter((g) => g.loteId !== guardado.loteId));
     refrescar();
   }
@@ -112,12 +176,22 @@ export function EscanerPage() {
       </div>
       <Cabecera
         titulo="Escanear"
-        subtitulo="Todo lo que escanees va a:"
+        subtitulo={modo === "meter" ? "Todo lo que escanees va a:" : "Cada producto escaneado sale de la despensa (lo que antes caduca)"}
         accion={camara.motor && <Etiqueta tono="primario">{camara.motor === "nativo" ? "Detector nativo" : "WebAssembly"}</Etiqueta>}
       />
 
       <div className="flex flex-col gap-4 px-4 md:px-0">
-        <Opciones opciones={UBICACIONES} valor={ubicacion} onChange={setUbicacion} className="-mt-2" />
+        <div className="-mt-2 flex flex-col gap-2">
+          <Opciones
+            opciones={[
+              { valor: "meter" as const, etiqueta: "➕ Meter" },
+              { valor: "sacar" as const, etiqueta: "➖ Sacar" },
+            ]}
+            valor={modo}
+            onChange={setModo}
+          />
+          {modo === "meter" && <Opciones opciones={UBICACIONES} valor={ubicacion} onChange={setUbicacion} />}
+        </div>
 
         <div className="relative aspect-[3/4] w-full overflow-hidden rounded-3xl bg-black md:aspect-video">
           <video ref={camara.video} playsInline muted className={cn("size-full object-cover", camara.estado !== "escaneando" && "opacity-0")} />
@@ -225,7 +299,7 @@ export function EscanerPage() {
 
 async function consultar(ean: string): Promise<Escaneado> {
   try {
-    const respuesta = await fetch(`/api/producto?ean=${ean}`);
+    const respuesta = await llamarApi(`/api/producto?ean=${ean}`);
     if (respuesta.status === 404) return { ean, estado: "desconocido" };
     if (!respuesta.ok) return { ean, estado: "desconocido", aviso: "Open Food Facts no responde ahora mismo." };
     return { ean, estado: "externo", externo: (await respuesta.json()) as ProductoExterno };

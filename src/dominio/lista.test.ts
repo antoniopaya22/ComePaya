@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agruparPorSeccion, buscarIngrediente, parsearEntrada, seccionesDisponibles } from "./lista";
+import { agruparPorSeccion, buscarIngrediente, dividirDictado, habituales, parsearEntrada, seccionesDisponibles, textoParaCompartir } from "./lista";
 
 const item = (id: string, seccion: string, marcado = false, creado_en = `2026-11-01T10:00:0${id}Z`) => ({
   id,
@@ -79,6 +79,42 @@ describe("buscarIngrediente", () => {
   it("no inventa coincidencias parciales", () => {
     expect(buscarIngrediente("tomate frito", ingredientes)).toBeNull();
     expect(buscarIngrediente("", ingredientes)).toBeNull();
+  });
+});
+
+describe("textoParaCompartir", () => {
+  it("solo lo pendiente, por secciones", () => {
+    const grupos = agruparPorSeccion(
+      [
+        { ...item("1", "Panadería"), texto: "Pan", cantidad: null },
+        { ...item("2", "Fruta y verdura"), texto: "Tomate", cantidad: "2 kg" },
+        { ...item("3", "Fruta y verdura", true), texto: "Plátano", cantidad: null },
+      ],
+      ["Fruta y verdura", "Panadería"],
+    );
+    expect(textoParaCompartir(grupos)).toBe("🛒 Lista de la compra\n\n*Fruta y verdura*\n• Tomate (2 kg)\n\n*Panadería*\n• Pan");
+  });
+
+  it("avisa si no queda nada", () => {
+    expect(textoParaCompartir([])).toContain("vacía");
+  });
+});
+
+describe("dividirDictado", () => {
+  it.each([
+    ["leche, dos kilos de tomates y pan", ["leche", "dos kilos de tomates", "pan"]],
+    ["huevos e higos.", ["huevos", "higos"]],
+    ["yogures", ["yogures"]],
+    ["Leche y pan y café", ["Leche", "pan", "café"]],
+  ])("%s", (dictado, esperado) => {
+    expect(dividirDictado(dictado)).toEqual(esperado);
+  });
+});
+
+describe("habituales", () => {
+  it("lo más comprado que no esté ya en la lista, con al menos dos compras", () => {
+    expect(habituales(["leche", "pan", "leche", "huevo", "pan", "leche", "atun"], new Set(["pan"]))).toEqual(["leche"]);
+    expect(habituales(["a", "a", "b", "b", "b"], new Set(), 1)).toEqual(["b"]);
   });
 });
 

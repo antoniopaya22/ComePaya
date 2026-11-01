@@ -9,17 +9,21 @@ import type { ItemLista } from "@/lib/tipos";
 
 export const CLAVE_ALTERNAR = ["lista", "alternar"] as const;
 export const CLAVE_ANADIR = ["lista", "anadir"] as const;
+/** Mismo ámbito para todas: se envían en orden (añadir antes que marcar), también al recuperar la red. */
+export const AMBITO_LISTA = { id: "lista" };
 
 export type FilaNueva = Pick<ItemLista, "id" | "hogar_id" | "texto" | "cantidad" | "ingrediente_id" | "seccion_super" | "creado_en">;
 
 export function registrarMutacionesLista(queryClient: QueryClient) {
   queryClient.setMutationDefaults(CLAVE_ALTERNAR, {
+    scope: AMBITO_LISTA,
     mutationFn: async ({ id, marcado }: { id: string; marcado: boolean }) => {
       const { error } = await supabase.from("item_lista").update({ marcado }).eq("id", id);
       if (error) throw error;
     },
   });
   queryClient.setMutationDefaults(CLAVE_ANADIR, {
+    scope: AMBITO_LISTA,
     mutationFn: async (fila: FilaNueva) => {
       // upsert: si se reintenta tras un corte, no se duplica (el id lo genera el móvil).
       const { error } = await supabase.from("item_lista").upsert(fila, { onConflict: "id", ignoreDuplicates: true });

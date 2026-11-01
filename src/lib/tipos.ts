@@ -20,6 +20,8 @@ export interface Hogar {
   /** Raciones por defecto de cada franja del menú. */
   comensales: number;
   aditivos_vigilados: string[];
+  /** Alérgenos que afectan a alguien del hogar (etiquetas en:gluten…). */
+  alergenos: string[];
   /** Secreto del feed iCal del menú. */
   ical_token: string | null;
   creado_en: string;
@@ -42,6 +44,11 @@ export interface Ingrediente {
   seccion_super: string;
   grupo_alimento: GrupoAlimento | null;
   emoji: string | null;
+  alergenos: string[];
+  /** Días que aguanta abierto (producto abierto). */
+  dias_tras_abrir: number | null;
+  /** Medidas caseras en unidad base: {"cucharada": 8}. */
+  equivalencias: Record<string, number> | null;
   /** Para calcular nutrientes de lo que se cuenta por unidades. */
   peso_unidad_g: number | null;
   nutrientes_100: Nutrientes100 | null;
@@ -66,6 +73,7 @@ export interface Producto {
   nova: ProductoExterno["nova"];
   niveles_nutrientes: ProductoExterno["niveles_nutrientes"];
   aditivos: string[] | null;
+  alergenos: string[] | null;
   completitud_datos: number | null;
   mercadona_id: string | null;
   caducidad_habitual_dias: number | null;
@@ -73,7 +81,7 @@ export interface Producto {
 }
 
 export interface ProductoConIngrediente extends Producto {
-  ingrediente: Pick<Ingrediente, "id" | "nombre" | "unidad_base" | "caducidad_defecto_dias" | "emoji" | "seccion_super">;
+  ingrediente: Pick<Ingrediente, "id" | "nombre" | "unidad_base" | "caducidad_defecto_dias" | "emoji" | "seccion_super" | "dias_tras_abrir">;
 }
 
 export interface Lote {
@@ -83,6 +91,8 @@ export interface Lote {
   cantidad: number;
   ubicacion: Ubicacion;
   fecha_caducidad: FechaISO | null;
+  /** Si se ha abierto, desde cuándo. */
+  abierto_en: FechaISO | null;
   creado_en: string;
 }
 

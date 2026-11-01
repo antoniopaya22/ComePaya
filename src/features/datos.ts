@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { alergenosDeIngrediente, type Alergeno } from "@/dominio/alergenos";
 import { nutrientesDeIngrediente, REGLAS_POR_DEFECTO, type Regla } from "@/dominio/nutricion";
 import type { Nutrientes100 } from "@/dominio/producto-externo";
 import { supabase } from "@/lib/supabase";
@@ -51,6 +52,25 @@ export function useReglas() {
       return reglas.length ? reglas : REGLAS_POR_DEFECTO;
     },
   });
+}
+
+/** Alérgenos de cada ingrediente: los marcados a mano más los de sus productos. */
+export function useAlergenosIngredientes(): Map<string, Alergeno[]> {
+  const { data: ingredientes = [] } = useIngredientes();
+  const { data: productos = [] } = useProductos();
+  return useMemo(
+    () =>
+      new Map(
+        ingredientes.map((i) => [
+          i.id,
+          alergenosDeIngrediente(
+            i.alergenos,
+            productos.filter((p) => p.ingrediente_id === i.id).map((p) => p.alergenos),
+          ),
+        ]),
+      ),
+    [ingredientes, productos],
+  );
 }
 
 /** Nutrientes por 100 g de cada ingrediente: manuales o media de sus productos con datos. */
@@ -132,27 +152,27 @@ export function useProductos() {
       filas<ProductoConIngrediente>(
         supabase
           .from("producto")
-          .select("*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super)")
+          .select("*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super, dias_tras_abrir)")
           .eq("hogar_id", hogar.id)
           .order("nombre"),
       ),
   });
 }
 
+export function consultarLotes(hogarId: string) {
+  return filas<LoteConProducto>(
+    supabase
+      .from("lote_despensa")
+      .select("*, producto:producto(*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super, dias_tras_abrir))")
+      .eq("hogar_id", hogarId)
+      .order("fecha_caducidad", { ascending: true, nullsFirst: false })
+      .order("creado_en"),
+  );
+}
+
 export function useLotes() {
   const { hogar } = useHogar();
-  return useQuery({
-    queryKey: claves.lotes(hogar.id),
-    queryFn: () =>
-      filas<LoteConProducto>(
-        supabase
-          .from("lote_despensa")
-          .select("*, producto:producto(*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super))")
-          .eq("hogar_id", hogar.id)
-          .order("fecha_caducidad", { ascending: true, nullsFirst: false })
-          .order("creado_en"),
-      ),
-  });
+  return useQuery({ queryKey: claves.lotes(hogar.id), queryFn: () => consultarLotes(hogar.id) });
 }
 
 export function useTiendas() {

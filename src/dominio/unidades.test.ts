@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { baseAEnvases, envasesABase, formatearCantidad, formatearLote } from "./unidades";
+import { baseAEnvases, envasesABase, equivalencia, formatearCantidad, formatearLote, medidaABase } from "./unidades";
 
 describe("formatearCantidad", () => {
   it.each([
@@ -26,6 +26,23 @@ describe("formatearLote", () => {
     expect(formatearLote(400, "g", 400)).toBe("400 g");
     expect(formatearLote(12, "ud", 1)).toBe("12 ud");
     expect(formatearLote(6, "ud", 12)).toBe("6 ud");
+  });
+});
+
+describe("medidas caseras", () => {
+  it("usa la equivalencia por defecto", () => {
+    expect(medidaABase(2, "cucharada", "ml", null)).toBe(30);
+    expect(medidaABase(1.5, "vaso", "ml", null)).toBe(300);
+    expect(medidaABase(1, "cucharadita", "g", null)).toBe(5);
+  });
+
+  it("prefiere la equivalencia propia del ingrediente", () => {
+    expect(medidaABase(3, "cucharada", "g", { cucharada: 8 })).toBe(24);
+    expect(equivalencia("taza", "g", { cucharada: 8 })).toBe(240);
+  });
+
+  it("no aplica a lo que se cuenta por unidades", () => {
+    expect(medidaABase(2, "cucharada", "ud", null)).toBeNull();
   });
 });
 

@@ -5,7 +5,6 @@ import { json, rest, servidorConfigurado } from "./_lib/supabase-servidor";
 
 interface Suscripcion {
   id: string;
-  hogar_id: string;
   endpoint: string;
   p256dh: string;
   auth: string;
@@ -43,18 +42,34 @@ export async function POST(request: Request): Promise<Response> {
   ];
   if (!avisos.length) return json({ enviados: 0 });
 
-  const claves = avisos.map((a) => `"${a.clave}"`).join(",");
-  const yaEnviados = new Set((await rest<{ clave: string }[]>(`aviso_enviado?select=clave&clave=in.(${claves})`)).map((a) => a.clave));
-  const pendientes = avisos.filter((a) => !yaEnviados.has(a.clave));
+  // Se reservan antes de enviar: solo se mandan los que se acaban de registrar (no se repiten si la función
+  // se corta a medias o hay dos ejecuciones a la vez).
+  const pendientes = (
+    await rest<{ clave: string }[]>("aviso_enviado?on_conflict=clave", {
+      method: "POST",
+      prefer: "resolution=ignore-duplicates,return=representation",
+      body: avisos.map((a) => ({ clave: a.clave })),
+    })
+  )
+    .map((r) => avisos.find((a) => a.clave === r.clave)!)
+    .filter(Boolean);
   if (!pendientes.length) return json({ enviados: 0 });
 
+  // A los dispositivos de todos los miembros del hogar (aunque los activaran con otro hogar elegido).
   const hogares = [...new Set(pendientes.map((a) => a.hogar_id))].join(",");
-  const suscripciones = await rest<Suscripcion[]>(`suscripcion_push?select=id,hogar_id,endpoint,p256dh,auth&hogar_id=in.(${hogares})`);
+  const miembros = await rest<{ hogar_id: string; user_id: string }[]>(`miembro?select=hogar_id,user_id&hogar_id=in.(${hogares})`);
+  const usuarios = [...new Set(miembros.map((m) => m.user_id))];
+  const suscripciones = usuarios.length
+    ? await rest<(Suscripcion & { user_id: string })[]>(`suscripcion_push?select=id,user_id,endpoint,p256dh,auth&user_id=in.(${usuarios.join(",")})`)
+    : [];
 
   let enviados = 0;
   const caducadas: string[] = [];
+  const sinEntregar: string[] = [];
   for (const aviso of pendientes) {
-    const destinos = suscripciones.filter((s) => s.hogar_id === aviso.hogar_id);
+    const deHogar = new Set(miembros.filter((m) => m.hogar_id === aviso.hogar_id).map((m) => m.user_id));
+    const destinos = suscripciones.filter((s) => deHogar.has(s.user_id));
+    let entregados = 0;
     await Promise.all(
       destinos.map(async (s) => {
         try {
@@ -63,7 +78,7 @@ export async function POST(request: Request): Promise<Response> {
             JSON.stringify({ titulo: aviso.titulo, cuerpo: aviso.cuerpo, url: aviso.url, etiqueta: aviso.clave }),
             { TTL: 3600 },
           );
-          enviados++;
+          entregados++;
         } catch (error) {
           // 404/410: el navegador ya no acepta esa suscripción.
           const estado = (error as { statusCode?: number }).statusCode;
@@ -72,9 +87,12 @@ export async function POST(request: Request): Promise<Response> {
         }
       }),
     );
+    enviados += entregados;
+    // Si había a quién enviarlo y no llegó a ningún dispositivo (fallo temporal), se libera para reintentar.
+    if (destinos.length && !entregados) sinEntregar.push(aviso.clave);
   }
 
-  await rest("aviso_enviado", { method: "POST", prefer: "resolution=ignore-duplicates,return=minimal", body: pendientes.map((a) => ({ clave: a.clave })) });
-  if (caducadas.length) await rest(`suscripcion_push?id=in.(${caducadas.join(",")})`, { method: "DELETE" });
+  if (sinEntregar.length) await rest(`aviso_enviado?clave=in.(${sinEntregar.map((c) => `"${c}"`).join(",")})`, { method: "DELETE" });
+  if (caducadas.length) await rest(`suscripcion_push?id=in.(${[...new Set(caducadas)].join(",")})`, { method: "DELETE" });
   return json({ avisos: pendientes.length, enviados });
 }

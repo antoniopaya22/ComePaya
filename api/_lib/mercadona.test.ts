@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buscarEnMercadona, normalizarHitMercadona } from "./mercadona";
+import { buscarEnMercadona, normalizarDetalleMercadona, normalizarHitMercadona } from "./mercadona";
 
 describe("normalizarHitMercadona", () => {
   it("convierte el envase a la unidad base", () => {
@@ -43,6 +43,26 @@ describe("normalizarHitMercadona", () => {
       foto_url: null,
       precio: null,
     });
+  });
+});
+
+describe("normalizarDetalleMercadona", () => {
+  it("toma la foto grande y el código de barras", () => {
+    expect(
+      normalizarDetalleMercadona({
+        id: "16044",
+        ean: "8402001001536",
+        display_name: "Tomate triturado Hacendado",
+        brand: "Hacendado",
+        packaging: "Bote",
+        photos: [{ regular: "https://prod-mercadona.imgix.net/g.jpg" }],
+        price_instructions: { unit_size: 0.4, size_format: "kg", unit_price: "0.55" },
+      }),
+    ).toMatchObject({ ean: "8402001001536", foto_url: "https://prod-mercadona.imgix.net/g.jpg", cantidad_envase: 400 });
+  });
+
+  it("descarta códigos no válidos", () => {
+    expect(normalizarDetalleMercadona({ id: "1", display_name: "X", ean: "abc" }).ean).toBeNull();
   });
 });
 

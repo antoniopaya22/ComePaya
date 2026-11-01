@@ -15,7 +15,8 @@ export function useTiempoReal(tabla: string, hogarId: string, queryKey: QueryKey
     const refrescar = () => queryClient.invalidateQueries({ queryKey: JSON.parse(clave) as QueryKey });
     const filtro = `hogar_id=eq.${hogarId}`;
     const canal = supabase
-      .channel(`${tabla}:${hogarId}`)
+      // Nombre único por montaje: si se reutilizara uno que aún se está cerrando, se quedaría sin eventos.
+      .channel(`${tabla}:${hogarId}:${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: tabla, filter: filtro }, refrescar)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: tabla, filter: filtro }, refrescar)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: tabla }, refrescar)

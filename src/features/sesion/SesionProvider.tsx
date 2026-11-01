@@ -1,6 +1,8 @@
 import type { Session } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { vaciarCache } from "@/lib/cache";
 import { supabase } from "@/lib/supabase";
+import { desactivarAvisos } from "../ajustes/avisos";
 
 /** undefined mientras se comprueba si hay sesión guardada; null si no hay. */
 const SesionContext = createContext<Session | null | undefined>(undefined);
@@ -35,6 +37,9 @@ export function entrarConGoogle() {
   });
 }
 
-export function cerrarSesion() {
+/** Cierra sesión sin dejar en el dispositivo avisos, datos del hogar ni cambios pendientes de esta cuenta. */
+export async function cerrarSesion() {
+  await desactivarAvisos().catch(() => {});
+  vaciarCache();
   return supabase.auth.signOut();
 }

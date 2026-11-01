@@ -26,9 +26,8 @@ export async function activarAvisos(hogarId: string): Promise<void> {
     (await registro.pushManager.getSubscription()) ??
     (await registro.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: claveABytes(CLAVE_PUBLICA!) }));
   const { endpoint, keys } = suscripcion.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
-  const { error } = await supabase
-    .from("suscripcion_push")
-    .upsert({ hogar_id: hogarId, endpoint, p256dh: keys.p256dh, auth: keys.auth }, { onConflict: "endpoint" });
+  // Por función de servidor: el dispositivo pasa a ser de quien lo activa, aunque antes fuera de otra cuenta.
+  const { error } = await supabase.rpc("registrar_suscripcion_push", { p_hogar_id: hogarId, p_endpoint: endpoint, p_p256dh: keys.p256dh, p_auth: keys.auth });
   if (error) throw error;
 }
 
