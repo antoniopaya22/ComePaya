@@ -9,7 +9,6 @@ import { Cabecera, ListaEsqueleto, Vacio } from "@/components/ui/varios";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { agruparPorSeccion, dividirDictado, textoParaCompartir } from "@/dominio/lista";
 import { supabase } from "@/lib/supabase";
-import { useTiempoReal } from "@/lib/tiempo-real";
 import type { ItemLista } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
 import { claves, guardarTiendaActiva, leerTiendaActiva, useIngredientes, useLista, useLotes, useRecetas, useTiendas } from "../datos";
@@ -31,7 +30,6 @@ export function ListaPage() {
   const { data: tiendas = [] } = useTiendas();
   const { data: recetas = [] } = useRecetas();
   const { data: lotes = [] } = useLotes();
-  useTiempoReal("item_lista", hogar.id, clave);
 
   const [texto, setTexto] = useState("");
   const [editando, setEditando] = useState<ItemLista | null>(null);

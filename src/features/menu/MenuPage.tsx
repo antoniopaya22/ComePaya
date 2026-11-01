@@ -8,7 +8,6 @@ import { hoyISO, sumarDias, type FechaISO } from "@/dominio/caducidad";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { DIAS_SEMANA, diasDeSemana, lunesDe, type TipoFranja } from "@/dominio/menu";
 import { supabase } from "@/lib/supabase";
-import { useTiempoReal } from "@/lib/tiempo-real";
 import type { FranjaMenu } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
 import { claves, consultarFranjas, useFranjas, useIngredientes, useLotes, useRecetas } from "../datos";
@@ -36,7 +35,6 @@ export function MenuPage() {
   const { data: recetas = [] } = useRecetas();
   const { data: ingredientes = [] } = useIngredientes();
   const { data: lotes = [] } = useLotes();
-  useTiempoReal("franja_menu", hogar.id, claves.franjas(hogar.id));
   const [abierta, setAbierta] = useState<{ fecha: FechaISO; tipo: TipoFranja } | null>(null);
   const [generando, setGenerando] = useState(false);
 

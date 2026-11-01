@@ -3,7 +3,8 @@ import { expect, test } from "@playwright/test";
 // Recorridos principales de la app en el modo demo. Cada test parte de los datos de ejemplo.
 test.beforeEach(async ({ request, page }) => {
   await request.get("/demo-supabase/__reiniciar");
-  await page.addInitScript(() => localStorage.removeItem("despensa.cache"));
+  // El recorrido guiado sale solo la primera vez; aquí se da por visto salvo en su propio test.
+  await page.addInitScript(() => localStorage.setItem("comepaya.recorrido-visto", "1"));
 });
 
 test("Hoy muestra el plato del día, lo que caduca y la lista", async ({ page }) => {
@@ -106,4 +107,41 @@ test("Buscador: Ctrl+K encuentra una receta y añade lo que no existe a la lista
   await expect(page.getByText(/añadido a la lista/)).toBeVisible();
   await page.goto("/lista");
   await expect(page.getByRole("button", { name: "Velas de cumpleaños", exact: true })).toBeVisible();
+});
+
+test("Recorrido guiado: sale la primera vez, se recorre y no vuelve a salir", async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem("ya-cargado")) localStorage.removeItem("comepaya.recorrido-visto");
+    sessionStorage.setItem("ya-cargado", "1");
+  });
+  await page.goto("/");
+  const recorrido = page.getByRole("dialog", { name: "Bienvenido a ComePayá" });
+  await expect(recorrido).toBeVisible();
+  await page.getByRole("button", { name: "Empezar" }).click();
+  await expect(page.getByRole("dialog", { name: "Todo a mano" })).toBeVisible();
+  for (let i = 0; i < 4; i++) await page.getByRole("button", { name: "Siguiente" }).click();
+  await expect(page.getByRole("dialog", { name: "Tu hogar, en familia" })).toBeVisible();
+  await page.getByRole("button", { name: "Siguiente" }).click();
+  await page.getByRole("button", { name: "Terminar" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await page.waitForTimeout(1000);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("Primeros pasos: en un hogar vacío guían hacia lo siguiente", async ({ page }) => {
+  for (const tabla of ["lote_despensa", "receta", "item_lista", "franja_menu"]) {
+    await page.route((url) => url.pathname.endsWith(`/rest/v1/${tabla}`), (ruta) =>
+      ruta.request().method() === "GET" ? ruta.fulfill({ json: [] }) : ruta.continue(),
+    );
+  }
+  await page.goto("/");
+  const tarjeta = page.getByRole("region", { name: "Primeros pasos" });
+  await expect(tarjeta).toBeVisible();
+  // En la demo hay dos miembros y no hay avisos push: queda 1 de 5.
+  await expect(tarjeta.getByText("1 de 5 hechos")).toBeVisible();
+  await expect(tarjeta.getByRole("link", { name: /Añade lo que tienes en casa.*Escanear/ })).toHaveAttribute("href", "/escanear");
+  await tarjeta.getByRole("button", { name: "Ocultar primeros pasos" }).click();
+  await expect(tarjeta).toHaveCount(0);
 });

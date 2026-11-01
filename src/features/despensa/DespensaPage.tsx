@@ -10,11 +10,9 @@ import { agruparPorProducto, type GrupoLotes } from "@/dominio/despensa";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { normalizar } from "@/dominio/texto";
 import { formatearLote } from "@/dominio/unidades";
-import { useTiempoReal } from "@/lib/tiempo-real";
 import { UBICACIONES, type LoteConProducto, type Ubicacion } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
-import { claves, useLotes } from "../datos";
-import { useHogar } from "../hogar/HogarProvider";
+import { useLotes } from "../datos";
 import { NuevoLoteHoja } from "./NuevoLoteHoja";
 import { RacionesCongeladas } from "./RacionesCongeladas";
 import { RetirarLoteHoja } from "./RetirarLoteHoja";
@@ -22,9 +20,7 @@ import { RetirarLoteHoja } from "./RetirarLoteHoja";
 const ICONOS: Record<Ubicacion, typeof Refrigerator> = { nevera: Refrigerator, congelador: Snowflake, despensa: Warehouse };
 
 export function DespensaPage() {
-  const { hogar } = useHogar();
   const { data: lotes, isPending } = useLotes();
-  useTiempoReal("lote_despensa", hogar.id, claves.lotes(hogar.id));
 
   const [filtro, setFiltro] = useState<Ubicacion | "todo">("todo");
   const [busqueda, setBusqueda] = useState("");

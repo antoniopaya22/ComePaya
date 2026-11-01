@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useFranjas, useIngredientes, useLista, useLotes, useRecetas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
 import { useUsuario } from "../sesion/SesionProvider";
+import { PrimerosPasos } from "./PrimerosPasos";
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
@@ -66,6 +67,8 @@ export function HoyPage() {
           </h1>
         </div>
       </header>
+
+      {!isPending && <PrimerosPasos franjas={franjas} />}
 
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">

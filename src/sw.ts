@@ -2,7 +2,10 @@
 // Service worker de la PWA: precarga la app para funcionar sin conexión y muestra las notificaciones push.
 import { clientsClaim } from "workbox-core";
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
+import { CacheableResponsePlugin } from "workbox-cacheable-response";
+import { ExpirationPlugin } from "workbox-expiration";
 import { NavigationRoute, registerRoute } from "workbox-routing";
+import { CacheFirst } from "workbox-strategies";
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -11,6 +14,25 @@ clientsClaim();
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html"), { denylist: [/^\/api\//] }));
+
+// Fotos de productos y recetas (Open Food Facts, Mercadona, Supabase Storage) y avatares: se guardan
+// al verlas para que la despensa y el recetario se vean igual sin conexión y no se descarguen otra vez.
+// Se piden con CORS para guardar la respuesta real: una opaca ocupa megas de cuota aunque la foto pese poco.
+// Si el servidor no admite CORS, la foto se muestra igualmente pero no se guarda.
+registerRoute(
+  ({ request, url }) => request.destination === "image" && url.origin !== self.location.origin,
+  new CacheFirst({
+    cacheName: "fotos",
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [200] }),
+      new ExpirationPlugin({ maxEntries: 400, maxAgeSeconds: 60 * 24 * 60 * 60, purgeOnQuotaError: true }),
+      {
+        requestWillFetch: async ({ request }) => new Request(request.url, { mode: "cors", credentials: "omit" }),
+        handlerDidError: async ({ request }) => fetch(request.url, { mode: "no-cors" }).catch(() => undefined),
+      },
+    ],
+  }),
+);
 
 interface DatosPush {
   titulo: string;

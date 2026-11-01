@@ -8,7 +8,6 @@ import { Hoja } from "@/components/ui/hoja";
 import { Tarjeta } from "@/components/ui/varios";
 import { diasHasta, hoyISO } from "@/dominio/caducidad";
 import { supabase } from "@/lib/supabase";
-import { useTiempoReal } from "@/lib/tiempo-real";
 import type { RacionCongelada } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { claves, useRacionesCongeladas } from "../datos";
@@ -19,7 +18,6 @@ export function RacionesCongeladas() {
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
   const { data: raciones = [] } = useRacionesCongeladas();
-  useTiempoReal("racion_congelada", hogar.id, claves.raciones(hogar.id));
   const [nueva, setNueva] = useState(false);
   const hoy = hoyISO();
   const refrescar = () => queryClient.invalidateQueries({ queryKey: claves.raciones(hogar.id) });

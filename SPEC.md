@@ -114,6 +114,12 @@ Los módulos se alimentan entre sí:
 - Sin sesión: landing pública (`/bienvenida`, también accesible con sesión) y login con Google en `/entrar`.
 - Escritorio: barra lateral (selector de hogar, secciones con contadores de lista y caducidades, herramientas, ajustes) y barra superior (buscador, escanear, campana de caducidades, menú de cuenta). Móvil: barra superior compacta y navegación inferior.
 - Buscador global (Ctrl/⌘+K o la lupa): recetas, productos (con cuántos hay en casa), ingredientes, pantallas y acciones; sin tildes ni mayúsculas y exigiendo todas las palabras. Lo que no encuentra se puede añadir a la lista con ↵.
+- Recorrido guiado la primera vez que se entra (se puede repetir desde el menú de cuenta) y tarjeta de "Primeros pasos" en Hoy: añadir a la despensa, guardar una receta, planificar, hacer la lista, invitar a la familia y activar avisos. Lo hecho se recuerda por hogar y la tarjeta se puede cerrar.
+
+### 4.9 Caché y sincronización
+- Los datos del hogar se guardan en el dispositivo (IndexedDB) durante 7 días: la app abre al instante y funciona sin conexión.
+- Una sola suscripción de Supabase Realtime por hogar refresca, en cualquier pantalla, lo que cambia otro miembro (lista, despensa, menú, raciones, recetas e ingredientes). Por eso los datos se consideran frescos 5 minutos; al reconectar o al volver tras más de un minuto en segundo plano se vuelve a pedir todo.
+- El service worker guarda las fotos de productos, recetas y avatares (hasta 400, 60 días) para verlas sin conexión.
 
 ---
 

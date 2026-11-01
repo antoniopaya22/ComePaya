@@ -15,6 +15,7 @@ import {
   ScanBarcode,
   Search,
   Settings,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -29,9 +30,11 @@ import { emojiPara } from "@/dominio/ingredientes-base";
 import { ATAJO_BUSCAR, Buscador, useAtajoBuscar } from "@/features/buscador/Buscador";
 import { useLista, useLotes } from "@/features/datos";
 import { useHogar } from "@/features/hogar/HogarProvider";
+import { iniciarRecorrido, Recorrido } from "@/features/recorrido/Recorrido";
 import { cerrarSesion, useUsuario } from "@/features/sesion/SesionProvider";
 import { urlReportarProblema, VERSION } from "@/lib/errores";
 import { modoDemo } from "@/lib/supabase";
+import { useSincronizacionHogar } from "@/lib/tiempo-real";
 import type { LoteConProducto } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +79,8 @@ function useContadorEnIcono(n: number) {
 export function Estructura() {
   // Al cambiar de pantalla se reinicia el aviso de fallo.
   const location = useLocation();
+  const { hogar } = useHogar();
+  useSincronizacionHogar(hogar.id);
   const urgentes = useUrgentes();
   const { data: lista } = useLista();
   const pendientes = (lista ?? []).filter((i) => !i.marcado).length;
@@ -111,6 +116,7 @@ export function Estructura() {
 
       <NavegacionInferior contadores={contadores} />
       <Buscador abierto={buscando} onCambiar={setBuscando} />
+      <Recorrido />
     </div>
   );
 }
@@ -126,7 +132,7 @@ function BarraLateral({ contadores }: { contadores: Record<string, { n: number; 
         <SelectorHogar />
       </div>
 
-      <nav className="mt-5 flex flex-1 flex-col gap-0.5 overflow-y-auto px-3" aria-label="Principal">
+      <nav className="mt-5 flex flex-1 flex-col gap-0.5 overflow-y-auto px-3" aria-label="Principal" data-recorrido="navegacion">
         <p className="px-3 pb-1.5 text-[11px] font-semibold tracking-wider text-suave uppercase">Cocina</p>
         {SECCIONES.map((s) => (
           <EnlaceLateral key={s.ruta} seccion={s} contador={contadores[s.ruta]} />
@@ -179,7 +185,7 @@ function SelectorHogar() {
   const { hogar, hogares, cambiarHogar, anadirHogar } = useHogar();
   return (
     <Menu>
-      <MenuDisparador className="flex w-full items-center gap-3 rounded-2xl border border-borde bg-fondo px-3 py-2 text-left transition-colors hover:bg-superficie-2 data-[state=open]:bg-superficie-2">
+      <MenuDisparador data-recorrido="hogar" className="flex w-full items-center gap-3 rounded-2xl border border-borde bg-fondo px-3 py-2 text-left transition-colors hover:bg-superficie-2 data-[state=open]:bg-superficie-2">
         <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primario-suave text-sm font-semibold text-primario">
           {iniciales(hogar.nombre)}
         </span>
@@ -218,6 +224,7 @@ function BarraSuperior({ urgentes, onBuscar }: { urgentes: LoteConProducto[]; on
         {/* Escritorio: campo de búsqueda. */}
         <button
           onClick={onBuscar}
+          data-recorrido="buscar"
           className="hidden h-10 w-full max-w-md items-center gap-3 rounded-xl border border-borde bg-superficie px-3 text-sm text-suave shadow-xs transition-colors hover:border-primario/40 md:flex"
         >
           <Search className="size-4" />
@@ -226,16 +233,17 @@ function BarraSuperior({ urgentes, onBuscar }: { urgentes: LoteConProducto[]; on
         </button>
 
         <div className="ml-auto flex items-center gap-1">
-          <BotonIcono etiqueta="Buscar" onClick={onBuscar} className="md:hidden">
+          <BotonIcono etiqueta="Buscar" onClick={onBuscar} className="md:hidden" data-recorrido="buscar">
             <Search />
           </BotonIcono>
           <Link
             to="/escanear"
+            data-recorrido="escanear"
             className="hidden h-10 items-center gap-2 rounded-xl bg-primario px-3.5 text-sm font-semibold text-primario-texto shadow-sm transition-colors hover:bg-primario-hover lg:flex"
           >
             <ScanBarcode className="size-4" /> Escanear
           </Link>
-          <Link to="/escanear" aria-label="Escanear" className="grid size-10 place-items-center rounded-xl text-suave transition-colors hover:bg-superficie-2 hover:text-texto lg:hidden [&_svg]:size-5">
+          <Link to="/escanear" aria-label="Escanear" data-recorrido="escanear" className="grid size-10 place-items-center rounded-xl text-suave transition-colors hover:bg-superficie-2 hover:text-texto lg:hidden [&_svg]:size-5">
             <ScanBarcode />
           </Link>
           <Avisos urgentes={urgentes} />
@@ -264,7 +272,7 @@ function Avisos({ urgentes }: { urgentes: LoteConProducto[] }) {
   return (
     <Menu>
       <MenuDisparador asChild>
-        <BotonIcono etiqueta={urgentes.length ? `${urgentes.length} avisos de caducidad` : "Avisos"}>
+        <BotonIcono etiqueta={urgentes.length ? `${urgentes.length} avisos de caducidad` : "Avisos"} data-recorrido="avisos">
           <Bell />
           {urgentes.length > 0 && (
             <span className="absolute top-1.5 right-1.5 grid min-w-4 place-items-center rounded-full bg-aviso px-1 text-[10px] leading-4 font-bold text-white ring-2 ring-fondo">
@@ -311,7 +319,7 @@ function MenuUsuario() {
   const nombre: string = usuario.user_metadata.full_name ?? usuario.user_metadata.name ?? usuario.email ?? "";
   return (
     <Menu>
-      <MenuDisparador className="ml-1 rounded-full ring-offset-2 ring-offset-fondo outline-none focus-visible:ring-2 focus-visible:ring-primario" aria-label="Tu cuenta">
+      <MenuDisparador data-recorrido="hogar" className="ml-1 rounded-full ring-offset-2 ring-offset-fondo outline-none focus-visible:ring-2 focus-visible:ring-primario" aria-label="Tu cuenta">
         <Avatar url={usuario.user_metadata.avatar_url} nombre={nombre} />
       </MenuDisparador>
       <MenuContenido className="w-64">
@@ -329,6 +337,9 @@ function MenuUsuario() {
         </MenuOpcion>
         <MenuOpcion onSelect={() => navigate("/ajustes/estadisticas")}>
           <BarChart3 /> Estadísticas
+        </MenuOpcion>
+        <MenuOpcion onSelect={iniciarRecorrido}>
+          <Sparkles /> Ver el recorrido
         </MenuOpcion>
         <MenuOpcion onSelect={() => window.open(urlReportarProblema(), "_blank", "noopener")}>
           <Bug /> Reportar un problema
@@ -354,7 +365,7 @@ function Avatar({ url, nombre }: { url?: string; nombre: string }) {
 
 function NavegacionInferior({ contadores }: { contadores: Record<string, { n: number; aviso?: boolean }> }) {
   return (
-    <nav className="pb-seguro fixed inset-x-0 bottom-0 z-30 border-t border-borde bg-superficie/90 backdrop-blur-lg md:hidden" aria-label="Principal">
+    <nav className="pb-seguro fixed inset-x-0 bottom-0 z-30 border-t border-borde bg-superficie/90 backdrop-blur-lg md:hidden" aria-label="Principal" data-recorrido="navegacion">
       <div className="mx-auto flex max-w-md">
         {SECCIONES.map(({ ruta, etiqueta, icono: Icono }) => {
           const contador = contadores[ruta];
