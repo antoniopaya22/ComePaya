@@ -161,12 +161,13 @@ export function datosIniciales(hoy: FechaISO): Tablas {
     ...extra,
   });
   const indiceHoy = Math.round((Date.parse(hoy) - Date.parse(lunes)) / 86_400_000);
+  // Lo de hoy va primero: si coincide con otra franja (lunes y martes), se queda lo de hoy.
   const franjas = [
+    franja("f4", indiceHoy, "comida", { receta_id: "r-pollo" }),
+    franja("f5", Math.min(6, indiceHoy + 1), "cena", { receta_id: "r-tortilla" }),
     franja("f1", 0, "comida", { receta_id: "r-lentejas", cocinado: indiceHoy > 0 }),
     franja("f2", 1, "comida", { receta_id: "r-lentejas", es_sobra_de: "f1", cocinado: indiceHoy > 1 }),
     franja("f3", 2, "cena", { fuera_de_casa: true }),
-    franja("f4", indiceHoy, "comida", { receta_id: "r-pollo" }),
-    franja("f5", Math.min(6, indiceHoy + 1), "cena", { receta_id: "r-tortilla" }),
   ].filter((f, i, todas) => todas.findIndex((x) => x.fecha === f.fecha && x.tipo === f.tipo) === i);
 
   return {
