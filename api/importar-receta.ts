@@ -18,7 +18,7 @@ export async function GET(request: Request): Promise<Response> {
   let html: string;
   try {
     const { status, texto } = await leerUrlPublica(url, TAMANO_MAXIMO, {
-      "User-Agent": "Mozilla/5.0 (compatible; Despensa/0.1; importador de recetas)",
+      "User-Agent": "Mozilla/5.0 (compatible; ComePaya/0.1; importador de recetas)",
       Accept: "text/html",
     });
     // No se reenvía el código exacto de la web para no dar pistas de qué hay detrás.

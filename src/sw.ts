@@ -20,7 +20,7 @@ interface DatosPush {
 }
 
 self.addEventListener("push", (evento) => {
-  const datos = (evento.data?.json() ?? { titulo: "Despensa", cuerpo: "" }) as DatosPush;
+  const datos = (evento.data?.json() ?? { titulo: "ComePayá", cuerpo: "" }) as DatosPush;
   evento.waitUntil(
     self.registration.showNotification(datos.titulo, {
       body: datos.cuerpo,

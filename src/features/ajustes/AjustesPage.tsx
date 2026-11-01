@@ -27,10 +27,10 @@ export function AjustesPage() {
   const [salud, setSalud] = useState(false);
 
   async function compartirCodigo() {
-    const texto = `Únete a «${hogar.nombre}» en Despensa con el código ${hogar.codigo_invitacion}: ${window.location.origin}`;
+    const texto = `Únete a «${hogar.nombre}» en ComePayá con el código ${hogar.codigo_invitacion}: ${window.location.origin}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Despensa", text: texto });
+        await navigator.share({ title: "ComePayá", text: texto });
       } catch {
         // El usuario ha cerrado el diálogo de compartir.
       }

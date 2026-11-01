@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { ArrowLeft, CalendarDays, ListChecks, LoaderCircle, ScanBarcode } from "lucide-react";
 import { motion } from "motion/react";
+import { useState, type ReactNode } from "react";
+import { Link } from "react-router";
 import { toast } from "sonner";
-import { Boton } from "@/components/ui/boton";
+import { Logo } from "@/components/Logo";
 import { mensajeError } from "@/lib/utils";
 import { entrarConGoogle } from "./SesionProvider";
 
+/** Entrada con Google. En escritorio, a dos columnas: la marca a la izquierda y el acceso a la derecha. */
 export function PantallaLogin() {
   const [entrando, setEntrando] = useState(false);
 
@@ -18,30 +21,75 @@ export function PantallaLogin() {
   }
 
   return (
-    <main className="pb-seguro flex min-h-dvh flex-col items-center justify-center px-6">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="flex w-full max-w-sm flex-col items-center text-center"
-      >
-        <img src="/favicon.svg" alt="" className="size-20 rounded-[22px] shadow-lg" />
-        <h1 className="mt-6 text-3xl font-bold tracking-tight">Despensa</h1>
-        <p className="mt-2 text-suave">Lo que hay en casa, lo que falta y lo que vais a comer, en un solo sitio.</p>
+    <main className="grid min-h-dvh md:grid-cols-2">
+      <PanelMarca>
+        <h2 className="text-4xl leading-tight font-semibold text-balance lg:text-5xl">Lo que hay en casa, lo que falta y lo que vais a comer.</h2>
+        <ul className="mt-10 flex flex-col gap-5 text-white/85">
+          <Ventaja icono={<ScanBarcode />}>Escanea la compra y guarda caducidades sin escribir.</Ventaja>
+          <Ventaja icono={<CalendarDays />}>Planifica comidas y cenas con sugerencias de lo que ya tenéis.</Ventaja>
+          <Ventaja icono={<ListChecks />}>Una lista de la compra que se hace sola y se comparte al momento.</Ventaja>
+        </ul>
+      </PanelMarca>
 
-        <Boton tamano="lg" variante="contorno" className="mt-10 w-full" onClick={entrar} disabled={entrando}>
-          <LogoGoogle />
-          {entrando ? "Abriendo Google…" : "Entrar con Google"}
-        </Boton>
-        <p className="mt-4 text-xs text-suave">Usa tu cuenta de Google. Después podrás crear tu hogar o unirte al de tu familia.</p>
-      </motion.div>
+      <section className="pb-seguro relative flex flex-col px-6 py-6 sm:px-10">
+        <Link to="/bienvenida" className="inline-flex items-center gap-1 self-start text-sm text-suave hover:text-texto">
+          <ArrowLeft className="size-4" /> Inicio
+        </Link>
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10"
+        >
+          <Logo tamano="lg" className="md:hidden" />
+          <h1 className="mt-8 text-3xl font-semibold md:mt-0">Entra en tu cocina</h1>
+          <p className="mt-2 text-suave">Usa tu cuenta de Google. Si es la primera vez, crearás tu hogar o te unirás al de tu familia con su código.</p>
+
+          <button
+            onClick={entrar}
+            disabled={entrando}
+            className="mt-8 flex h-13 w-full items-center justify-center gap-3 rounded-2xl border border-borde bg-superficie text-base font-semibold shadow-sm transition-[background-color,transform] hover:bg-superficie-2 active:scale-[0.98] disabled:opacity-60"
+          >
+            {entrando ? <LoaderCircle className="size-5 animate-spin" /> : <LogoGoogle />}
+            {entrando ? "Abriendo Google…" : "Continuar con Google"}
+          </button>
+
+          <p className="mt-6 text-center text-xs leading-relaxed text-suave">
+            Solo usamos tu nombre y tu correo para identificarte en tu hogar. Sin anuncios y sin compartir tus datos.
+          </p>
+        </motion.div>
+      </section>
     </main>
+  );
+}
+
+/** Columna verde con el logo, para login y alta de hogar. Oculta en móvil. */
+export function PanelMarca({ children }: { children: ReactNode }) {
+  return (
+    <aside className="relative hidden flex-col justify-between overflow-hidden bg-[#1f4a36] p-10 text-white md:flex lg:p-14">
+      <div className="pointer-events-none absolute -top-32 -right-32 size-96 rounded-full bg-[#2f6b4f] blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -left-24 size-96 rounded-full bg-[#14301f] blur-3xl" />
+      <Link to="/bienvenida" className="relative">
+        <Logo tamano="lg" claro />
+      </Link>
+      <div className="relative max-w-md">{children}</div>
+      <p className="relative text-sm text-white/50">ComePayá · Hecho en casa</p>
+    </aside>
+  );
+}
+
+function Ventaja({ icono, children }: { icono: ReactNode; children: ReactNode }) {
+  return (
+    <li className="flex items-start gap-3">
+      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10 [&_svg]:size-5">{icono}</span>
+      <span className="pt-1.5">{children}</span>
+    </li>
   );
 }
 
 function LogoGoogle() {
   return (
-    <svg viewBox="0 0 48 48" aria-hidden="true">
+    <svg viewBox="0 0 48 48" aria-hidden="true" className="size-5">
       <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
       <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
       <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />

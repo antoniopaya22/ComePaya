@@ -21,6 +21,23 @@ function formasSingulares(palabra: string): string[] {
   return formas;
 }
 
+/**
+ * Puntuación de búsqueda (0 = no coincide): todas las palabras buscadas deben aparecer, sin tildes ni mayúsculas.
+ * Pesa más que el nombre empiece por lo buscado, después que alguna palabra empiece, y después que solo lo contenga.
+ */
+export function puntuarBusqueda(nombre: string, busqueda: string, extra: string[] = []): number {
+  const consulta = normalizar(busqueda);
+  if (!consulta) return 1;
+  const principal = normalizar(nombre);
+  const todo = `${principal} ${normalizar(extra.join(" "))}`;
+  const palabras = consulta.split(" ");
+  if (!palabras.every((p) => todo.includes(p))) return 0;
+  if (principal.startsWith(consulta)) return 1;
+  if (principal.split(" ").some((p) => p.startsWith(palabras[0]))) return 0.8;
+  if (principal.includes(consulta)) return 0.6;
+  return 0.4;
+}
+
 /** Dos nombres son el mismo ignorando mayúsculas, tildes, espacios y plurales ("Limones" = "limón"). */
 export function mismoNombre(a: string, b: string): boolean {
   const palabrasA = normalizar(a).split(" ");

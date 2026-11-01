@@ -83,3 +83,27 @@ test("Ajustes: el código de invitación del hogar está visible", async ({ page
   await expect(page.getByText("DEMO2345")).toBeVisible();
   await expect(page.getByText("Otra persona")).toBeVisible();
 });
+
+test("Landing: se ve la portada y lleva a la app", async ({ page }) => {
+  await page.goto("/bienvenida");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("La cocina de casa");
+  await page.getByRole("link", { name: /Ir a mi cocina/ }).first().click();
+  await expect(page).toHaveURL(/\/$/);
+});
+
+test("Buscador: Ctrl+K encuentra una receta y añade lo que no existe a la lista", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await page.keyboard.press("Control+k");
+  const buscar = page.getByPlaceholder(/Busca recetas/);
+  await buscar.fill("lentejas");
+  await page.getByRole("option", { name: /Lentejas con chorizo/ }).click();
+  await expect(page).toHaveURL(/\/recetas\//);
+
+  await page.keyboard.press("Control+k");
+  await buscar.fill("velas de cumpleaños");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText(/añadido a la lista/)).toBeVisible();
+  await page.goto("/lista");
+  await expect(page.getByRole("button", { name: "Velas de cumpleaños", exact: true })).toBeVisible();
+});

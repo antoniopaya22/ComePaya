@@ -65,7 +65,7 @@ interface DetalleMercadona extends HitMercadona {
 export async function obtenerProductoMercadona(id: string, fetchFn: typeof fetch = fetch): Promise<(ResultadoMercadona & { ean: string | null }) | null> {
   if (!/^\d+(\.\d+)?$/.test(id)) return null;
   const respuesta = await fetchFn(`https://tienda.mercadona.es/api/products/${id}/`, {
-    headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 (compatible; Despensa/0.1)" },
+    headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 (compatible; ComePaya/0.1)" },
     signal: AbortSignal.timeout(5000),
   });
   if (respuesta.status === 404) return null;

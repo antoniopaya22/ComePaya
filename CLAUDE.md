@@ -1,4 +1,4 @@
-# Despensa
+# ComePayá
 
 App doméstica para gestionar despensa, lista de la compra y menú semanal (comidas y cenas), con escaneo de códigos de barras e información nutricional.
 

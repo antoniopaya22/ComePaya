@@ -69,9 +69,9 @@ export default defineConfig({
       },
       includeAssets: ["favicon.svg", "favicon.ico", "apple-touch-icon-180x180.png"],
       manifest: {
-        name: "Despensa",
-        short_name: "Despensa",
-        description: "Despensa, lista de la compra y menú semanal del hogar",
+        name: "ComePayá",
+        short_name: "ComePayá",
+        description: "Despensa, lista de la compra y menú semanal de tu casa",
         lang: "es",
         start_url: "/",
         display: "standalone",

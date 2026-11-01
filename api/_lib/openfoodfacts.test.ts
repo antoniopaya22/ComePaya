@@ -85,6 +85,6 @@ describe("buscarEnOpenFoodFacts", () => {
     const producto = await buscarEnOpenFoodFacts("12345678", fetchFn);
     expect(producto?.nombre).toBe("Leche");
     const cabeceras = fetchFn.mock.calls[0][1]?.headers as Record<string, string>;
-    expect(cabeceras["User-Agent"]).toMatch(/^Despensa\//);
+    expect(cabeceras["User-Agent"]).toMatch(/^ComePaya\//);
   });
 });

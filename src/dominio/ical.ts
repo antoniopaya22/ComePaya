@@ -16,7 +16,7 @@ export function generarIcal(nombreHogar: string, franjas: FranjaIcal[], generado
   const lineas = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Despensa//Menu semanal//ES",
+    "PRODID:-//ComePaya//Menu semanal//ES",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${escapar(`Menú · ${nombreHogar}`)}`,

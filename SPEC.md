@@ -1,4 +1,4 @@
-# Despensa — Especificación del proyecto
+# ComePayá — Especificación del proyecto
 
 > Documento de partida para el desarrollo. Recoge la visión, las decisiones tomadas, las propuestas pendientes de confirmar y el plan por fases. Cualquier agente que trabaje en el repositorio debe leerlo antes de empezar.
 
@@ -109,6 +109,11 @@ Los módulos se alimentan entre sí:
 - Desperdicio: qué se tira y por qué.
 - Platos más cocinados.
 - Cumplimiento de las reglas de equilibrio a lo largo del tiempo.
+
+### 4.8 Navegación y búsqueda
+- Sin sesión: landing pública (`/bienvenida`, también accesible con sesión) y login con Google en `/entrar`.
+- Escritorio: barra lateral (selector de hogar, secciones con contadores de lista y caducidades, herramientas, ajustes) y barra superior (buscador, escanear, campana de caducidades, menú de cuenta). Móvil: barra superior compacta y navegación inferior.
+- Buscador global (Ctrl/⌘+K o la lupa): recetas, productos (con cuántos hay en casa), ingredientes, pantallas y acciones; sin tildes ni mayúsculas y exigiendo todas las palabras. Lo que no encuentra se puede añadir a la lista con ↵.
 
 ---
 

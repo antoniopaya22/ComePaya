@@ -1,4 +1,4 @@
-import { CalendarDays, ChevronRight, CookingPot, Hourglass, ListChecks, Plane, Plus, ScanBarcode, Settings, TriangleAlert } from "lucide-react";
+import { CalendarDays, ChevronRight, CookingPot, Hourglass, ListChecks, Plane, Plus, ScanBarcode, TriangleAlert } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "react-router";
 import { Boton } from "@/components/ui/boton";
@@ -55,7 +55,7 @@ export function HoyPage() {
 
   return (
     <div className="flex flex-col gap-5 px-4 pt-6 md:px-0 md:pt-10">
-      <header className="flex items-start justify-between gap-3">
+      <header>
         <div>
           <p className="text-sm text-suave first-letter:uppercase">
             {DIAS[ahora.getDay()]}, {ahora.getDate()} de {MESES[ahora.getMonth()]}
@@ -65,13 +65,6 @@ export function HoyPage() {
             {nombrePila ? `, ${nombrePila}` : ""}
           </h1>
         </div>
-        <Link to="/ajustes" aria-label="Ajustes" className="grid size-11 shrink-0 place-items-center rounded-full bg-superficie-2 text-suave md:hidden">
-          {usuario.user_metadata.avatar_url ? (
-            <img src={usuario.user_metadata.avatar_url} alt="" className="size-11 rounded-full" referrerPolicy="no-referrer" />
-          ) : (
-            <Settings className="size-5" />
-          )}
-        </Link>
       </header>
 
       <section className="flex flex-col gap-2">

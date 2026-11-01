@@ -9,7 +9,9 @@ import { supabase } from "@/lib/supabase";
 import type { Hogar } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { cargarIngredientesBase } from "@/features/despensa/altas";
+import { PanelMarca } from "@/features/sesion/PantallaLogin";
 import { useUsuario } from "@/features/sesion/SesionProvider";
+import { Logo } from "@/components/Logo";
 
 export function PantallaBienvenida({ onListo, onCancelar }: { onListo: (hogar: Hogar) => void; onCancelar?: () => void }) {
   const usuario = useUsuario();
@@ -38,9 +40,15 @@ export function PantallaBienvenida({ onListo, onCancelar }: { onListo: (hogar: H
   }
 
   return (
-    <main className="pb-seguro mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-5 px-5 py-10">
+    <main className="grid min-h-dvh md:grid-cols-2">
+      <PanelMarca>
+        <h2 className="text-4xl leading-tight font-semibold text-balance">Un hogar, todas las cuentas que haga falta.</h2>
+        <p className="mt-4 text-white/75">La despensa, la lista y el menú se comparten al momento entre los miembros. Cada uno entra con su Google.</p>
+      </PanelMarca>
+      <section className="pb-seguro mx-auto flex w-full max-w-md flex-col justify-center gap-5 px-5 py-10">
+      <Logo className="md:hidden" />
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-[28px] font-bold tracking-tight">{nombrePila ? `¡Hola, ${nombrePila}!` : "¡Hola!"}</h1>
+        <h1 className="text-[30px] font-semibold">{nombrePila ? `¡Hola, ${nombrePila}!` : "¡Hola!"}</h1>
         <p className="mt-1 text-suave">
           Un hogar junta la despensa, la lista y el menú de varias personas. Crea el tuyo o únete al de tu familia con su código.
         </p>
@@ -100,6 +108,7 @@ export function PantallaBienvenida({ onListo, onCancelar }: { onListo: (hogar: H
           Volver
         </Boton>
       )}
+      </section>
     </main>
   );
 }

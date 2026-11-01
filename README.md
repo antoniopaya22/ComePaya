@@ -1,4 +1,4 @@
-# Despensa
+# ComePayá
 
 PWA para gestionar la despensa, la lista de la compra y el menú semanal de un hogar. Funciona como web en el ordenador y se instala como app en el móvil. Visión, decisiones y plan por fases en [SPEC.md](SPEC.md).
 

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { Estructura } from "@/components/Estructura";
 import { Cargando } from "@/components/ui/varios";
 import { supabaseConfigurado } from "@/lib/supabase";
@@ -8,6 +8,7 @@ import { IngredientesPage } from "@/features/ajustes/IngredientesPage";
 import { DespensaPage } from "@/features/despensa/DespensaPage";
 import { HogarProvider } from "@/features/hogar/HogarProvider";
 import { HoyPage } from "@/features/hoy/HoyPage";
+import { LandingPage } from "@/features/landing/LandingPage";
 import { ListaPage } from "@/features/lista/ListaPage";
 import { MenuPage } from "@/features/menu/MenuPage";
 import { IngredientePage } from "@/features/productos/IngredientePage";
@@ -27,20 +28,33 @@ const EstadisticasPage = lazy(() => import("@/features/ajustes/EstadisticasPage"
 export function App() {
   if (!supabaseConfigurado) return <FaltaConfiguracion />;
   return (
-    <SesionProvider>
-      <ConSesion />
-    </SesionProvider>
+    <BrowserRouter>
+      <SesionProvider>
+        <Routes>
+          {/* La landing se puede ver también con sesión iniciada. */}
+          <Route path="bienvenida" element={<LandingPage />} />
+          <Route path="*" element={<ConSesion />} />
+        </Routes>
+      </SesionProvider>
+    </BrowserRouter>
   );
 }
 
 function ConSesion() {
   const sesion = useSesion();
   if (sesion === undefined) return <Cargando className="min-h-dvh" />;
-  if (sesion === null) return <PantallaLogin />;
+  if (sesion === null) {
+    return (
+      <Routes>
+        <Route path="entrar" element={<PantallaLogin />} />
+        <Route path="*" element={<LandingPage />} />
+      </Routes>
+    );
+  }
   return (
     <HogarProvider>
-      <BrowserRouter>
         <Routes>
+          <Route path="entrar" element={<Navigate to="/" replace />} />
           <Route
             path="recetas/:id/cocinar"
             element={
@@ -68,7 +82,6 @@ function ConSesion() {
             <Route path="*" element={<HoyPage />} />
           </Route>
         </Routes>
-      </BrowserRouter>
     </HogarProvider>
   );
 }

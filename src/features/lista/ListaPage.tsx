@@ -7,7 +7,7 @@ import { Boton } from "@/components/ui/boton";
 import { Entrada, Selector } from "@/components/ui/campos";
 import { Cabecera, ListaEsqueleto, Vacio } from "@/components/ui/varios";
 import { emojiPara } from "@/dominio/ingredientes-base";
-import { agruparPorSeccion, buscarIngrediente, dividirDictado, parsearEntrada, SECCION_OTROS, textoParaCompartir } from "@/dominio/lista";
+import { agruparPorSeccion, dividirDictado, textoParaCompartir } from "@/dominio/lista";
 import { supabase } from "@/lib/supabase";
 import { useTiempoReal } from "@/lib/tiempo-real";
 import type { ItemLista } from "@/lib/tipos";
@@ -19,7 +19,8 @@ import { describirGeneracion, generarListaDesdeMenu } from "./generar";
 import { GuardarCompraHoja } from "./GuardarCompraHoja";
 import { Habituales } from "./Habituales";
 import { useDictado } from "./useDictado";
-import { AMBITO_LISTA, CLAVE_ALTERNAR, CLAVE_ANADIR, useEnLinea, type FilaNueva } from "./sin-conexion";
+import { AMBITO_LISTA, CLAVE_ALTERNAR, useEnLinea } from "./sin-conexion";
+import { useAnadirALista } from "./useAnadirALista";
 
 export function ListaPage() {
   const { hogar } = useHogar();
@@ -66,19 +67,7 @@ export function ListaPage() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: clave }),
   });
 
-  const anadirFila = useMutation<void, Error, FilaNueva>({
-    mutationKey: CLAVE_ANADIR,
-    scope: AMBITO_LISTA,
-    onMutate: async (fila) => {
-      await queryClient.cancelQueries({ queryKey: clave });
-      queryClient.setQueryData<ItemLista[]>(clave, (lista) => [
-        ...(lista ?? []),
-        { ...fila, cantidad_base: null, marcado: false, origen: "manual" },
-      ]);
-    },
-    onError: (error) => toast.error(mensajeError(error)),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: clave }),
-  });
+  const anadirTexto = useAnadirALista();
 
   function anadir(e: FormEvent) {
     e.preventDefault();
@@ -123,20 +112,6 @@ export function ListaPage() {
     });
   }
 
-  function anadirTexto(entradaTexto: string) {
-    const { texto: nombre, cantidad } = parsearEntrada(entradaTexto);
-    if (!nombre) return;
-    const ingrediente = buscarIngrediente(nombre, ingredientes);
-    anadirFila.mutate({
-      id: crypto.randomUUID(),
-      hogar_id: hogar.id,
-      texto: ingrediente?.nombre ?? nombre,
-      cantidad,
-      ingrediente_id: ingrediente?.id ?? null,
-      seccion_super: ingrediente?.seccion_super ?? SECCION_OTROS,
-      creado_en: new Date().toISOString(),
-    });
-  }
 
   async function desdeElMenu() {
     setGenerando(true);
