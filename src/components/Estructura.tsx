@@ -12,6 +12,7 @@ import {
   Package,
   Plus,
   Refrigerator,
+  RefreshCw,
   ScanBarcode,
   Search,
   Settings,
@@ -21,8 +22,10 @@ import {
 import { motion } from "motion/react";
 import { Suspense, useCallback, useEffect, useMemo, useState, type ComponentProps } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { FalloPantalla } from "@/components/FalloPantalla";
 import { Logo } from "@/components/Logo";
+import { TirarParaRecargar } from "@/components/TirarParaRecargar";
 import { Menu, MenuContenido, MenuDisparador, MenuEtiqueta, MenuOpcion, MenuSeparador } from "@/components/ui/menu";
 import { Cargando } from "@/components/ui/varios";
 import { describirCaducidad, estadoCaducidad, hoyISO } from "@/dominio/caducidad";
@@ -32,6 +35,7 @@ import { useLista, useLotes } from "@/features/datos";
 import { useHogar } from "@/features/hogar/HogarProvider";
 import { iniciarRecorrido, Recorrido } from "@/features/recorrido/Recorrido";
 import { cerrarSesion, useUsuario } from "@/features/sesion/SesionProvider";
+import { recargar } from "@/lib/actualizacion";
 import { urlReportarProblema, VERSION } from "@/lib/errores";
 import { modoDemo } from "@/lib/supabase";
 import { useSincronizacionHogar } from "@/lib/tiempo-real";
@@ -117,6 +121,7 @@ export function Estructura() {
       <NavegacionInferior contadores={contadores} />
       <Buscador abierto={buscando} onCambiar={setBuscando} />
       <Recorrido />
+      <TirarParaRecargar />
     </div>
   );
 }
@@ -337,6 +342,9 @@ function MenuUsuario() {
         </MenuOpcion>
         <MenuOpcion onSelect={() => navigate("/ajustes/estadisticas")}>
           <BarChart3 /> Estadísticas
+        </MenuOpcion>
+        <MenuOpcion onSelect={() => toast.promise(recargar(), { loading: "Actualizando…", success: "Todo al día", error: "No se ha podido actualizar" })}>
+          <RefreshCw /> Actualizar
         </MenuOpcion>
         <MenuOpcion onSelect={iniciarRecorrido}>
           <Sparkles /> Ver el recorrido

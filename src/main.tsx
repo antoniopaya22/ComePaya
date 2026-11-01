@@ -6,6 +6,7 @@ import { App } from "./App";
 import { ConfirmarProvider } from "./components/ui/confirmar";
 import { registrarMutacionesLista } from "./features/lista/sin-conexion";
 import { persister, queryClient } from "./lib/cache";
+import { vigilarActualizaciones } from "./lib/actualizacion";
 import { instalarCapturaDeErrores } from "./lib/errores";
 import "@fontsource-variable/inter";
 import "@fontsource-variable/fraunces";
@@ -13,6 +14,7 @@ import "./index.css";
 
 registrarMutacionesLista(queryClient);
 instalarCapturaDeErrores();
+vigilarActualizaciones();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

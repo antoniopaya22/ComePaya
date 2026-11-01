@@ -145,3 +145,26 @@ test("Primeros pasos: en un hogar vacío guían hacia lo siguiente", async ({ pa
   await tarjeta.getByRole("button", { name: "Ocultar primeros pasos" }).click();
   await expect(tarjeta).toHaveCount(0);
 });
+
+test("Tirar hacia abajo recarga los datos", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  const deslizar = (tipo: string, y: number) =>
+    page.evaluate(
+      ([tipo, y]) => {
+        const objetivo = document.querySelector("h1")!;
+        const toque = new Touch({ identifier: 1, target: objetivo, clientX: 180, clientY: Number(y) });
+        const lista = tipo === "touchend" ? [] : [toque];
+        objetivo.dispatchEvent(new TouchEvent(String(tipo), { touches: lista, changedTouches: [toque], bubbles: true }));
+      },
+      [tipo, y],
+    );
+  await deslizar("touchstart", 150);
+  await deslizar("touchmove", 250);
+  await deslizar("touchmove", 380);
+  await expect(page.getByRole("status", { name: "Suelta para recargar" })).toBeVisible();
+  const consulta = page.waitForRequest((r) => r.url().includes("/demo-supabase/rest/v1/"));
+  await deslizar("touchend", 380);
+  await consulta;
+  await expect(page.getByRole("status", { name: /recargar|Recargando/ })).toHaveCount(0);
+});
