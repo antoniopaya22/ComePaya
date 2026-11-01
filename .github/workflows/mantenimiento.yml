@@ -1,0 +1,26 @@
+# Cada lunes: copia de seguridad de Supabase y, de paso, actividad para que el plan gratuito no pause el proyecto.
+name: Mantenimiento semanal
+
+on:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+jobs:
+  copia-de-seguridad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Volcar esquema y datos
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f esquema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only -f datos.sql
+      - uses: actions/upload-artifact@v4
+        with:
+          name: copia-${{ github.run_number }}
+          path: "*.sql"
+          retention-days: 90

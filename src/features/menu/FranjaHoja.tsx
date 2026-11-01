@@ -1,0 +1,274 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { Check, ChefHat, CircleCheck, Search, Sparkles, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
+import { toast } from "sonner";
+import { Boton } from "@/components/ui/boton";
+import { Campo, Contador, Entrada, Interruptor, Opciones } from "@/components/ui/campos";
+import { Estrellas } from "@/components/ui/estrellas";
+import { Hoja } from "@/components/ui/hoja";
+import type { FechaISO } from "@/dominio/caducidad";
+import { DIAS_SEMANA, racionesACocinar, type TipoFranja } from "@/dominio/menu";
+import { normalizar } from "@/dominio/texto";
+import { supabase } from "@/lib/supabase";
+import type { FranjaMenu } from "@/lib/tipos";
+import { cn, mensajeError } from "@/lib/utils";
+import { claves, useIngredientes, useLotes, useRecetas } from "../datos";
+import { useHogar } from "../hogar/HogarProvider";
+import { descontarReceta } from "./cocinar";
+import { claveRechazos, useSugerencias } from "./useSugerencias";
+
+type Modo = "receta" | "sobras" | "fuera";
+
+const diaDe = (fecha: FechaISO) => DIAS_SEMANA[(new Date(`${fecha}T12:00:00Z`).getUTCDay() + 6) % 7];
+const anterior = (a: FranjaMenu, fecha: FechaISO, tipo: TipoFranja) => a.fecha < fecha || (a.fecha === fecha && a.tipo === "comida" && tipo === "cena");
+
+export function FranjaHoja({
+  hueco,
+  franja,
+  franjasSemana,
+  onCerrar,
+}: {
+  hueco: { fecha: FechaISO; tipo: TipoFranja } | null;
+  franja: FranjaMenu | undefined;
+  franjasSemana: FranjaMenu[];
+  onCerrar: () => void;
+}) {
+  const { hogar } = useHogar();
+  const queryClient = useQueryClient();
+  const { data: recetas = [] } = useRecetas();
+  const { data: lotes = [] } = useLotes();
+  const { data: ingredientes = [] } = useIngredientes();
+
+  const [modo, setModo] = useState<Modo>("receta");
+  const [recetaId, setRecetaId] = useState<string | null>(null);
+  const [raciones, setRaciones] = useState(hogar.comensales ?? 2);
+  const [sobraDe, setSobraDe] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [descontar, setDescontar] = useState(true);
+  const [congelar, setCongelar] = useState(0);
+  const [ocupado, setOcupado] = useState(false);
+  const [actual, setActual] = useState(hueco);
+
+  useEffect(() => {
+    if (!hueco) return;
+    setActual(hueco);
+    setModo(franja?.fuera_de_casa ? "fuera" : franja?.es_sobra_de ? "sobras" : "receta");
+    setRecetaId(franja?.receta_id ?? null);
+    setRaciones(franja?.raciones ?? hogar.comensales ?? 2);
+    setSobraDe(franja?.es_sobra_de ?? null);
+    setBusqueda("");
+    setDescontar(true);
+    setCongelar(0);
+    // Solo al abrir otra franja: los cambios en tiempo real no deben pisar lo que se está editando.
+  }, [hueco?.fecha, hueco?.tipo]);
+
+  const candidatas = useMemo(() => {
+    const texto = normalizar(busqueda);
+    return recetas.filter((r) => !texto || normalizar(`${r.nombre} ${r.etiquetas.join(" ")}`).includes(texto));
+  }, [recetas, busqueda]);
+
+  const sugerencias = useSugerencias(actual?.fecha ?? hueco?.fecha ?? "2000-01-01", raciones, franja?.id, franjasSemana);
+
+  async function rechazar(id: string) {
+    const { error } = await supabase.from("rechazo_sugerencia").insert({ hogar_id: hogar.id, receta_id: id });
+    if (error) return toast.error(mensajeError(error));
+    queryClient.invalidateQueries({ queryKey: claveRechazos(hogar.id) });
+  }
+
+  if (!actual) return null;
+  const { fecha, tipo } = actual;
+  const origenes = franjasSemana.filter((f) => f.receta_id && !f.es_sobra_de && !f.fuera_de_casa && anterior(f, fecha, tipo));
+  const receta = recetas.find((r) => r.id === recetaId);
+  const refrescar = () => queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
+
+  async function guardar() {
+    const origen = origenes.find((f) => f.id === sobraDe);
+    const fila = {
+      hogar_id: hogar.id,
+      fecha,
+      tipo,
+      receta_id: modo === "receta" ? recetaId : modo === "sobras" ? (origen?.receta_id ?? null) : null,
+      raciones,
+      fuera_de_casa: modo === "fuera",
+      es_sobra_de: modo === "sobras" ? sobraDe : null,
+    };
+    setOcupado(true);
+    const { error } = await supabase.from("franja_menu").upsert(fila, { onConflict: "hogar_id,fecha,tipo" });
+    setOcupado(false);
+    if (error) return toast.error(mensajeError(error));
+    refrescar();
+    onCerrar();
+  }
+
+  async function vaciar() {
+    if (franja) {
+      const { error } = await supabase.from("franja_menu").delete().eq("id", franja.id);
+      if (error) return toast.error(mensajeError(error));
+      refrescar();
+    }
+    onCerrar();
+  }
+
+  async function alternarCocinado() {
+    if (!franja) return;
+    setOcupado(true);
+    try {
+      const cocinado = !franja.cocinado;
+      if (cocinado && descontar && receta) {
+        // Se cocina también para las franjas que comerán sobras de esta.
+        const racionesCocinadas = racionesACocinar(franjasSemana).get(franja.id) ?? franja.raciones;
+        const faltaba = await descontarReceta({ hogarId: hogar.id, receta, raciones: racionesCocinadas, lotes, ingredientes });
+        queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
+        if (faltaba.length) toast.info("Descontado de la despensa", { description: `No había: ${faltaba.join(", ")}.` });
+        else toast.success("Descontado de la despensa");
+      }
+      if (cocinado && congelar > 0 && receta) {
+        const { error } = await supabase
+          .from("racion_congelada")
+          .insert({ hogar_id: hogar.id, receta_id: receta.id, descripcion: receta.nombre, raciones: congelar });
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: claves.raciones(hogar.id) });
+      }
+      const { error } = await supabase.from("franja_menu").update({ cocinado }).eq("id", franja.id);
+      if (error) throw error;
+      refrescar();
+      onCerrar();
+    } catch (error) {
+      toast.error(mensajeError(error));
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  const listo = modo === "fuera" || (modo === "receta" && recetaId) || (modo === "sobras" && sobraDe);
+  const cocinable = franja && franja.receta_id && !franja.fuera_de_casa;
+
+  return (
+    <Hoja
+      abierta={hueco !== null}
+      onAbiertaChange={(v) => !v && onCerrar()}
+      titulo={`${diaDe(fecha)} · ${tipo === "comida" ? "Comida" : "Cena"}`}
+      pie={
+        <div className="grid grid-cols-[auto_1fr] gap-2">
+          <Boton variante="peligro" tamano="icono" onClick={vaciar} aria-label="Vaciar franja" disabled={ocupado}>
+            <Trash2 />
+          </Boton>
+          <Boton onClick={guardar} disabled={!listo || ocupado}>
+            <Check /> Guardar
+          </Boton>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        {cocinable && !franja.es_sobra_de && (
+          <div className="flex flex-col gap-2 rounded-2xl bg-primario-suave p-3">
+            {!franja.cocinado && receta && (
+              <>
+                <Interruptor marcado={descontar} onChange={setDescontar} etiqueta="Descontar de la despensa" ayuda="Gasta primero lo que antes caduca. Puedes corregirlo después." />
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-borde bg-superficie px-3.5 py-2">
+                  <span className="text-[15px] font-medium">Raciones a congelar</span>
+                  <div className="w-36">
+                    <Contador valor={congelar} onChange={(v) => setCongelar(Math.max(0, Math.round(v)))} min={0} />
+                  </div>
+                </div>
+              </>
+            )}
+            <Boton variante={franja.cocinado ? "secundario" : "primario"} onClick={alternarCocinado} disabled={ocupado}>
+              <CircleCheck /> {franja.cocinado ? "Marcar como no cocinado" : "Ya lo he cocinado"}
+            </Boton>
+            {franja.cocinado && <p className="text-center text-xs text-suave">Desmarcarlo no devuelve los ingredientes a la despensa.</p>}
+          </div>
+        )}
+
+        <Opciones<Modo>
+          opciones={[
+            { valor: "receta", etiqueta: "Receta" },
+            { valor: "sobras", etiqueta: "Sobras" },
+            { valor: "fuera", etiqueta: "Fuera de casa" },
+          ]}
+          valor={modo}
+          onChange={setModo}
+        />
+
+        {modo !== "fuera" && (
+          <Campo etiqueta="Raciones" ayuda={modo === "sobras" ? "Se suman a las que se cocinan en la franja de origen." : undefined}>
+            <Contador valor={raciones} onChange={(v) => setRaciones(Math.max(1, Math.round(v)))} min={1} />
+          </Campo>
+        )}
+
+        {modo === "receta" && !busqueda && sugerencias.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold text-suave">
+              <Sparkles className="size-4 text-primario" /> Sugerencias
+            </h3>
+            {sugerencias.slice(0, 3).map((s) => (
+              <div key={s.receta_id} className={cn("flex items-start gap-2 rounded-xl border p-3", recetaId === s.receta_id ? "border-primario bg-primario-suave" : "border-borde")}>
+                <button className="min-w-0 flex-1 text-left" onClick={() => setRecetaId(s.receta_id)}>
+                  <span className="block font-medium">{s.nombre}</span>
+                  <span className="block text-xs text-suave">{s.motivos.slice(0, 2).join(" · ") || "Sin datos para explicarla"}</span>
+                </button>
+                <Boton variante="fantasma" tamano="sm" className="h-8 shrink-0 px-2 text-xs text-suave" onClick={() => rechazar(s.receta_id)}>
+                  No me apetece
+                </Boton>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {modo === "receta" &&
+          (recetas.length ? (
+            <div className="flex flex-col gap-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-suave" />
+                <Entrada value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar receta" className="pl-10" type="search" />
+              </div>
+              <ul className="flex flex-col">
+                {candidatas.map((r) => (
+                  <li key={r.id}>
+                    <button
+                      onClick={() => setRecetaId(r.id)}
+                      className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left", recetaId === r.id ? "bg-primario-suave" : "hover:bg-superficie-2")}
+                    >
+                      <ChefHat className={cn("size-4 shrink-0", recetaId === r.id ? "text-primario" : "text-suave")} />
+                      <span className="flex-1 truncate font-medium">{r.nombre}</span>
+                      {r.valoracion && <Estrellas valor={r.valoracion} />}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-sm text-suave">
+              Aún no hay recetas.{" "}
+              <Link to="/recetas/nueva" className="font-medium text-primario">
+                Crea la primera
+              </Link>
+              .
+            </p>
+          ))}
+
+        {modo === "sobras" &&
+          (origenes.length ? (
+            <ul className="flex flex-col gap-1">
+              {origenes.map((f) => (
+                <li key={f.id}>
+                  <button
+                    onClick={() => setSobraDe(f.id)}
+                    className={cn("flex w-full flex-col rounded-xl px-3 py-2.5 text-left", sobraDe === f.id ? "bg-primario-suave" : "hover:bg-superficie-2")}
+                  >
+                    <span className="font-medium">{recetas.find((r) => r.id === f.receta_id)?.nombre}</span>
+                    <span className="text-xs text-suave">
+                      {diaDe(f.fecha)} · {f.tipo}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-suave">No hay platos cocinados antes en esta semana de los que puedan quedar sobras.</p>
+          ))}
+      </div>
+    </Hoja>
+  );
+}

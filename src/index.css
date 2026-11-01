@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* Paleta: verde hoja como color principal sobre fondos cálidos de papel. */
+:root {
+  --fondo: #f7f6f2;
+  --superficie: #ffffff;
+  --superficie-2: #efede6;
+  --borde: #e2dfd5;
+  --texto: #1d2420;
+  --texto-suave: #6a716c;
+  --primario: #2f6b4f;
+  --primario-hover: #275a42;
+  --primario-suave: #e1eee6;
+  --primario-texto: #ffffff;
+  --aviso: #b25e09;
+  --aviso-suave: #fcefdc;
+  --peligro: #b3261e;
+  --peligro-suave: #fbe3e1;
+  --exito: #2f7d32;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #111613;
+    --superficie: #19201c;
+    --superficie-2: #212a25;
+    --borde: #2c3630;
+    --texto: #e8ece9;
+    --texto-suave: #98a29c;
+    --primario: #6fbf93;
+    --primario-hover: #86cda5;
+    --primario-suave: #1f3529;
+    --primario-texto: #0d1a13;
+    --aviso: #f0a64a;
+    --aviso-suave: #3a2a15;
+    --peligro: #f2867d;
+    --peligro-suave: #3d1d1b;
+    --exito: #7fcf83;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-borde: var(--borde);
+  --color-texto: var(--texto);
+  --color-suave: var(--texto-suave);
+  --color-primario: var(--primario);
+  --color-primario-hover: var(--primario-hover);
+  --color-primario-suave: var(--primario-suave);
+  --color-primario-texto: var(--primario-texto);
+  --color-aviso: var(--aviso);
+  --color-aviso-suave: var(--aviso-suave);
+  --color-peligro: var(--peligro);
+  --color-peligro-suave: var(--peligro-suave);
+  --color-exito: var(--exito);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html,
+body {
+  background: var(--fondo);
+  color: var(--texto);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ocultar los controles de los input numéricos: usamos botones +/- propios. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.pb-seguro {
+  padding-bottom: env(safe-area-inset-bottom);
+}
