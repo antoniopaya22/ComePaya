@@ -8,6 +8,7 @@ import { Tarjeta } from "@/components/ui/varios";
 import { supabase } from "@/lib/supabase";
 import type { Hogar } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
+import { cargarIngredientesBase } from "@/features/despensa/altas";
 import { useUsuario } from "@/features/sesion/SesionProvider";
 
 export function PantallaBienvenida({ onListo, onCancelar }: { onListo: (hogar: Hogar) => void; onCancelar?: () => void }) {
@@ -27,6 +28,11 @@ export function PantallaBienvenida({ onListo, onCancelar }: { onListo: (hogar: H
     setEnviando(null);
     if (error) return toast.error(mensajeError(error));
     const hogar = data as Hogar;
+    if (accion === "crear") {
+      // Ingredientes habituales para no empezar de cero (se pueden borrar o editar en Ajustes).
+      const { data: existentes } = await supabase.from("ingrediente").select("nombre").eq("hogar_id", hogar.id);
+      await cargarIngredientesBase(hogar.id, existentes ?? []).catch(() => 0);
+    }
     toast.success(accion === "crear" ? `Hogar «${hogar.nombre}» creado` : `Te has unido a «${hogar.nombre}»`);
     onListo(hogar);
   }

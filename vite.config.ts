@@ -59,7 +59,11 @@ export default defineConfig({
       strategies: "injectManifest",
       srcDir: "src",
       filename: "sw.ts",
-      injectManifest: { globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2,wasm}"] },
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2,wasm}"],
+        // De las fuentes solo hace falta precargar el alfabeto latino.
+        globIgnores: ["**/*-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese}-*.woff2"],
+      },
       includeAssets: ["favicon.svg", "favicon.ico", "apple-touch-icon-180x180.png"],
       manifest: {
         name: "Despensa",

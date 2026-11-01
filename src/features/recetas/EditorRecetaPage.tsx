@@ -1,12 +1,16 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, Plus, Timer, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, ImagePlus, LoaderCircle, Plus, Timer, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
+import { useConfirmar } from "@/components/ui/confirmar";
 import { AreaTexto, Campo, Contador, Entrada, Opciones } from "@/components/ui/campos";
 import { Estrellas } from "@/components/ui/estrellas";
 import { Cargando, Tarjeta } from "@/components/ui/varios";
+import { parsearLineaIngrediente } from "@/dominio/importar";
+import { datosBaseDe } from "@/dominio/ingredientes-base";
+import { subirFoto } from "@/lib/fotos";
 import { buscarIngrediente } from "@/dominio/lista";
 import { normalizar } from "@/dominio/texto";
 import type { UnidadBase } from "@/dominio/unidades";
@@ -15,6 +19,7 @@ import type { RecetaCompleta } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
 import { claves, useIngredientes, useRecetas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
+import type { RecetaImportada } from "./ImportarRecetaHoja";
 
 interface FilaIngrediente {
   clave: string;
@@ -22,6 +27,9 @@ interface FilaIngrediente {
   cantidad: string;
   opcional: boolean;
   unidadNueva: UnidadBase;
+  /** Texto de la web al importar, para revisar las cantidades aproximadas. */
+  original?: string;
+  revisar?: boolean;
 }
 
 interface FilaPaso {
@@ -42,6 +50,7 @@ export function EditorRecetaPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { hogar } = useHogar();
+  const confirmar = useConfirmar();
   const { data: recetas, isPending } = useRecetas();
   const { data: ingredientes = [] } = useIngredientes();
   const original = id ? recetas?.find((r) => r.id === id) : undefined;
@@ -57,15 +66,63 @@ export function EditorRecetaPage() {
   const [notas, setNotas] = useState("");
   const [filas, setFilas] = useState<FilaIngrediente[]>([filaIngredienteVacia()]);
   const [pasos, setPasos] = useState<FilaPaso[]>([filaPasoVacia()]);
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null);
+  const [fuenteUrl, setFuenteUrl] = useState<string | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
   const [cargada, setCargada] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const importada = (useLocation().state as RecetaImportada | null) ?? null;
 
   useEffect(() => {
     if (original && !cargada) {
       cargar(original);
       setCargada(true);
+    } else if (!id && importada && !cargada) {
+      cargarImportada(importada);
+      setCargada(true);
     }
   }, [original, cargada]);
+
+  function cargarImportada({ receta, url }: RecetaImportada) {
+    setNombre(receta.nombre);
+    if (receta.raciones) setRaciones(receta.raciones);
+    setPrep(receta.tiempo_prep_min?.toString() ?? "");
+    setCoccion(receta.tiempo_coccion_min?.toString() ?? "");
+    setFotoUrl(receta.imagen);
+    setFuenteUrl(url);
+    setNotas(`Importada de ${url}`);
+    const lineas = receta.ingredientes.map(parsearLineaIngrediente);
+    setFilas(
+      lineas.length
+        ? lineas.map((l) => {
+            const existente = buscarIngrediente(l.nombre, ingredientes);
+            return {
+              clave: nuevaClave(),
+              nombre: existente?.nombre ?? l.nombre,
+              cantidad: l.cantidad ? String(l.cantidad).replace(".", ",") : "",
+              opcional: false,
+              unidadNueva: l.unidad,
+              original: l.original,
+              // Revisar: medida casera aproximada, sin cantidad, o unidad distinta de la del ingrediente existente.
+              revisar: l.aproximada || !l.cantidad || Boolean(existente && existente.unidad_base !== l.unidad),
+            };
+          })
+        : [filaIngredienteVacia()],
+    );
+    setPasos(receta.pasos.length ? receta.pasos.map((texto) => ({ ...filaPasoVacia(), texto })) : [filaPasoVacia()]);
+  }
+
+  async function elegirFoto(archivo: File | undefined) {
+    if (!archivo) return;
+    setSubiendo(true);
+    try {
+      setFotoUrl(await subirFoto(hogar.id, archivo));
+    } catch (error) {
+      toast.error(mensajeError(error));
+    } finally {
+      setSubiendo(false);
+    }
+  }
 
   function cargar(r: RecetaCompleta) {
     setNombre(r.nombre);
@@ -75,6 +132,8 @@ export function EditorRecetaPage() {
     setPrevia(r.preparacion_previa ?? "");
     setPreviaHoras(r.preparacion_previa_horas?.toString() ?? "");
     setEtiquetas(r.etiquetas.join(", "));
+    setFotoUrl(r.foto_url);
+    setFuenteUrl(r.fuente_url);
     setValoracion(r.valoracion);
     setNotas(r.notas ?? "");
     setFilas(
@@ -119,7 +178,7 @@ export function EditorRecetaPage() {
         if (!ingredienteId) {
           const { data, error } = await supabase
             .from("ingrediente")
-            .insert({ hogar_id: hogar.id, nombre: f.nombre.trim(), unidad_base: f.unidadNueva })
+            .insert({ ...datosBaseDe(f.nombre), hogar_id: hogar.id, nombre: f.nombre.trim(), unidad_base: f.unidadNueva })
             .select("id")
             .single();
           if (error) throw error;
@@ -153,6 +212,8 @@ export function EditorRecetaPage() {
           })),
       });
       if (error) throw error;
+      const { error: errorFoto } = await supabase.from("receta").update({ foto_url: fotoUrl, fuente_url: fuenteUrl }).eq("id", recetaId);
+      if (errorFoto) throw errorFoto;
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: claves.recetas(hogar.id) }),
         queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) }),
@@ -167,7 +228,14 @@ export function EditorRecetaPage() {
   }
 
   async function borrar() {
-    if (!original || !window.confirm(`¿Borrar «${original.nombre}»? Las franjas del menú que la usan quedarán vacías.`)) return;
+    if (!original) return;
+    const seguro = await confirmar({
+      titulo: `¿Borrar «${original.nombre}»?`,
+      mensaje: "Las comidas del menú que la usan quedarán vacías.",
+      aceptar: "Borrar",
+      peligro: true,
+    });
+    if (!seguro) return;
     const { error } = await supabase.from("receta").delete().eq("id", original.id);
     if (error) return toast.error(mensajeError(error));
     await queryClient.invalidateQueries({ queryKey: claves.recetas(hogar.id) });
@@ -190,6 +258,38 @@ export function EditorRecetaPage() {
         )}
       </div>
       <h1 className="text-[28px] font-bold tracking-tight">{original ? "Editar receta" : "Nueva receta"}</h1>
+
+      <label className="relative block aspect-[16/9] cursor-pointer overflow-hidden rounded-3xl border border-dashed border-borde bg-superficie-2">
+        {fotoUrl ? (
+          <img src={fotoUrl} alt="" className="size-full object-cover" />
+        ) : (
+          <span className="flex size-full flex-col items-center justify-center gap-2 text-suave">
+            <ImagePlus className="size-8" />
+            <span className="text-sm font-medium">Añadir foto del plato</span>
+          </span>
+        )}
+        {subiendo && (
+          <span className="absolute inset-0 grid place-items-center bg-black/40 text-white">
+            <LoaderCircle className="size-7 animate-spin" />
+          </span>
+        )}
+        {fotoUrl && !subiendo && (
+          <span className="absolute right-3 bottom-3 flex gap-2">
+            <span className="rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white">Cambiar</span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setFotoUrl(null);
+              }}
+              className="rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white"
+            >
+              Quitar
+            </button>
+          </span>
+        )}
+        <input type="file" accept="image/*" hidden onChange={(e) => elegirFoto(e.target.files?.[0])} />
+      </label>
 
       <Tarjeta className="flex flex-col gap-4 p-4">
         <Campo etiqueta="Nombre">
@@ -270,6 +370,11 @@ export function EditorRecetaPage() {
                   Opcional
                 </label>
               </div>
+              {f.original && f.revisar && (
+                <p className="rounded-lg bg-aviso-suave px-2.5 py-1.5 text-xs text-aviso">
+                  Revisa la cantidad. En la web: «{f.original}»
+                </p>
+              )}
             </Tarjeta>
           );
         })}

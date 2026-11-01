@@ -57,7 +57,16 @@
   --color-peligro: var(--peligro);
   --color-peligro-suave: var(--peligro-suave);
   --color-exito: var(--exito);
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Títulos con algo de carácter: una serif suave, de recetario. */
+  --font-titulo: "Fraunces Variable", ui-serif, Georgia, serif;
+}
+
+h1,
+.font-titulo {
+  font-family: var(--font-titulo);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
 }
 
 html,
@@ -81,6 +90,14 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+/* Filas de pastillas que se desplazan en horizontal: sin barra visible. */
+.overflow-x-auto {
+  scrollbar-width: none;
+}
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
 }
 
 .pb-seguro {

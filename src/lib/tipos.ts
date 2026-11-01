@@ -41,6 +41,7 @@ export interface Ingrediente {
   unidad_base: UnidadBase;
   seccion_super: string;
   grupo_alimento: GrupoAlimento | null;
+  emoji: string | null;
   /** Para calcular nutrientes de lo que se cuenta por unidades. */
   peso_unidad_g: number | null;
   nutrientes_100: Nutrientes100 | null;
@@ -72,7 +73,7 @@ export interface Producto {
 }
 
 export interface ProductoConIngrediente extends Producto {
-  ingrediente: Pick<Ingrediente, "id" | "nombre" | "unidad_base" | "caducidad_defecto_dias">;
+  ingrediente: Pick<Ingrediente, "id" | "nombre" | "unidad_base" | "caducidad_defecto_dias" | "emoji" | "seccion_super">;
 }
 
 export interface Lote {
@@ -123,6 +124,9 @@ export interface Receta {
   etiquetas: string[];
   valoracion: number | null;
   notas: string | null;
+  foto_url: string | null;
+  /** Web de la que se importó, si viene de una. */
+  fuente_url: string | null;
   creado_en: string;
   actualizado_en: string;
 }

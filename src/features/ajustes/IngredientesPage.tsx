@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Entrada, Interruptor, Opciones, Selector } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
-import { Cabecera, Cargando, Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
+import { Cabecera, Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
+import { emojiPara, ingredientesBaseQueFaltan } from "@/dominio/ingredientes-base";
 import { seccionesDisponibles } from "@/dominio/lista";
 import { normalizar } from "@/dominio/texto";
 import { formatearCantidad, UNIDADES_BASE, type UnidadBase } from "@/dominio/unidades";
@@ -16,6 +17,7 @@ import { mensajeError } from "@/lib/utils";
 import { CLAVES_NUTRIENTES, GRUPOS_ALIMENTO, type GrupoAlimento } from "@/dominio/nutricion";
 import type { Nutrientes100 } from "@/dominio/producto-externo";
 import { claves, useIngredientes, useNutrientesIngredientes, useTiendas } from "../datos";
+import { cargarIngredientesBase } from "../despensa/altas";
 import { useHogar } from "../hogar/HogarProvider";
 
 function nutrientesManuales(valores: Partial<Record<keyof Nutrientes100, string>>): Nutrientes100 | null {
@@ -28,9 +30,26 @@ function nutrientesManuales(valores: Partial<Record<keyof Nutrientes100, string>
 }
 
 export function IngredientesPage() {
+  const { hogar } = useHogar();
+  const queryClient = useQueryClient();
   const { data: ingredientes, isPending } = useIngredientes();
   const [busqueda, setBusqueda] = useState("");
   const [editando, setEditando] = useState<Ingrediente | "nuevo" | null>(null);
+  const [cargando, setCargando] = useState(false);
+  const faltan = ingredientes ? ingredientesBaseQueFaltan(ingredientes).length : 0;
+
+  async function cargarHabituales() {
+    setCargando(true);
+    try {
+      const n = await cargarIngredientesBase(hogar.id, ingredientes ?? []);
+      queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
+      toast.success(`${n} ingredientes añadidos`);
+    } catch (error) {
+      toast.error(mensajeError(error));
+    } finally {
+      setCargando(false);
+    }
+  }
 
   const visibles = useMemo(() => {
     const texto = normalizar(busqueda);
@@ -58,14 +77,26 @@ export function IngredientesPage() {
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-suave" />
           <Entrada value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar ingrediente" className="pl-10" type="search" />
         </div>
+        {faltan > 0 && !busqueda && (
+          <Tarjeta className="flex items-center gap-3 border-primario/30 bg-primario-suave p-3.5">
+            <span className="text-2xl">🧺</span>
+            <p className="flex-1 text-sm">
+              Hay <strong>{faltan} ingredientes habituales</strong> que aún no tenéis, con su sección, grupo e icono.
+            </p>
+            <Boton tamano="sm" onClick={cargarHabituales} disabled={cargando}>
+              {cargando ? "Añadiendo…" : "Añadir"}
+            </Boton>
+          </Tarjeta>
+        )}
         {isPending ? (
-          <Cargando />
+          <ListaEsqueleto />
         ) : !visibles.length ? (
           <Vacio icono={<Carrot />} titulo="Sin ingredientes" />
         ) : (
           <Tarjeta className="divide-y divide-borde">
             {visibles.map((i) => (
-              <button key={i.id} onClick={() => setEditando(i)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-superficie-2">
+              <Link key={i.id} to={`/ingredientes/${i.id}`} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-superficie-2">
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-superficie-2 text-lg">{emojiPara(i.nombre, i.seccion_super, i.emoji)}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium">{i.nombre}</span>
                   <span className="block truncate text-sm text-suave">
@@ -74,7 +105,7 @@ export function IngredientesPage() {
                   </span>
                 </span>
                 {i.siempre_disponible && <Etiqueta tono="primario">Básico</Etiqueta>}
-              </button>
+              </Link>
             ))}
           </Tarjeta>
         )}
@@ -84,12 +115,13 @@ export function IngredientesPage() {
   );
 }
 
-function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingrediente | "nuevo" | null; onCerrar: () => void }) {
+export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingrediente | "nuevo" | null; onCerrar: () => void }) {
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
   const { data: tiendas = [] } = useTiendas();
   const { data: ingredientes = [] } = useIngredientes();
   const [nombre, setNombre] = useState("");
+  const [emoji, setEmoji] = useState("");
   const [unidad, setUnidad] = useState<UnidadBase>("g");
   const [seccion, setSeccion] = useState("Otros");
   const [basico, setBasico] = useState(false);
@@ -109,6 +141,7 @@ function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingrediente |
       Object.fromEntries(Object.entries(i?.nutrientes_100 ?? {}).map(([clave, valor]) => [clave, String(valor).replace(".", ",")])),
     );
     setNombre(i?.nombre ?? "");
+    setEmoji(i?.emoji ?? "");
     setUnidad(i?.unidad_base ?? "g");
     setSeccion(i?.seccion_super ?? "Otros");
     setBasico(i?.siempre_disponible ?? false);
@@ -126,6 +159,7 @@ function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingrediente |
   async function guardar() {
     const datos = {
       nombre: nombre.trim(),
+      emoji: emoji.trim() || null,
       unidad_base: unidad,
       seccion_super: seccion,
       siempre_disponible: basico,
@@ -171,9 +205,14 @@ function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingrediente |
       }
     >
       <div className="flex flex-col gap-4">
-        <Campo etiqueta="Nombre">
-          <Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Garbanzos cocidos" />
-        </Campo>
+        <div className="grid grid-cols-[4.5rem_1fr] gap-3">
+          <Campo etiqueta="Icono">
+            <Entrada value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder={emojiPara(nombre, seccion)} className="text-center text-xl" maxLength={8} />
+          </Campo>
+          <Campo etiqueta="Nombre">
+            <Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Garbanzos cocidos" />
+          </Campo>
+        </div>
         <Campo etiqueta="Se mide en" ayuda={ingrediente !== "nuevo" ? "Cambiarlo no convierte las cantidades ya guardadas." : undefined}>
           <Opciones opciones={UNIDADES_BASE} valor={unidad} onChange={setUnidad} />
         </Campo>

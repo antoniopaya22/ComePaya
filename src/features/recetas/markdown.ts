@@ -1,3 +1,4 @@
+import { datosBaseDe } from "@/dominio/ingredientes-base";
 import { buscarIngrediente } from "@/dominio/lista";
 import { dividirRecetas, markdownAReceta, recetaAMarkdown, SEPARADOR_RECETAS, type RecetaMarkdown } from "@/dominio/markdown";
 import { normalizar } from "@/dominio/texto";
@@ -69,7 +70,7 @@ export async function importar(
         if (!existente) {
           const { data, error } = await supabase
             .from("ingrediente")
-            .insert({ hogar_id: hogarId, nombre: ing.nombre, unidad_base: ing.unidad })
+            .insert({ ...datosBaseDe(ing.nombre), hogar_id: hogarId, nombre: ing.nombre, unidad_base: ing.unidad })
             .select("*")
             .single();
           if (error) throw error;

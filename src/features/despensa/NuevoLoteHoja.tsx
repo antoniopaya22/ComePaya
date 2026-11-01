@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Contador, Entrada, Opciones, Selector } from "@/components/ui/campos";
@@ -26,7 +26,16 @@ interface ProductoNuevo {
   envase: string;
 }
 
-export function NuevoLoteHoja({ abierta, onAbiertaChange }: { abierta: boolean; onAbiertaChange: (v: boolean) => void }) {
+export function NuevoLoteHoja({
+  abierta,
+  onAbiertaChange,
+  productoInicial,
+}: {
+  abierta: boolean;
+  onAbiertaChange: (v: boolean) => void;
+  /** Abre el panel con este producto ya elegido (desde su ficha). */
+  productoInicial?: ProductoConIngrediente;
+}) {
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
   const { data: productos = [] } = useProductos();
@@ -61,6 +70,11 @@ export function NuevoLoteHoja({ abierta, onAbiertaChange }: { abierta: boolean; 
     setEnvases(1);
     setCaducidad(null);
   }
+
+  useEffect(() => {
+    if (abierta && productoInicial) elegir(productoInicial);
+    // Solo al abrir: después manda lo que el usuario elija.
+  }, [abierta]);
 
   function elegir(p: ProductoConIngrediente) {
     setProducto(p);

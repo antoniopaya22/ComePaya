@@ -1,21 +1,28 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { Estructura } from "@/components/Estructura";
 import { Cargando } from "@/components/ui/varios";
 import { supabaseConfigurado } from "@/lib/supabase";
 import { AjustesPage } from "@/features/ajustes/AjustesPage";
-import { EstadisticasPage } from "@/features/ajustes/EstadisticasPage";
 import { IngredientesPage } from "@/features/ajustes/IngredientesPage";
 import { DespensaPage } from "@/features/despensa/DespensaPage";
-import { ModoCocinaPage } from "@/features/cocina/ModoCocinaPage";
-import { EscanerPage } from "@/features/escaner/EscanerPage";
 import { HogarProvider } from "@/features/hogar/HogarProvider";
+import { HoyPage } from "@/features/hoy/HoyPage";
 import { ListaPage } from "@/features/lista/ListaPage";
 import { MenuPage } from "@/features/menu/MenuPage";
-import { EditorRecetaPage } from "@/features/recetas/EditorRecetaPage";
+import { IngredientePage } from "@/features/productos/IngredientePage";
+import { ProductoPage } from "@/features/productos/ProductoPage";
+import { ProductosPage } from "@/features/productos/ProductosPage";
 import { RecetaPage } from "@/features/recetas/RecetaPage";
 import { RecetasPage } from "@/features/recetas/RecetasPage";
 import { PantallaLogin } from "@/features/sesion/PantallaLogin";
 import { SesionProvider, useSesion } from "@/features/sesion/SesionProvider";
+
+// Pantallas que se usan de vez en cuando: se descargan al abrirlas para que el arranque sea más rápido.
+const EscanerPage = lazy(() => import("@/features/escaner/EscanerPage").then((m) => ({ default: m.EscanerPage })));
+const ModoCocinaPage = lazy(() => import("@/features/cocina/ModoCocinaPage").then((m) => ({ default: m.ModoCocinaPage })));
+const EditorRecetaPage = lazy(() => import("@/features/recetas/EditorRecetaPage").then((m) => ({ default: m.EditorRecetaPage })));
+const EstadisticasPage = lazy(() => import("@/features/ajustes/EstadisticasPage").then((m) => ({ default: m.EstadisticasPage })));
 
 export function App() {
   if (!supabaseConfigurado) return <FaltaConfiguracion />;
@@ -34,11 +41,22 @@ function ConSesion() {
     <HogarProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="recetas/:id/cocinar" element={<ModoCocinaPage />} />
+          <Route
+            path="recetas/:id/cocinar"
+            element={
+              <Suspense fallback={<Cargando className="min-h-dvh" />}>
+                <ModoCocinaPage />
+              </Suspense>
+            }
+          />
           <Route element={<Estructura />}>
-            <Route index element={<MenuPage />} />
+            <Route index element={<HoyPage />} />
+            <Route path="menu" element={<MenuPage />} />
             <Route path="lista" element={<ListaPage />} />
             <Route path="despensa" element={<DespensaPage />} />
+            <Route path="productos" element={<ProductosPage />} />
+            <Route path="productos/:id" element={<ProductoPage />} />
+            <Route path="ingredientes/:id" element={<IngredientePage />} />
             <Route path="escanear" element={<EscanerPage />} />
             <Route path="recetas" element={<RecetasPage />} />
             <Route path="recetas/nueva" element={<EditorRecetaPage />} />
@@ -47,7 +65,7 @@ function ConSesion() {
             <Route path="ajustes" element={<AjustesPage />} />
             <Route path="ajustes/ingredientes" element={<IngredientesPage />} />
             <Route path="ajustes/estadisticas" element={<EstadisticasPage />} />
-            <Route path="*" element={<MenuPage />} />
+            <Route path="*" element={<HoyPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

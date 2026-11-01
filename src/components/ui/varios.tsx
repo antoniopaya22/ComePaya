@@ -31,11 +31,36 @@ export function Cargando({ texto = "Cargando…", className }: { texto?: string;
   );
 }
 
+export function Esqueleto({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-superficie-2", className)} />;
+}
+
+/** Marcador de carga con la forma de una lista de tarjetas. */
+export function ListaEsqueleto({ filas = 5 }: { filas?: number }) {
+  return (
+    <div className="flex flex-col gap-2" aria-busy="true" aria-label="Cargando">
+      {Array.from({ length: filas }, (_, i) => (
+        <div key={i} className="flex items-center gap-3 rounded-2xl border border-borde bg-superficie p-3" style={{ opacity: 1 - i * 0.12 }}>
+          <Esqueleto className="size-12 rounded-xl" />
+          <div className="flex flex-1 flex-col gap-2">
+            <Esqueleto className="h-3.5 w-2/3" />
+            <Esqueleto className="h-3 w-1/3" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function Vacio({ icono, titulo, children }: { icono: ReactNode; titulo: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-      <div className="grid size-16 place-items-center rounded-2xl bg-primario-suave text-primario [&_svg]:size-8">{icono}</div>
-      <h2 className="text-lg font-semibold">{titulo}</h2>
+      <div className="relative grid size-20 place-items-center">
+        <span className="absolute inset-0 rotate-6 rounded-[28px] bg-primario-suave" />
+        <span className="absolute inset-1 -rotate-3 rounded-3xl border border-primario/20 bg-superficie" />
+        <span className="relative text-primario [&_svg]:size-8">{icono}</span>
+      </div>
+      <h2 className="font-titulo text-xl font-semibold">{titulo}</h2>
       {children && <div className="max-w-xs text-sm text-suave">{children}</div>}
     </div>
   );
@@ -45,7 +70,7 @@ export function Cabecera({ titulo, subtitulo, accion }: { titulo: string; subtit
   return (
     <header className="flex items-end justify-between gap-3 px-4 pt-6 pb-4 md:px-0 md:pt-10">
       <div className="min-w-0">
-        <h1 className="text-[28px] leading-tight font-bold tracking-tight">{titulo}</h1>
+        <h1 className="text-[30px] leading-tight font-semibold">{titulo}</h1>
         {subtitulo && <p className="mt-0.5 text-sm text-suave">{subtitulo}</p>}
       </div>
       {accion}

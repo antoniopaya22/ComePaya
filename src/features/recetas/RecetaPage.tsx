@@ -1,11 +1,16 @@
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Check, Clock, CookingPot, Download, Hourglass, Pencil, Timer, Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { Boton } from "@/components/ui/boton";
 import { Contador } from "@/components/ui/campos";
 import { Estrellas } from "@/components/ui/estrellas";
-import { Cargando, Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
+import { Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
+import { diasHasta, hoyISO, sumarDias } from "@/dominio/caducidad";
 import { escalar } from "@/dominio/menu";
+import { supabase } from "@/lib/supabase";
+import { useHogar } from "../hogar/HogarProvider";
+import { FichaEsqueleto } from "../productos/ProductoPage";
 import { formatearCantidad } from "@/dominio/unidades";
 import { cn } from "@/lib/utils";
 import { useIngredientes, useLotes, useRecetas } from "../datos";
@@ -20,8 +25,32 @@ export function RecetaPage() {
   const { data: ingredientes = [] } = useIngredientes();
   const receta = recetas?.find((r) => r.id === id);
   const [raciones, setRaciones] = useState<number | null>(null);
+  const { hogar } = useHogar();
+  const hoy = hoyISO();
 
-  if (isPending) return <Cargando />;
+  // Cuántas veces se ha cocinado en el último año (las sobras no cuentan como otra vez).
+  const { data: historial } = useQuery({
+    queryKey: ["franjas", hogar.id, "historial-receta", id],
+    enabled: Boolean(id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("franja_menu")
+        .select("fecha")
+        .eq("receta_id", id!)
+        .eq("cocinado", true)
+        .is("es_sobra_de", null)
+        .gte("fecha", sumarDias(hoy, -365))
+        .order("fecha", { ascending: false });
+      if (error) throw error;
+      return { veces: data.length, ultima: (data[0]?.fecha as string | undefined) ?? null };
+    },
+  });
+  const describirHace = (fecha: string) => {
+    const dias = diasHasta(hoy, fecha);
+    return dias === 0 ? "hoy" : dias === 1 ? "ayer" : `hace ${dias} días`;
+  };
+
+  if (isPending) return <FichaEsqueleto />;
   if (!receta) return <Vacio icono={<ArrowLeft />} titulo="Esta receta ya no existe" />;
 
   const racionesVista = raciones ?? receta.raciones;
@@ -51,8 +80,27 @@ export function RecetaPage() {
         </div>
       </div>
 
+      {receta.foto_url && (
+        <img src={receta.foto_url} alt="" className="-mx-4 aspect-[16/10] w-[calc(100%+2rem)] max-w-none object-cover md:mx-0 md:w-full md:rounded-3xl" />
+      )}
+
       <header className="flex flex-col gap-2">
-        <h1 className="text-[28px] leading-tight font-bold tracking-tight">{receta.nombre}</h1>
+        <h1 className="font-titulo text-[30px] leading-tight font-semibold tracking-tight">{receta.nombre}</h1>
+        {historial && (
+          <p className="text-sm text-suave">
+            {historial.veces
+              ? `Cocinada ${historial.veces} ${historial.veces === 1 ? "vez" : "veces"} este año · la última ${describirHace(historial.ultima!)}`
+              : "Aún no la habéis cocinado este año"}
+            {receta.fuente_url && (
+              <>
+                {" · "}
+                <a href={receta.fuente_url} target="_blank" rel="noreferrer" className="font-medium text-primario">
+                  receta original
+                </a>
+              </>
+            )}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-suave">
           {receta.valoracion && <Estrellas valor={receta.valoracion} />}
           {receta.tiempo_prep_min ? (

@@ -1,15 +1,17 @@
-import { BookOpen, CalendarDays, ListChecks, Refrigerator, Settings } from "lucide-react";
+import { BookOpen, CalendarDays, House, ListChecks, Refrigerator, Settings } from "lucide-react";
 import { motion } from "motion/react";
+import { Suspense } from "react";
 import { NavLink, Outlet } from "react-router";
+import { Cargando } from "@/components/ui/varios";
 import { cn } from "@/lib/utils";
 import { useHogar } from "@/features/hogar/HogarProvider";
 
 const SECCIONES = [
-  { ruta: "/", etiqueta: "Menú", icono: CalendarDays },
+  { ruta: "/", etiqueta: "Hoy", icono: House },
+  { ruta: "/menu", etiqueta: "Menú", icono: CalendarDays },
   { ruta: "/lista", etiqueta: "Lista", icono: ListChecks },
   { ruta: "/despensa", etiqueta: "Despensa", icono: Refrigerator },
   { ruta: "/recetas", etiqueta: "Recetas", icono: BookOpen },
-  { ruta: "/ajustes", etiqueta: "Ajustes", icono: Settings },
 ];
 
 /** Móvil: navegación inferior. Escritorio (md+): barra lateral. */
@@ -44,10 +46,24 @@ export function Estructura() {
             </NavLink>
           ))}
         </nav>
+        <NavLink
+          to="/ajustes"
+          className={({ isActive }) =>
+            cn(
+              "mt-auto flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors",
+              isActive ? "bg-primario-suave text-primario" : "text-suave hover:bg-superficie-2 hover:text-texto",
+            )
+          }
+        >
+          <Settings className="size-5" />
+          Ajustes
+        </NavLink>
       </aside>
 
       <main className="mx-auto w-full max-w-2xl pb-28 md:px-8 md:pb-12">
-        <Outlet />
+        <Suspense fallback={<Cargando className="min-h-[60dvh]" />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <nav className="pb-seguro fixed inset-x-0 bottom-0 z-30 border-t border-borde bg-superficie/90 backdrop-blur-lg md:hidden">

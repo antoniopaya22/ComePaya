@@ -1,25 +1,27 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Trash2, Utensils } from "lucide-react";
+import { ChevronRight, Trash2, Utensils } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
-import { Campo, Contador, Opciones } from "@/components/ui/campos";
+import { Campo, Contador, Entrada, Opciones } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
-import { describirCaducidad, hoyISO } from "@/dominio/caducidad";
+import { describirCaducidad, hoyISO, type FechaISO } from "@/dominio/caducidad";
 import { baseAEnvases, envasesABase, formatearLote } from "@/dominio/unidades";
 import { supabase } from "@/lib/supabase";
 import { UBICACIONES, type LoteConProducto, type Ubicacion } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { claves } from "../datos";
-import { FichaProducto, productoAExterno } from "../escaner/FichaProducto";
 import { useHogar } from "../hogar/HogarProvider";
+import { SelectorCaducidad } from "./SelectorCaducidad";
 
-/** Retirar todo o parte de un lote, distinguiendo consumido de tirado (§4.1), o moverlo de sitio. */
+/** Retirar todo o parte de un lote (consumido o tirado, §4.1), moverlo de sitio o corregir su caducidad y cantidad. */
 export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | null; onCerrar: () => void }) {
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
   const [envases, setEnvases] = useState(1);
   const [guardando, setGuardando] = useState(false);
+  const [cantidadReal, setCantidadReal] = useState("");
 
   // Los datos se conservan mientras el panel se cierra animado.
   const [actual, setActual] = useState(lote);
@@ -27,6 +29,7 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
     if (lote) {
       setActual(lote);
       setEnvases(baseAEnvases(lote.cantidad, lote.producto.cantidad_envase));
+      setCantidadReal(String(lote.cantidad).replace(".", ","));
     }
   }, [lote]);
 
@@ -55,6 +58,27 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
     } finally {
       setGuardando(false);
     }
+  }
+
+  async function cambiarCaducidad(fecha_caducidad: FechaISO | null) {
+    if (!actual) return;
+    setActual({ ...actual, fecha_caducidad });
+    const { error } = await supabase.from("lote_despensa").update({ fecha_caducidad }).eq("id", actual.id);
+    if (error) return toast.error(mensajeError(error));
+    refrescar();
+  }
+
+  /** Corrige la cantidad a lo que realmente hay (queda registrado como ajuste). */
+  async function ajustar() {
+    if (!actual) return;
+    const nueva = Number(cantidadReal.replace(",", "."));
+    if (!(nueva > 0) || nueva === actual.cantidad) return;
+    const { error } = await supabase.from("lote_despensa").update({ cantidad: nueva }).eq("id", actual.id);
+    if (error) return toast.error(mensajeError(error));
+    await supabase.from("movimiento_despensa").insert({ hogar_id: hogar.id, producto_id: producto.id, cantidad: nueva - actual.cantidad, tipo: "ajuste" });
+    setActual({ ...actual, cantidad: nueva });
+    refrescar();
+    toast.success("Cantidad corregida");
   }
 
   async function mover(ubicacion: Ubicacion) {
@@ -89,14 +113,23 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
         <Campo etiqueta="Mover a">
           <Opciones opciones={UBICACIONES} valor={actual.ubicacion} onChange={mover} />
         </Campo>
-        {Boolean(producto.nutriscore || producto.nova || producto.nutrientes_100 || producto.aditivos?.length) && (
-          <details className="rounded-xl border border-borde px-3.5 py-3">
-            <summary className="cursor-pointer text-sm font-medium">Información de salud</summary>
-            <div className="mt-3">
-              <FichaProducto producto={productoAExterno(producto)} />
+        <details className="rounded-xl border border-borde px-3.5 py-3">
+          <summary className="cursor-pointer text-sm font-medium">Corregir caducidad o cantidad</summary>
+          <div className="mt-3 flex flex-col gap-4">
+            <SelectorCaducidad valor={actual.fecha_caducidad} onChange={cambiarCaducidad} hoy={hoyISO()} />
+            <div className="flex items-end gap-2">
+              <Campo etiqueta={`Cantidad real (${producto.ingrediente.unidad_base})`} className="flex-1">
+                <Entrada inputMode="decimal" value={cantidadReal} onChange={(e) => setCantidadReal(e.target.value)} />
+              </Campo>
+              <Boton variante="secundario" onClick={ajustar} disabled={!(Number(cantidadReal.replace(",", ".")) > 0)}>
+                Ajustar
+              </Boton>
             </div>
-          </details>
-        )}
+          </div>
+        </details>
+        <Link to={`/productos/${producto.id}`} onClick={onCerrar} className="inline-flex items-center gap-1 self-start text-sm font-medium text-primario">
+          Ver ficha del producto <ChevronRight className="size-4" />
+        </Link>
       </div>
     </Hoja>
   );

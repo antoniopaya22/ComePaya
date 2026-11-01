@@ -85,7 +85,7 @@ export function GuardarCompraHoja({ items, abierta, onCerrar }: { items: ItemLis
                 nombre: l.ingrediente.nombre,
                 cantidad_envase: l.ingrediente.unidad_base === "ud" ? 1 : l.item.cantidad_base,
               })
-              .select("*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias)")
+              .select("*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super)")
               .single();
             if (error) throw error;
             producto = data as ProductoConIngrediente;

@@ -3,9 +3,19 @@ import type { ProductoExterno } from "@/dominio/producto-externo";
 import type { UnidadBase } from "@/dominio/unidades";
 import { supabase } from "@/lib/supabase";
 import type { Ingrediente, ProductoConIngrediente, Ubicacion } from "@/lib/tipos";
+import { datosBaseDe, ingredientesBaseQueFaltan } from "@/dominio/ingredientes-base";
 import { buscarIngrediente } from "@/dominio/lista";
 
-const SELECT_PRODUCTO = "*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias)";
+/** Añade al hogar los ingredientes habituales que aún no tiene. Devuelve cuántos ha creado. */
+export async function cargarIngredientesBase(hogarId: string, existentes: { nombre: string }[]): Promise<number> {
+  const faltan = ingredientesBaseQueFaltan(existentes);
+  if (!faltan.length) return 0;
+  const { error } = await supabase.from("ingrediente").insert(faltan.map((i) => ({ ...i, hogar_id: hogarId })));
+  if (error) throw error;
+  return faltan.length;
+}
+
+const SELECT_PRODUCTO = "*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super)";
 
 export interface DatosProductoNuevo {
   nombre: string;
@@ -26,7 +36,13 @@ export async function crearProducto(hogarId: string, datos: DatosProductoNuevo, 
   if (!ingredienteId) {
     const { data, error } = await supabase
       .from("ingrediente")
-      .insert({ hogar_id: hogarId, nombre: datos.ingrediente.trim(), unidad_base: datos.unidad, seccion_super: datos.seccion })
+      .insert({
+        ...datosBaseDe(datos.ingrediente),
+        hogar_id: hogarId,
+        nombre: datos.ingrediente.trim(),
+        unidad_base: datos.unidad,
+        seccion_super: datos.seccion,
+      })
       .select("id")
       .single();
     if (error) throw error;

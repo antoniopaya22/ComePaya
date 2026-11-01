@@ -1,11 +1,13 @@
-import { Package, Plus, Refrigerator, ScanBarcode, Search, Snowflake, TriangleAlert, Warehouse } from "lucide-react";
+import { ChevronDown, ChevronRight, Library, Package, Plus, Refrigerator, ScanBarcode, Search, Snowflake, TriangleAlert, Warehouse } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Boton } from "@/components/ui/boton";
 import { Entrada } from "@/components/ui/campos";
-import { Cabecera, Cargando, Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
+import { Cabecera, Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
 import { describirCaducidad, estadoCaducidad, etiquetaCaducidad, hoyISO } from "@/dominio/caducidad";
+import { agruparPorProducto, type GrupoLotes } from "@/dominio/despensa";
+import { emojiPara } from "@/dominio/ingredientes-base";
 import { normalizar } from "@/dominio/texto";
 import { formatearLote } from "@/dominio/unidades";
 import { useTiempoReal } from "@/lib/tiempo-real";
@@ -40,6 +42,7 @@ export function DespensaPage() {
     );
   }, [lotes, filtro, busqueda]);
 
+  const grupos = useMemo(() => agruparPorProducto(visibles), [visibles]);
   const urgentes = (lotes ?? []).filter((l) => ["caducado", "pronto"].includes(estadoCaducidad(l.fecha_caducidad, hoy)));
   const cuenta = (u: Ubicacion) => (lotes ?? []).filter((l) => l.ubicacion === u).length;
 
@@ -47,9 +50,14 @@ export function DespensaPage() {
     <>
       <Cabecera
         titulo="Despensa"
-        subtitulo={lotes ? `${lotes.length} ${lotes.length === 1 ? "lote" : "lotes"} en casa` : undefined}
+        subtitulo={lotes ? `${new Set(lotes.map((l) => l.producto_id)).size} productos en casa` : undefined}
         accion={
           <div className="flex gap-2">
+            <Boton asChild variante="fantasma" tamano="icono-sm" aria-label="Todos los productos" title="Todos los productos">
+              <Link to="/productos">
+                <Library />
+              </Link>
+            </Boton>
             <Boton asChild variante="secundario" tamano="sm">
               <Link to="/escanear">
                 <ScanBarcode /> Escanear
@@ -99,19 +107,19 @@ export function DespensaPage() {
         </div>
 
         {isPending ? (
-          <Cargando />
+          <ListaEsqueleto />
         ) : !lotes?.length ? (
           <Vacio icono={<Package />} titulo="La despensa está vacía">
-            Añade lo que tienes en la nevera, el congelador o los armarios. Pronto podrás hacerlo escaneando.
+            Escanea lo que tienes en la nevera, el congelador o los armarios, o añádelo a mano con el botón +.
           </Vacio>
-        ) : !visibles.length ? (
+        ) : !grupos.length ? (
           <p className="py-10 text-center text-sm text-suave">No hay nada que coincida.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             <AnimatePresence initial={false}>
-              {visibles.map((lote) => (
-                <motion.li key={lote.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -40 }}>
-                  <FilaLote lote={lote} hoy={hoy} onClick={() => setRetirando(lote)} />
+              {grupos.map((g) => (
+                <motion.li key={g.producto_id} layout="position" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -40 }}>
+                  <FilaProducto grupo={g} hoy={hoy} onLote={setRetirando} />
                 </motion.li>
               ))}
             </AnimatePresence>
@@ -138,32 +146,68 @@ export function DespensaPage() {
   );
 }
 
-function FilaLote({ lote, hoy, onClick }: { lote: LoteConProducto; hoy: string; onClick: () => void }) {
-  const estado = estadoCaducidad(lote.fecha_caducidad, hoy);
-  const Icono = ICONOS[lote.ubicacion];
-  const { producto } = lote;
+const tono = (estado: ReturnType<typeof estadoCaducidad>) => (estado === "caducado" ? "peligro" : estado === "pronto" ? "aviso" : "neutro");
+
+/**
+ * Un producto con todos sus lotes (§4.1): total y caducidad más próxima. Con un solo lote, tocar lo abre;
+ * con varios, se despliegan para elegir cuál.
+ */
+function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProducto>; hoy: string; onLote: (l: LoteConProducto) => void }) {
+  const [abierto, setAbierto] = useState(false);
+  const { producto } = grupo.lotes[0];
+  const unidad = producto.ingrediente.unidad_base;
+  const varios = grupo.lotes.length > 1;
+  const estado = estadoCaducidad(grupo.proxima, hoy);
 
   return (
-    <button onClick={onClick} className="w-full text-left">
-      <Tarjeta className="flex items-center gap-3 p-3 transition-colors active:bg-superficie-2">
+    <Tarjeta className="overflow-hidden">
+      <button onClick={() => (varios ? setAbierto(!abierto) : onLote(grupo.lotes[0]))} className="flex w-full items-center gap-3 p-3 text-left transition-colors active:bg-superficie-2">
         {producto.foto_url ? (
           <img src={producto.foto_url} alt="" className="size-12 shrink-0 rounded-xl bg-white object-contain" loading="lazy" />
         ) : (
-          <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-superficie-2 text-suave">
-            <Icono className="size-5" />
-          </div>
+          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-superficie-2 text-2xl">
+            {emojiPara(producto.ingrediente.nombre, producto.ingrediente.seccion_super, producto.ingrediente.emoji)}
+          </span>
         )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{producto.nombre}</p>
-          <p className="truncate text-sm text-suave">
-            {formatearLote(lote.cantidad, producto.ingrediente.unidad_base, producto.cantidad_envase)}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-medium">{producto.nombre}</span>
+          <span className="block truncate text-sm text-suave">
+            {formatearLote(grupo.total, unidad, producto.cantidad_envase)}
             {producto.marca ? ` · ${producto.marca}` : ""}
-          </p>
-        </div>
-        <Etiqueta tono={estado === "caducado" ? "peligro" : estado === "pronto" ? "aviso" : "neutro"}>
-          {etiquetaCaducidad(lote.fecha_caducidad, hoy)}
-        </Etiqueta>
-      </Tarjeta>
-    </button>
+          </span>
+        </span>
+        <span className="flex shrink-0 flex-col items-end gap-1">
+          <Etiqueta tono={tono(estado)}>{etiquetaCaducidad(grupo.proxima, hoy)}</Etiqueta>
+          {varios && (
+            <span className="flex items-center gap-0.5 text-xs text-suave">
+              {grupo.lotes.length} lotes <ChevronDown className={cn("size-3.5 transition-transform", abierto && "rotate-180")} />
+            </span>
+          )}
+        </span>
+      </button>
+      <AnimatePresence initial={false}>
+        {abierto && (
+          <motion.ul initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden border-t border-borde bg-superficie-2/50">
+            {grupo.lotes.map((l) => {
+              const Icono = ICONOS[l.ubicacion];
+              return (
+                <li key={l.id}>
+                  <button onClick={() => onLote(l)} className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-superficie-2">
+                    <Icono className="size-4 text-suave" />
+                    <span className="flex-1">{formatearLote(l.cantidad, unidad, producto.cantidad_envase)}</span>
+                    <Etiqueta tono={tono(estadoCaducidad(l.fecha_caducidad, hoy))}>{describirCaducidad(l.fecha_caducidad, hoy)}</Etiqueta>
+                  </button>
+                </li>
+              );
+            })}
+            <li>
+              <Link to={`/productos/${producto.id}`} className="flex items-center gap-1 px-4 py-2.5 text-sm font-medium text-primario">
+                Ver ficha <ChevronRight className="size-4" />
+              </Link>
+            </li>
+          </motion.ul>
+        )}
+      </AnimatePresence>
+    </Tarjeta>
   );
 }

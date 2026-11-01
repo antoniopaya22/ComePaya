@@ -1,15 +1,17 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ChefHat, ChevronLeft, ChevronRight, CircleCheck, ListChecks, Plane, Plus, Repeat } from "lucide-react";
-import { useState } from "react";
+import { ChevronLeft, ChevronRight, CircleCheck, Copy, ListChecks, Plane, Plus, Repeat } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Cabecera, Tarjeta } from "@/components/ui/varios";
 import { hoyISO, sumarDias, type FechaISO } from "@/dominio/caducidad";
+import { emojiPara } from "@/dominio/ingredientes-base";
 import { DIAS_SEMANA, diasDeSemana, lunesDe, type TipoFranja } from "@/dominio/menu";
+import { supabase } from "@/lib/supabase";
 import { useTiempoReal } from "@/lib/tiempo-real";
 import type { FranjaMenu } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
-import { claves, useFranjas, useIngredientes, useLista, useLotes, useRecetas } from "../datos";
+import { claves, consultarFranjas, useFranjas, useIngredientes, useLista, useLotes, useRecetas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
 import { describirGeneracion, generarListaDesdeMenu } from "../lista/generar";
 import { EquilibrioSemana } from "../salud/EquilibrioSemana";
@@ -41,6 +43,49 @@ export function MenuPage() {
   const buscar = (fecha: FechaISO, tipo: TipoFranja) => franjas.find((f) => f.fecha === fecha && f.tipo === tipo);
   const nombreReceta = (id: string | null) => recetas.find((r) => r.id === id)?.nombre ?? "Receta borrada";
   const planificadas = franjas.filter((f) => f.receta_id || f.fuera_de_casa).length;
+  const [copiando, setCopiando] = useState(false);
+
+  // Al abrir, llevar la vista al día de hoy (el domingo, la semana ya va muy abajo).
+  useEffect(() => {
+    if (lunes !== lunesDe(hoy) || hoy === lunes) return;
+    const t = setTimeout(() => document.getElementById(`dia-${hoy}`)?.scrollIntoView({ block: "center" }), 150);
+    return () => clearTimeout(t);
+  }, []);
+
+  const emojiIngrediente = new Map(ingredientes.map((i) => [i.id, emojiPara(i.nombre, i.seccion_super, i.emoji)]));
+  /** Foto del plato o, sin foto, el icono de su ingrediente principal. */
+  const miniatura = (recetaId: string | null): { foto: string | null; emoji: string } => {
+    const r = recetas.find((x) => x.id === recetaId);
+    const principal = r ? [...r.ingredientes].filter((i) => !i.opcional).sort((a, b) => b.cantidad - a.cantidad)[0] : undefined;
+    return { foto: r?.foto_url ?? null, emoji: (principal && emojiIngrediente.get(principal.ingrediente_id)) ?? "🍽️" };
+  };
+
+  /** Copia las comidas de la semana anterior a esta (sin marcar como cocinadas y sin pisar lo ya planificado). */
+  async function copiarSemanaAnterior() {
+    setCopiando(true);
+    try {
+      const anteriores = await consultarFranjas(hogar.id, sumarDias(lunes, -7), sumarDias(lunes, -1));
+      if (!anteriores.length) return toast.info("La semana anterior está vacía");
+      const { error } = await supabase.from("franja_menu").upsert(
+        anteriores.map((f) => ({
+          hogar_id: hogar.id,
+          fecha: sumarDias(f.fecha, 7),
+          tipo: f.tipo,
+          receta_id: f.receta_id,
+          raciones: f.raciones,
+          fuera_de_casa: f.fuera_de_casa,
+        })),
+        { onConflict: "hogar_id,fecha,tipo", ignoreDuplicates: true },
+      );
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
+      toast.success("Semana copiada", { description: "Las sobras se copian como platos normales: revísalas si hace falta." });
+    } catch (error) {
+      toast.error(mensajeError(error));
+    } finally {
+      setCopiando(false);
+    }
+  }
 
   async function generarLista() {
     setGenerando(true);
@@ -81,12 +126,50 @@ export function MenuPage() {
           </Boton>
         </div>
 
+        {/* Tira de días: de un vistazo qué está planificado; tocar un día lleva a él. */}
+        <div className="sticky top-0 z-10 -mx-4 grid grid-cols-7 gap-1 bg-fondo/90 px-4 py-1.5 backdrop-blur md:hidden">
+          {diasDeSemana(lunes).map((fecha, i) => (
+            <button
+              key={fecha}
+              onClick={() => document.getElementById(`dia-${fecha}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}
+              className={cn("flex flex-col items-center rounded-xl py-1.5", fecha === hoy ? "bg-primario text-primario-texto" : fecha < hoy ? "text-suave" : "")}
+            >
+              <span className="text-[11px] font-semibold">{DIAS_SEMANA[i].slice(0, 1)}</span>
+              <span className="text-sm font-semibold">{Number(fecha.slice(8))}</span>
+              <span className="mt-0.5 flex gap-0.5">
+                {(["comida", "cena"] as const).map((tipo) => {
+                  const f = buscar(fecha, tipo);
+                  return (
+                    <span
+                      key={tipo}
+                      className={cn(
+                        "size-1.5 rounded-full",
+                        f?.receta_id || f?.fuera_de_casa ? (fecha === hoy ? "bg-primario-texto" : "bg-primario") : fecha === hoy ? "bg-primario-texto/30" : "bg-borde",
+                      )}
+                    />
+                  );
+                })}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {planificadas === 0 && (
+          <Tarjeta className="flex items-center gap-3 p-3.5">
+            <Copy className="size-5 shrink-0 text-primario" />
+            <p className="flex-1 text-sm">¿Repetís lo de la semana anterior?</p>
+            <Boton variante="secundario" tamano="sm" onClick={copiarSemanaAnterior} disabled={copiando}>
+              {copiando ? "Copiando…" : "Copiar"}
+            </Boton>
+          </Tarjeta>
+        )}
+
         <ul className="grid gap-3 md:grid-cols-2">
           {diasDeSemana(lunes).map((fecha, i) => {
             const esHoy = fecha === hoy;
             const pasado = fecha < hoy;
             return (
-              <li key={fecha}>
+              <li key={fecha} id={`dia-${fecha}`} className="scroll-mt-24">
                 <Tarjeta className={cn("overflow-hidden", esHoy && "border-primario ring-1 ring-primario", pasado && "opacity-60")}>
                   <div className="flex items-baseline justify-between px-4 pt-3 pb-1">
                     <p className="font-semibold">
@@ -100,6 +183,7 @@ export function MenuPage() {
                       tipo={tipo}
                       franja={buscar(fecha, tipo)}
                       nombreReceta={nombreReceta}
+                      miniatura={miniatura}
                       origen={(id) => franjas.find((f) => f.id === id)}
                       onClick={() => setAbierta({ fecha, tipo })}
                     />
@@ -127,12 +211,14 @@ function Franja({
   tipo,
   franja,
   nombreReceta,
+  miniatura,
   origen,
   onClick,
 }: {
   tipo: TipoFranja;
   franja: FranjaMenu | undefined;
   nombreReceta: (id: string | null) => string;
+  miniatura: (recetaId: string | null) => { foto: string | null; emoji: string };
   origen: (id: string) => FranjaMenu | undefined;
   onClick: () => void;
 }) {
@@ -151,9 +237,21 @@ function Franja({
     );
   } else {
     const deOtra = franja.es_sobra_de ? origen(franja.es_sobra_de) : undefined;
+    const { foto, emoji } = miniatura(franja.receta_id);
     contenido = (
-      <span className="flex min-w-0 items-center gap-2">
-        {franja.es_sobra_de ? <Repeat className="size-4 shrink-0 text-suave" /> : <ChefHat className="size-4 shrink-0 text-primario" />}
+      <span className="flex min-w-0 items-center gap-2.5">
+        <span className="relative shrink-0">
+          {foto ? (
+            <img src={foto} alt="" className="size-10 rounded-xl object-cover" loading="lazy" />
+          ) : (
+            <span className="grid size-10 place-items-center rounded-xl bg-superficie-2 text-xl">{emoji}</span>
+          )}
+          {franja.es_sobra_de && (
+            <span className="absolute -right-1 -bottom-1 grid size-5 place-items-center rounded-full bg-superficie text-suave shadow">
+              <Repeat className="size-3" />
+            </span>
+          )}
+        </span>
         <span className="min-w-0">
           <span className={cn("block truncate font-medium", franja.cocinado && "text-suave line-through")}>{nombreReceta(franja.receta_id)}</span>
           <span className="block truncate text-xs text-suave">

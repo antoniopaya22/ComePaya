@@ -132,7 +132,7 @@ export function useProductos() {
       filas<ProductoConIngrediente>(
         supabase
           .from("producto")
-          .select("*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias)")
+          .select("*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super)")
           .eq("hogar_id", hogar.id)
           .order("nombre"),
       ),
@@ -147,7 +147,7 @@ export function useLotes() {
       filas<LoteConProducto>(
         supabase
           .from("lote_despensa")
-          .select("*, producto:producto(*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias))")
+          .select("*, producto:producto(*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super))")
           .eq("hogar_id", hogar.id)
           .order("fecha_caducidad", { ascending: true, nullsFirst: false })
           .order("creado_en"),

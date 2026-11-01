@@ -139,14 +139,14 @@ Los módulos se alimentan entre sí:
 | `Hogar` | id, nombre, codigo_invitacion (único), comensales (raciones por defecto de cada franja), aditivos_vigilados, ical_token, creado_por, fecha_alta |
 | `Miembro` | hogar_id, user_id (Supabase Auth), nombre, email, rol (admin / miembro), fecha_alta |
 | `CatalogoEan` (global) | ean, nombre, marca, cantidad_texto, foto_url, nutrientes_100, nutriscore, nova, niveles_nutrientes, aditivos, completitud_datos, fuente, actualizado |
-| `Ingrediente` | id, hogar_id, nombre, unidad_base, seccion_super, grupo_alimento (legumbre, pescado, carne_roja, carne_blanca, verdura, fruta, cereal, lacteo, ultraprocesado…), siempre_disponible (bool), stock_minimo (opcional), peso_unidad_g (para nutrientes de lo que va por unidades), nutrientes_100 (de BEDCA o media de sus productos), caducidad_defecto_dias (opcional) |
+| `Ingrediente` | id, hogar_id, nombre, unidad_base, seccion_super, grupo_alimento (legumbre, pescado, carne_roja, carne_blanca, verdura, fruta, cereal, lacteo, ultraprocesado…), siempre_disponible (bool), stock_minimo (opcional), emoji, peso_unidad_g (para nutrientes de lo que va por unidades), nutrientes_100 (de BEDCA o media de sus productos), caducidad_defecto_dias (opcional) |
 | `Producto` | id, hogar_id, ean (único por hogar, nullable), nombre, marca, cantidad_envase (en unidad base), ingrediente_id, nutrientes_100, nutriscore, nova, niveles_nutrientes, aditivos, completitud_datos, fuente (openfoodfacts / mercadona / manual), foto, caducidad_habitual_dias (aprendida) |
 | `LoteDespensa` | id, producto_id, cantidad, ubicacion (nevera / congelador / despensa), fecha_caducidad (nullable), fecha_alta |
 | `RacionCongelada` | id, receta_id (nullable), descripcion, raciones, fecha_congelacion |
 | `RechazoSugerencia` | receta_id, fecha ("no me apetece": no se sugiere durante 3 días) |
 | `SuscripcionPush` / `AvisoEnviado` | dispositivos con avisos activados; avisos ya mandados (solo servidor) |
 | `MovimientoDespensa` | id, producto_id, cantidad, tipo (alta / consumo / tirado / ajuste), motivo, fecha |
-| `Receta` | id, nombre, raciones, tiempo_prep_min, tiempo_coccion_min, preparacion_previa, preparacion_previa_horas, etiquetas, valoracion, notas |
+| `Receta` | id, nombre, raciones, tiempo_prep_min, tiempo_coccion_min, preparacion_previa, preparacion_previa_horas, etiquetas, valoracion, notas, foto_url, fuente_url |
 | `RecetaIngrediente` | receta_id, ingrediente_id, cantidad (unidad base), opcional (bool), orden |
 | `PasoReceta` | receta_id, orden, texto, temporizador_seg (nullable), temporizador_nombre |
 | `FranjaMenu` | id, fecha, tipo (comida / cena), receta_id (nullable), raciones, fuera_de_casa (bool), es_sobra_de (franja_id, nullable), cocinado (bool) |
@@ -309,6 +309,14 @@ Decisiones tomadas durante la implementación:
 - **Fotos** de productos manuales: se usan las de Open Food Facts o Mercadona; subir fotos propias queda pendiente.
 - **Escaneo**: cada producto se añade al confirmar su panel (o directamente, si no necesita caducidad), con "Deshacer" en la lista de la sesión, en lugar de una revisión final.
 - **Temporizadores**: siguen la hora real, pero el aviso solo suena con la app abierta (la pantalla no se apaga en modo cocina).
+
+Mejoras posteriores (2026-11-01):
+- **Pantalla «Hoy»** como inicio: comida y cena de hoy, preparación previa, lo que caduca y la lista.
+- **Fichas** de producto (lotes, salud, historial, edición), de ingrediente (stock, productos, recetas, nutrientes) y catálogo de productos; los lotes se pueden corregir (caducidad y cantidad, registrado como ajuste).
+- **Ingredientes habituales precargados** al crear el hogar (unos 120, con sección, grupo, caducidad orientativa, peso por unidad e icono; sin nutrientes inventados). Un ingrediente nuevo con nombre conocido hereda esos datos.
+- **Despensa agrupada por producto**, con iconos por ingrediente en despensa, lista, menú y recetas.
+- **Fotos de recetas** (Supabase Storage, reducidas en el móvil) e **importación desde una web** que publique schema.org/Recipe. No contradice "las recetas las crea el usuario": no se genera nada, se copia lo que publica la web y se revisa en el editor (las medidas caseras se convierten de forma aproximada y se marcan para revisar).
+- Tipografía propia (Inter y Fraunces, incluidas en la app), esqueletos de carga, diálogos de confirmación propios y carga diferida de las pantallas menos usadas.
 
 Pendiente de la fase 7:
 - **Ticket de compra** (§7.4) y **planificación automática** (§9.3): marcados como "propuesto", sin confirmar. El ticket necesitaría un modelo de visión de pago.

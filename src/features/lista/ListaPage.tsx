@@ -1,11 +1,12 @@
 import { useMutation, useMutationState, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Check, CloudOff, ListChecks, Plus, Refrigerator, Store } from "lucide-react";
+import { CalendarDays, Check, CloudOff, ListChecks, Pencil, Plus, Refrigerator, Store } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Entrada, Selector } from "@/components/ui/campos";
-import { Cabecera, Cargando, Vacio } from "@/components/ui/varios";
+import { Cabecera, ListaEsqueleto, Vacio } from "@/components/ui/varios";
+import { emojiPara } from "@/dominio/ingredientes-base";
 import { agruparPorSeccion, buscarIngrediente, parsearEntrada, SECCION_OTROS } from "@/dominio/lista";
 import { useTiempoReal } from "@/lib/tiempo-real";
 import type { ItemLista } from "@/lib/tipos";
@@ -37,6 +38,7 @@ export function ListaPage() {
 
   const tienda = tiendas.find((t) => t.id === tiendaId) ?? tiendas[0];
   const grupos = useMemo(() => agruparPorSeccion(items ?? [], tienda?.orden_secciones ?? []), [items, tienda]);
+  const emojiDe = useMemo(() => new Map(ingredientes.map((i) => [i.id, i.emoji])), [ingredientes]);
   const marcados = (items ?? []).filter((i) => i.marcado);
   const pendientes = (items?.length ?? 0) - marcados.length;
 
@@ -152,7 +154,7 @@ export function ListaPage() {
         </Boton>
 
         {isPending ? (
-          <Cargando />
+          <ListaEsqueleto filas={6} />
         ) : !items?.length ? (
           <Vacio icono={<ListChecks />} titulo="Nada que comprar">
             Escribe arriba lo que falta. Se ordena solo por secciones del súper, en el orden de tu tienda.
@@ -191,6 +193,9 @@ export function ListaPage() {
                             >
                               {item.marcado && <Check className="size-3.5" strokeWidth={3} />}
                             </span>
+                            <span className={cn("text-xl leading-none transition-opacity", item.marcado && "opacity-40 grayscale")} aria-hidden>
+                              {emojiPara(item.texto, item.seccion_super, item.ingrediente_id ? emojiDe.get(item.ingrediente_id) : null)}
+                            </span>
                             <span className={cn("flex-1 transition-colors", item.marcado && "text-suave line-through")}>
                               {item.texto}
                               {item.origen !== "manual" && (
@@ -202,7 +207,7 @@ export function ListaPage() {
                             {item.cantidad && <span className="text-sm text-suave">{item.cantidad}</span>}
                           </button>
                           <button onClick={() => setEditando(item)} className="h-13 px-3.5 text-xs text-suave" aria-label={`Editar ${item.texto}`}>
-                            ···
+                            <Pencil className="size-4" />
                           </button>
                         </div>
                       </motion.li>
@@ -212,6 +217,20 @@ export function ListaPage() {
               </section>
             ))}
 
+            {pendientes === 0 && (
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 18 }}
+                className="flex flex-col items-center gap-1 rounded-3xl bg-primario-suave px-6 py-5 text-center"
+              >
+                <motion.span className="text-4xl" animate={{ rotate: [0, -12, 12, -6, 0] }} transition={{ delay: 0.2, duration: 0.6 }}>
+                  🎉
+                </motion.span>
+                <p className="font-titulo text-xl font-semibold text-primario">¡Todo comprado!</p>
+                <p className="text-sm text-suave">Guarda la compra para que pase a la despensa.</p>
+              </motion.div>
+            )}
             {marcados.length > 0 && (
               <Boton onClick={() => setGuardandoCompra(true)} className="self-center">
                 <Refrigerator /> Guardar compra ({marcados.length})

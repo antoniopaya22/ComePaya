@@ -5,7 +5,10 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "sonner";
 import { App } from "./App";
+import { ConfirmarProvider } from "./components/ui/confirmar";
 import { registrarMutacionesLista } from "./features/lista/sin-conexion";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/fraunces";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -26,7 +29,9 @@ createRoot(document.getElementById("root")!).render(
       // Al abrir, se envían los cambios hechos sin conexión y después se refresca todo.
       onSuccess={() => queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries())}
     >
-      <App />
+      <ConfirmarProvider>
+        <App />
+      </ConfirmarProvider>
       <Toaster position="top-center" richColors closeButton={false} toastOptions={{ className: "!rounded-2xl" }} />
     </PersistQueryClientProvider>
   </StrictMode>,

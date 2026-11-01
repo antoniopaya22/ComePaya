@@ -35,6 +35,35 @@ export function planDescuento(lotes: LoteDescontable[], cantidad: number): PlanD
   return plan;
 }
 
+export interface GrupoLotes<L> {
+  producto_id: string;
+  lotes: L[];
+  total: number;
+  /** La caducidad más próxima entre sus lotes (null si ninguno tiene fecha). */
+  proxima: FechaISO | null;
+}
+
+/**
+ * Agrupa los lotes por producto (§4.1): un producto con su total y sus lotes ordenados por caducidad.
+ * Los grupos se ordenan por la caducidad más próxima; los que no caducan, al final por nombre.
+ */
+export function agruparPorProducto<L extends LoteDescontable & { producto_id: string; producto: { nombre: string } }>(lotes: L[]): GrupoLotes<L>[] {
+  const grupos = new Map<string, L[]>();
+  for (const l of lotes) grupos.set(l.producto_id, [...(grupos.get(l.producto_id) ?? []), l]);
+  const clave = (f: FechaISO | null) => f ?? "9999-12-31";
+  return [...grupos.entries()]
+    .map(([producto_id, lista]) => {
+      const ordenados = [...lista].sort((a, b) => clave(a.fecha_caducidad).localeCompare(clave(b.fecha_caducidad)) || a.creado_en.localeCompare(b.creado_en));
+      return {
+        producto_id,
+        lotes: ordenados,
+        total: redondear(lista.reduce((t, l) => t + l.cantidad, 0)),
+        proxima: ordenados.find((l) => l.fecha_caducidad)?.fecha_caducidad ?? null,
+      };
+    })
+    .sort((a, b) => clave(a.proxima).localeCompare(clave(b.proxima)) || a.lotes[0].producto.nombre.localeCompare(b.lotes[0].producto.nombre, "es"));
+}
+
 function redondear(n: number): number {
   return Math.round(n * 1000) / 1000;
 }
