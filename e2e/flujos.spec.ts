@@ -231,3 +231,15 @@ test("Despensa: alta rápida de frescos sin código de barras", async ({ page })
   await page.keyboard.press("Escape");
   await expect(page.getByText("Plátano").first()).toBeVisible();
 });
+
+test("Escáner: si la cámara no lo lee, se puede escribir el código", async ({ page }) => {
+  await page.goto("/escanear");
+  await page.getByRole("button", { name: /Escribe el código/ }).click();
+  const campo = page.getByRole("textbox", { name: "Código de barras" });
+  await campo.fill("8402001058012");
+  await expect(page.getByText("el código no cuadra")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Buscar", exact: true })).toBeDisabled();
+  await campo.fill("8402001058011");
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+});

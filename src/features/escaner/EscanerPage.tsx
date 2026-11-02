@@ -1,13 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Camera, Flashlight, FlashlightOff, LoaderCircle, ScanBarcode, Undo2, X } from "lucide-react";
+import { Camera, Flashlight, FlashlightOff, Keyboard, LoaderCircle, ScanBarcode, Undo2, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { BarraApp } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
-import { Opciones } from "@/components/ui/campos";
+import { Entrada, Opciones } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
 import { Etiqueta, Tarjeta } from "@/components/ui/varios";
+import { eanValido } from "@/dominio/ean";
 import { preguntarCaducidad } from "@/dominio/escaneo";
 import type { ProductoExterno } from "@/dominio/producto-externo";
 import { planDescuento } from "@/dominio/despensa";
@@ -238,6 +239,8 @@ export function EscanerPage() {
           )}
         </div>
 
+        <CodigoAMano onCodigo={(ean) => void alDetectar(ean)} />
+
         {pendientes.length > 0 && (
           <section>
             <h2 className="mb-2 px-1 text-xs font-semibold tracking-wide text-suave uppercase">Pendientes de confirmar · {pendientes.length}</h2>
@@ -319,4 +322,48 @@ function tituloPanel(p: Escaneado): string {
   if (p.estado === "externo") return "Producto nuevo";
   if (p.estado === "buscando") return "Buscando…";
   return "Producto desconocido";
+}
+
+/** Para cuando la cámara no consigue leer el código (bolsas brillantes o arrugadas): se teclean sus números. */
+function CodigoAMano({ onCodigo }: { onCodigo: (ean: string) => void }) {
+  const [abierto, setAbierto] = useState(false);
+  const [codigo, setCodigo] = useState("");
+  const limpio = codigo.replace(/\D/g, "");
+  const valido = eanValido(limpio);
+
+  if (!abierto) {
+    return (
+      <button onClick={() => setAbierto(true)} className="-mt-1 inline-flex h-10 items-center gap-2 self-center text-[15px] font-medium text-primario">
+        <Keyboard className="size-4" /> ¿No lo lee? Escribe el código
+      </button>
+    );
+  }
+  return (
+    <form
+      className="flex flex-col gap-1.5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!valido) return;
+        onCodigo(limpio);
+        setCodigo("");
+      }}
+    >
+      <div className="flex gap-2">
+        <Entrada
+          autoFocus
+          inputMode="numeric"
+          autoComplete="off"
+          value={codigo}
+          onChange={(e) => setCodigo(e.target.value)}
+          placeholder="Los números bajo las barras"
+          aria-label="Código de barras"
+          className="h-12 font-mono tracking-wider"
+        />
+        <Boton type="submit" tamano="lg" disabled={!valido}>
+          Buscar
+        </Boton>
+      </div>
+      {limpio.length >= 8 && !valido && <p className="px-1 text-sm text-peligro">Revisa los números: el código no cuadra.</p>}
+    </form>
+  );
 }
