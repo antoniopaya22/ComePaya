@@ -79,6 +79,12 @@ describe("deducirFecha", () => {
     expect(deducirFecha(3, 2, HOY)).toBe("2027-02-03");
   });
 
+  it("con año, usa ese año aunque la fecha ya haya pasado", () => {
+    expect(deducirFecha(3, 2, HOY, 2026)).toBe("2026-02-03");
+    expect(deducirFecha(3, 2, HOY, 25)).toBe("2025-02-03");
+    expect(deducirFecha(3, 2, HOY, 1999)).toBeNull();
+  });
+
   it("acepta el 29 de febrero solo si el año lo tiene", () => {
     expect(deducirFecha(29, 2, "2027-11-01")).toBe("2028-02-29");
     expect(deducirFecha(29, 2, HOY)).toBeNull();
@@ -98,8 +104,11 @@ describe("ATAJOS_CADUCIDAD", () => {
       "2026-11-08",
       "2026-11-16",
       "2026-12-01",
+      "2027-01-01",
+      "2027-02-01",
       "2027-05-01",
       null,
+      "2026-10-31",
     ]);
   });
 });

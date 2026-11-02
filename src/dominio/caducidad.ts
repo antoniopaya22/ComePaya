@@ -81,15 +81,20 @@ export function etiquetaCaducidad(fecha: FechaISO | null, hoy: FechaISO): string
  * Fecha a partir de día y mes (§7.2: el usuario no escribe el año).
  * Se toma el año actual salvo que la fecha quede más de 30 días en el pasado:
  * entonces se entiende que es del año siguiente (en noviembre, "03/02" es febrero del año que viene).
+ * Con `anio` (opcional, 2 o 4 cifras) se usa ese año tal cual: sirve para fechas ya pasadas hace tiempo.
  * Devuelve null si el día no existe en ese mes.
  */
-export function deducirFecha(dia: number, mes: number, hoy: FechaISO): FechaISO | null {
+export function deducirFecha(dia: number, mes: number, hoy: FechaISO, anio?: number | null): FechaISO | null {
   if (!Number.isInteger(dia) || !Number.isInteger(mes) || mes < 1 || mes > 12 || dia < 1) return null;
   const anioActual = Number(hoy.slice(0, 4));
   const candidata = (anio: number) => {
     const ultimoDia = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
     return dia <= ultimoDia ? aISO(anio, mes, dia) : null;
   };
+  if (anio) {
+    const completo = anio < 100 ? 2000 + anio : anio;
+    return completo >= 2000 && completo <= 2100 ? candidata(completo) : null;
+  }
   const esteAnio = candidata(anioActual);
   if (esteAnio && diasHasta(esteAnio, hoy) >= -30) return esteAnio;
   return candidata(anioActual + 1);
@@ -106,6 +111,10 @@ export const ATAJOS_CADUCIDAD: AtajoCaducidad[] = [
   { etiqueta: "+1 semana", calcular: (hoy) => sumarDias(hoy, 7) },
   { etiqueta: "+15 días", calcular: (hoy) => sumarDias(hoy, 15) },
   { etiqueta: "+1 mes", calcular: (hoy) => sumarMeses(hoy, 1) },
+  { etiqueta: "+2 meses", calcular: (hoy) => sumarMeses(hoy, 2) },
+  { etiqueta: "+3 meses", calcular: (hoy) => sumarMeses(hoy, 3) },
   { etiqueta: "+6 meses", calcular: (hoy) => sumarMeses(hoy, 6) },
   { etiqueta: "Sin caducidad", calcular: () => null },
+  // Para dar de alta algo que ya está caducado (y que avise de tirarlo o revisarlo).
+  { etiqueta: "Ya caducado", calcular: (hoy) => sumarDias(hoy, -1) },
 ];

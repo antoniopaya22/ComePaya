@@ -12,6 +12,7 @@ import { Fila, FilaBoton, Grupo } from "@/components/ui/lista";
 import { Esqueleto, Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
 import { describirCaducidad, estadoCaducidad, hoyISO } from "@/dominio/caducidad";
 import { emojiPara } from "@/dominio/ingredientes-base";
+import { describirQueda } from "@/dominio/despensa";
 import { buscarIngrediente } from "@/dominio/lista";
 import { formatearCantidad, formatearLote } from "@/dominio/unidades";
 import { supabase } from "@/lib/supabase";
@@ -135,7 +136,12 @@ export function ProductoPage() {
                 key={l.id}
                 onClick={() => setLote(l)}
                 titulo={formatearLote(l.cantidad, unidad, producto.cantidad_envase)}
-                detalle={UBICACIONES.find((u) => u.valor === l.ubicacion)?.etiqueta}
+                detalle={[
+                  UBICACIONES.find((u) => u.valor === l.ubicacion)?.etiqueta,
+                  l.abierto_en && ["empezado", describirQueda(l.cantidad, producto.cantidad_envase)].filter(Boolean).join(", "),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
                 fin={<Etiqueta tono={estado === "caducado" ? "peligro" : estado === "pronto" ? "aviso" : "neutro"}>{describirCaducidad(l.fecha_caducidad, hoy)}</Etiqueta>}
               />
             );

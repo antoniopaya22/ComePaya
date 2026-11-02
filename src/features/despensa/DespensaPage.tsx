@@ -1,20 +1,21 @@
-import { ChevronDown, ChevronRight, Library, Package, Plus, Refrigerator, ScanBarcode, Search, Snowflake, TriangleAlert, Warehouse } from "lucide-react";
+import { ArrowDownUp, Check, ChevronDown, ChevronRight, Library, Package, Plus, Refrigerator, ScanBarcode, Search, Snowflake, TriangleAlert, Warehouse } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { BarraApp, EnlaceBarra } from "@/components/BarraApp";
 import { Fab } from "@/components/ui/fab";
+import { Menu, MenuContenido, MenuDisparador, MenuEtiqueta, MenuOpcion } from "@/components/ui/menu";
 import { Boton } from "@/components/ui/boton";
 import { Entrada } from "@/components/ui/campos";
 import { Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
 import { describirCaducidad, estadoCaducidad, etiquetaCaducidad, hoyISO } from "@/dominio/caducidad";
-import { agruparPorProducto, type GrupoLotes } from "@/dominio/despensa";
-import { emojiPara } from "@/dominio/ingredientes-base";
+import { agruparPorProducto, describirQueda, organizarDespensa, type GrupoLotes, type OrdenDespensa } from "@/dominio/despensa";
+import { EMOJI_SECCION, emojiPara } from "@/dominio/ingredientes-base";
 import { normalizar } from "@/dominio/texto";
 import { formatearLote } from "@/dominio/unidades";
 import { UBICACIONES, type LoteConProducto, type Ubicacion } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
-import { useLotes } from "../datos";
+import { useLotes, useTiendas } from "../datos";
 import { FrescosHoja } from "./FrescosHoja";
 import { NuevoLoteHoja } from "./NuevoLoteHoja";
 import { RacionesCongeladas } from "./RacionesCongeladas";
@@ -22,10 +23,32 @@ import { RetirarLoteHoja } from "./RetirarLoteHoja";
 
 const ICONOS: Record<Ubicacion, typeof Refrigerator> = { nevera: Refrigerator, congelador: Snowflake, despensa: Warehouse };
 
+const ORDENES: { valor: OrdenDespensa; etiqueta: string }[] = [
+  { valor: "caducidad", etiqueta: "Caducidad" },
+  { valor: "tipo", etiqueta: "Tipo de alimento" },
+  { valor: "nombre", etiqueta: "Nombre" },
+];
+const CLAVE_ORDEN = "comepaya.orden-despensa";
+const claseDesplegable =
+  "flex h-9 items-center gap-1.5 rounded-full bg-superficie-2 px-3.5 text-sm font-medium text-suave outline-none focus-visible:ring-2 focus-visible:ring-primario data-[state=open]:bg-borde";
+
+/** El orden elegido se recuerda en el dispositivo. */
+function leerOrden(): OrdenDespensa {
+  try {
+    const guardado = localStorage.getItem(CLAVE_ORDEN);
+    return ORDENES.some((o) => o.valor === guardado) ? (guardado as OrdenDespensa) : "caducidad";
+  } catch {
+    return "caducidad";
+  }
+}
+
 export function DespensaPage() {
   const { data: lotes, isPending } = useLotes();
 
+  const { data: tiendas = [] } = useTiendas();
   const [filtro, setFiltro] = useState<Ubicacion | "todo">("todo");
+  const [tipo, setTipo] = useState<string | null>(null);
+  const [orden, setOrden] = useState<OrdenDespensa>(() => leerOrden());
   const [busqueda, setBusqueda] = useState("");
   const [nuevo, setNuevo] = useState(false);
   const [frescos, setFrescos] = useState(false);
@@ -37,12 +60,40 @@ export function DespensaPage() {
     return (lotes ?? []).filter(
       (l) =>
         (filtro === "todo" || l.ubicacion === filtro) &&
+        (!tipo || l.producto.ingrediente.seccion_super === tipo) &&
         (!texto ||
           normalizar(`${l.producto.nombre} ${l.producto.marca ?? ""} ${l.producto.ingrediente.nombre}`).includes(texto)),
     );
-  }, [lotes, filtro, busqueda]);
+  }, [lotes, filtro, tipo, busqueda]);
 
   const grupos = useMemo(() => agruparPorProducto(visibles), [visibles]);
+  const organizado = useMemo(
+    () => organizarDespensa(grupos, orden, (g) => g.lotes[0].producto.ingrediente.seccion_super, tiendas[0]?.orden_secciones),
+    [grupos, orden, tiendas],
+  );
+  // Tipos de alimento que hay en casa, con cuántos productos de cada uno.
+  const tipos = useMemo(() => {
+    const cuenta = new Map<string, Set<string>>();
+    for (const l of lotes ?? []) {
+      const s = l.producto.ingrediente.seccion_super;
+      cuenta.set(s, (cuenta.get(s) ?? new Set()).add(l.producto_id));
+    }
+    return organizarDespensa(
+      [...cuenta.entries()].map(([seccion, productos]) => ({ seccion, n: productos.size, lotes: [{ producto: { nombre: seccion } }] })),
+      "tipo",
+      (t) => t.seccion,
+      tiendas[0]?.orden_secciones,
+    ).map((g) => g.grupos[0]);
+  }, [lotes, tiendas]);
+
+  function cambiarOrden(nuevo: OrdenDespensa) {
+    setOrden(nuevo);
+    try {
+      localStorage.setItem(CLAVE_ORDEN, nuevo);
+    } catch {
+      // Sin almacenamiento se recuerda solo mientras la app está abierta.
+    }
+  }
   const urgentes = (lotes ?? []).filter((l) => ["caducado", "pronto"].includes(estadoCaducidad(l.fecha_caducidad, hoy)));
   const cuenta = (u: Ubicacion) => (lotes ?? []).filter((l) => l.ubicacion === u).length;
 
@@ -105,6 +156,42 @@ export function DespensaPage() {
             );
           })}
         </div>
+        <div className="flex items-center gap-2">
+          <Menu>
+            <MenuDisparador className={cn(claseDesplegable, tipo && "bg-primario-suave text-primario")}>
+              {tipo ? `${EMOJI_SECCION[tipo] ?? "🧺"} ${tipo}` : "Todos los tipos"} <ChevronDown className="size-4" />
+            </MenuDisparador>
+            <MenuContenido align="start" className="max-h-[60dvh] overflow-y-auto">
+              <MenuEtiqueta>Tipo de alimento</MenuEtiqueta>
+              <MenuOpcion onSelect={() => setTipo(null)}>
+                <span className="flex-1">Todos</span>
+                {!tipo && <Check className="text-primario!" />}
+              </MenuOpcion>
+              {tipos.map((t) => (
+                <MenuOpcion key={t.seccion} onSelect={() => setTipo(t.seccion)}>
+                  <span>{EMOJI_SECCION[t.seccion] ?? "🧺"}</span>
+                  <span className="flex-1">{t.seccion}</span>
+                  <span className="text-xs text-suave">{t.n}</span>
+                  {tipo === t.seccion && <Check className="text-primario!" />}
+                </MenuOpcion>
+              ))}
+            </MenuContenido>
+          </Menu>
+          <Menu>
+            <MenuDisparador className={cn(claseDesplegable, "ml-auto")} aria-label="Ordenar">
+              <ArrowDownUp className="size-4" /> {ORDENES.find((o) => o.valor === orden)?.etiqueta}
+            </MenuDisparador>
+            <MenuContenido>
+              <MenuEtiqueta>Ordenar por</MenuEtiqueta>
+              {ORDENES.map((o) => (
+                <MenuOpcion key={o.valor} onSelect={() => cambiarOrden(o.valor)}>
+                  <span className="flex-1">{o.etiqueta}</span>
+                  {orden === o.valor && <Check className="text-primario!" />}
+                </MenuOpcion>
+              ))}
+            </MenuContenido>
+          </Menu>
+        </div>
         </div>
 
         {isPending ? (
@@ -116,15 +203,29 @@ export function DespensaPage() {
         ) : !grupos.length ? (
           <p className="py-10 text-center text-sm text-suave">No hay nada que coincida.</p>
         ) : (
-          <ul className="overflow-hidden rounded-2xl bg-superficie shadow-[0_1px_2px_rgb(0_0_0/0.04)] md:border md:border-borde [&>li+li]:border-t [&>li+li]:border-borde/70">
-            <AnimatePresence initial={false}>
-              {grupos.map((g) => (
-                <motion.li key={g.producto_id} layout="position" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -40 }}>
-                  <FilaProducto grupo={g} hoy={hoy} onLote={setRetirando} />
-                </motion.li>
-              ))}
-            </AnimatePresence>
-          </ul>
+          <div className="flex flex-col gap-5">
+            {organizado.map((bloque) => (
+              <section key={bloque.seccion ?? "todo"} className="flex flex-col gap-1.5">
+                {bloque.seccion && (
+                  <h2 className="flex items-center justify-between px-1 text-[13px] font-semibold tracking-wide text-suave uppercase">
+                    <span>
+                      {EMOJI_SECCION[bloque.seccion] ?? "🧺"} {bloque.seccion}
+                    </span>
+                    <span className="font-medium">{bloque.grupos.length}</span>
+                  </h2>
+                )}
+                <ul className="overflow-hidden rounded-2xl bg-superficie shadow-[0_1px_2px_rgb(0_0_0/0.04)] md:border md:border-borde [&>li+li]:border-t [&>li+li]:border-borde/70">
+                  <AnimatePresence initial={false}>
+                    {bloque.grupos.map((g) => (
+                      <motion.li key={g.producto_id} layout="position" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -40 }}>
+                        <FilaProducto grupo={g} hoy={hoy} onLote={setRetirando} />
+                      </motion.li>
+                    ))}
+                  </AnimatePresence>
+                </ul>
+              </section>
+            ))}
+          </div>
         )}
 
         {(filtro === "todo" || filtro === "congelador") && <RacionesCongeladas />}
@@ -155,6 +256,8 @@ function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProduct
   const unidad = producto.ingrediente.unidad_base;
   const varios = grupo.lotes.length > 1;
   const estado = estadoCaducidad(grupo.proxima, hoy);
+  const empezado = grupo.lotes.find((l) => l.abierto_en);
+  const queda = empezado ? describirQueda(empezado.cantidad, producto.cantidad_envase) : null;
 
   return (
     <div>
@@ -170,6 +273,7 @@ function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProduct
           <span className="block truncate text-[16px] font-medium">{producto.nombre}</span>
           <span className="block truncate text-[13.5px] text-suave">
             {formatearLote(grupo.total, unidad, producto.cantidad_envase)}
+            {empezado && <span className="text-aviso"> · empezado{queda ? `, ${queda}` : ""}</span>}
             {producto.marca ? ` · ${producto.marca}` : ""}
           </span>
         </span>
@@ -191,7 +295,10 @@ function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProduct
                 <li key={l.id}>
                   <button onClick={() => onLote(l)} className="flex min-h-12 w-full items-center gap-3 pr-4 pl-[4.25rem] text-left text-[15px] active:bg-superficie-2">
                     <Icono className="size-4 text-suave" />
-                    <span className="flex-1">{formatearLote(l.cantidad, unidad, producto.cantidad_envase)}</span>
+                    <span className="flex-1">
+                      {formatearLote(l.cantidad, unidad, producto.cantidad_envase)}
+                      {l.abierto_en && <span className="text-suave"> · empezado{describirQueda(l.cantidad, producto.cantidad_envase) ? `, ${describirQueda(l.cantidad, producto.cantidad_envase)}` : ""}</span>}
+                    </span>
                     <Etiqueta tono={tono(estadoCaducidad(l.fecha_caducidad, hoy))}>{describirCaducidad(l.fecha_caducidad, hoy)}</Etiqueta>
                   </button>
                 </li>

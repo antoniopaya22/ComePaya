@@ -75,7 +75,7 @@ test("Despensa: marcar un producto como abierto acorta su caducidad", async ({ p
   await page.getByRole("button", { name: /Lo he abierto/ }).click();
   await expect(page.getByText("Marcado como abierto")).toBeVisible();
   // El envase abierto se separa del cerrado, pasa a la nevera y caduca en 4 días.
-  await expect(page.getByRole("button", { name: /400 g\s*Nevera\s*Caduca en 4 días/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /400 g\s*Nevera · empezado\s*Caduca en 4 días/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /400 g\s*Despensa/ })).toBeVisible();
 });
 
@@ -242,4 +242,30 @@ test("Escáner: si la cámara no lo lee, se puede escribir el código", async ({
   await campo.fill("8402001058011");
   await page.getByRole("button", { name: "Buscar", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
+});
+
+test("Despensa: marcar un producto empezado con lo que queda", async ({ page }) => {
+  await page.goto("/productos/p-leche");
+  await page.getByRole("button", { name: /2 × 1 l/ }).click();
+  await page.getByRole("button", { name: "Queda ½" }).click();
+  await expect(page.getByText("Empezado · queda ½")).toBeVisible();
+  // Se abre un envase (separado del resto) y lo gastado cuenta como consumido.
+  await expect(page.getByRole("button", { name: /500 ml\s*Nevera · empezado, queda ½/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^1 l\s*Despensa/ })).toBeVisible();
+});
+
+test("Despensa: filtrar por tipo de alimento y ordenar por tipo", async ({ page }) => {
+  await page.goto("/despensa");
+  await page.getByRole("button", { name: "Todos los tipos" }).click();
+  await page.getByRole("menuitem", { name: /Lácteos y huevos/ }).click();
+  await expect(page.getByText("Leche semidesnatada")).toBeVisible();
+  await expect(page.getByText("Patatas")).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Lácteos y huevos/ }).click();
+  await page.getByRole("menuitem", { name: /^Todos/ }).click();
+  await page.getByRole("button", { name: "Ordenar" }).click();
+  await page.getByRole("menuitem", { name: "Tipo de alimento" }).click();
+  await expect(page.getByRole("heading", { name: /Fruta y verdura/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Lácteos y huevos/ })).toBeVisible();
+  if (process.env.CAPTURA) await page.screenshot({ path: process.env.CAPTURA });
 });

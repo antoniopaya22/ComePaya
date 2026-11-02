@@ -19,10 +19,11 @@ export function formatearCantidad(cantidad: number, unidad: UnidadBase): string 
 /**
  * Cantidad legible de un lote. Con varios envases en g o ml se muestran los envases:
  * 800 g con envase de 400 g → "2 × 400 g"; 600 g → "1,5 × 400 g". Un envase o las unidades
- * sueltas se muestran tal cual ("400 g", "6 ud"): "0,5 × 12 ud" no lo entiende nadie.
+ * sueltas, o menos de un envase, se muestran tal cual ("400 g", "6 ud", "500 ml"): "0,5 × 12 ud" no lo entiende nadie.
  */
 export function formatearLote(cantidad: number, unidad: UnidadBase, cantidadEnvase: number | null): string {
-  if (!cantidadEnvase || unidad === "ud" || cantidad === cantidadEnvase) return formatearCantidad(cantidad, unidad);
+  // Menos de un envase (uno empezado): "500 ml" se entiende mejor que "0,5 × 1 l".
+  if (!cantidadEnvase || unidad === "ud" || cantidad <= cantidadEnvase) return formatearCantidad(cantidad, unidad);
   return `${numero.format(cantidad / cantidadEnvase)} × ${formatearCantidad(cantidadEnvase, unidad)}`;
 }
 

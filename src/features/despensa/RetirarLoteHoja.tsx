@@ -8,7 +8,7 @@ import { Campo, Contador, Entrada, Opciones } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
 import { abrirEnvase } from "@/dominio/alergenos";
 import { describirCaducidad, hoyISO, type FechaISO } from "@/dominio/caducidad";
-import { planMover } from "@/dominio/despensa";
+import { describirQueda, FRACCIONES_QUEDA, planMover, planQueda } from "@/dominio/despensa";
 import { baseAEnvases, envasesABase, formatearLote } from "@/dominio/unidades";
 import { supabase } from "@/lib/supabase";
 import { UBICACIONES, type LoteConProducto, type Ubicacion } from "@/lib/tipos";
@@ -115,6 +115,36 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
     onCerrar();
   }
 
+  /** "Está empezado y queda ½": abre un envase si hacía falta y deja lo que queda; lo gastado cuenta como consumido. */
+  async function marcarQueda(fraccion: number) {
+    if (!actual) return;
+    const hoy = hoyISO();
+    const { abierto, restoCerrado, consumido } = planQueda(actual, producto.cantidad_envase, fraccion, producto.ingrediente.dias_tras_abrir, hoy);
+    const ubicacion: Ubicacion = !actual.abierto_en && producto.ingrediente.dias_tras_abrir && actual.ubicacion === "despensa" ? "nevera" : actual.ubicacion;
+    try {
+      await aplicarCambiosDespensa(hogar.id, {
+        ...(restoCerrado
+          ? {
+              lotes_actualizar: [{ id: restoCerrado.id, cantidad: restoCerrado.cantidad }],
+              lotes_crear: [{ producto_id: producto.id, cantidad: abierto.cantidad, ubicacion, fecha_caducidad: abierto.fecha_caducidad, abierto_en: abierto.abierto_en }],
+            }
+          : {
+              lotes_actualizar: [
+                { id: actual.id, cantidad: abierto.cantidad, ubicacion, fecha_caducidad: abierto.fecha_caducidad, abierto_en: abierto.abierto_en },
+              ],
+            }),
+        movimientos: consumido ? [{ producto_id: producto.id, cantidad: -consumido, tipo: consumido > 0 ? "consumo" : "ajuste" }] : undefined,
+      });
+    } catch (error) {
+      return toast.error(mensajeError(error));
+    }
+    refrescar();
+    toast.success(`Empezado · queda ${FRACCIONES_QUEDA.find((f) => f.valor === fraccion)?.etiqueta}`, {
+      description: abierto.fecha_caducidad ? describirCaducidad(abierto.fecha_caducidad, hoy) : undefined,
+    });
+    onCerrar();
+  }
+
   /** Mueve los envases elegidos en el contador: todos o solo una parte ("2 de los 6 a la nevera"). */
   async function mover(ubicacion: Ubicacion) {
     if (!actual || ubicacion === actual.ubicacion) return;
@@ -160,9 +190,29 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
         >
           <Contador valor={envases} onChange={(v) => setEnvases(Math.min(v, total))} min={0} paso={producto.cantidad_envase ? 1 : total > 10 ? 10 : 1} />
         </Campo>
-        {actual.abierto_en ? (
-          <p className="rounded-xl bg-superficie-2 px-3 py-2 text-sm text-suave">Abierto el {new Date(actual.abierto_en + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long" })}</p>
-        ) : (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium text-suave">
+            {actual.abierto_en
+              ? `Empezado el ${new Date(actual.abierto_en + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long" })}${
+                  describirQueda(actual.cantidad, producto.cantidad_envase) ? ` · ${describirQueda(actual.cantidad, producto.cantidad_envase)}` : ""
+                }. ¿Cuánto queda ahora?`
+              : "¿Está empezado? ¿Cuánto queda?"}
+          </p>
+          <div className="flex gap-2">
+            {FRACCIONES_QUEDA.map((f) => (
+              <button
+                key={f.valor}
+                type="button"
+                onClick={() => marcarQueda(f.valor)}
+                aria-label={`Queda ${f.etiqueta}`}
+                className="h-11 flex-1 rounded-xl border border-borde bg-superficie text-lg font-semibold transition-colors active:scale-95 active:bg-superficie-2"
+              >
+                {f.etiqueta}
+              </button>
+            ))}
+          </div>
+        </div>
+        {actual.abierto_en ? null : (
           <Boton variante="secundario" onClick={abrir} className="self-start">
             <PackageOpen /> Lo he abierto
             {producto.ingrediente.dias_tras_abrir ? <span className="font-normal text-suave">· dura {producto.ingrediente.dias_tras_abrir} días</span> : null}

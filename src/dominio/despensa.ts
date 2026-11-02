@@ -1,4 +1,5 @@
 import type { FechaISO } from "./caducidad.js";
+import { abrirEnvase, type Apertura, type LoteAbrible } from "./alergenos.js";
 import type { UnidadBase } from "./unidades.js";
 
 export interface LoteDescontable {
@@ -126,4 +127,82 @@ export function ubicacionHabitual(seccion: string, nombre: string): "nevera" | "
   if (seccion === "Panadería") return "despensa";
   if (seccion === "Fruta y verdura" && /^(patata|cebolla|ajo|pl[aá]tano|lim[oó]n|naranja|calabaza|aguacate|mel[oó]n)/i.test(nombre.trim())) return "despensa";
   return "nevera";
+}
+
+/** Lo que puede quedar de un envase empezado. */
+export const FRACCIONES_QUEDA = [
+  { valor: 0.25, etiqueta: "¼" },
+  { valor: 0.5, etiqueta: "½" },
+  { valor: 0.75, etiqueta: "¾" },
+] as const;
+
+/** Qué cambiar al marcar "queda ½" en un lote. */
+export interface PlanQueda extends Apertura {
+  /** Lo que se ha gastado (en unidad base): se registra como consumo. */
+  consumido: number;
+}
+
+/**
+ * "Está empezado y queda ½": si el lote estaba cerrado, se abre un envase (separándolo si había varios,
+ * y acortando la caducidad como al abrirlo) y se deja en esa fracción; si ya estaba empezado, se ajusta lo que queda.
+ * Sin tamaño de envase (a granel), la fracción es de lo que hay ahora.
+ */
+export function planQueda(
+  lote: LoteAbrible & { abierto_en: FechaISO | null },
+  cantidadEnvase: number | null,
+  fraccion: number,
+  diasTrasAbrir: number | null,
+  hoy: FechaISO,
+): PlanQueda {
+  const redondo = (n: number) => Math.round(n * 1000) / 1000;
+  if (lote.abierto_en) {
+    // Ya empezado: es un solo envase (o lo que quede a granel).
+    const total = cantidadEnvase && cantidadEnvase >= lote.cantidad ? cantidadEnvase : lote.cantidad;
+    const queda = redondo(total * fraccion);
+    return {
+      abierto: { id: lote.id, cantidad: queda, fecha_caducidad: lote.fecha_caducidad, abierto_en: lote.abierto_en },
+      restoCerrado: null,
+      consumido: redondo(lote.cantidad - queda),
+    };
+  }
+  const apertura = abrirEnvase(lote, cantidadEnvase, diasTrasAbrir, hoy);
+  const queda = redondo(apertura.abierto.cantidad * fraccion);
+  return {
+    abierto: { ...apertura.abierto, cantidad: queda },
+    restoCerrado: apertura.restoCerrado,
+    consumido: redondo(apertura.abierto.cantidad - queda),
+  };
+}
+
+/** "Queda ½" para mostrar en la lista: la fracción más cercana de lo que queda de un envase empezado. */
+export function describirQueda(cantidad: number, cantidadEnvase: number | null): string | null {
+  if (!cantidadEnvase || cantidad >= cantidadEnvase || cantidad <= 0) return null;
+  const f = cantidad / cantidadEnvase;
+  const cercana = FRACCIONES_QUEDA.reduce((a, b) => (Math.abs(b.valor - f) < Math.abs(a.valor - f) ? b : a));
+  return Math.abs(cercana.valor - f) <= 0.05 ? `queda ${cercana.etiqueta}` : `queda ${Math.round(f * 100)} %`;
+}
+
+export type OrdenDespensa = "caducidad" | "nombre" | "tipo";
+
+/**
+ * Cómo se presenta la despensa: por caducidad (lo primero que hay que gastar), por nombre o
+ * por tipo de alimento (sección del súper, en el orden de recorrido de la tienda y después alfabético).
+ * `grupos` llega ya ordenado por caducidad (agruparPorProducto); dentro de cada tipo se mantiene ese orden.
+ */
+export function organizarDespensa<G extends { lotes: { producto: { nombre: string } }[] }>(
+  grupos: G[],
+  orden: OrdenDespensa,
+  seccionDe: (g: G) => string,
+  ordenSecciones: string[] = [],
+): { seccion: string | null; grupos: G[] }[] {
+  if (orden === "caducidad") return [{ seccion: null, grupos }];
+  if (orden === "nombre") {
+    return [{ seccion: null, grupos: [...grupos].sort((a, b) => a.lotes[0].producto.nombre.localeCompare(b.lotes[0].producto.nombre, "es")) }];
+  }
+  const porSeccion = new Map<string, G[]>();
+  for (const g of grupos) porSeccion.set(seccionDe(g), [...(porSeccion.get(seccionDe(g)) ?? []), g]);
+  const posicion = (s: string) => (ordenSecciones.includes(s) ? ordenSecciones.indexOf(s) : ordenSecciones.length);
+  return [...porSeccion.entries()]
+    .sort(([a], [b]) => posicion(a) - posicion(b) || a.localeCompare(b, "es"))
+    .map(([seccion, lista]) => ({ seccion, grupos: lista }));
 }

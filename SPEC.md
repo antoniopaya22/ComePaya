@@ -63,7 +63,9 @@ Los módulos se alimentan entre sí:
 - Al retirar algo: distinguir **consumido** vs **tirado** (registro de desperdicio).
 - **Alta rápida de frescos** (sin código de barras): cuadrícula de ingredientes por sección (fruta y verdura, carnicería, pescadería, panadería, charcutería), cantidades rápidas (unidades o 250 g–2 kg), ubicación y caducidad propuestas. Cada ingrediente usa un producto "a granel" sin marca ni código.
 - **Repartir un lote**: mover parte de las unidades a otra ubicación ("2 de los 6 yogures a la nevera"); si en el destino hay un lote igual (misma caducidad y estado), se suman.
-- Caducidades rápidas: +3 días, +1 semana, +15 días, +1 mes, +6 meses o sin caducidad.
+- Caducidades rápidas: +3 días, +1 semana, +15 días, +1 mes, +2 meses, +3 meses, +6 meses, sin caducidad o "ya caducado". La fecha exacta admite año opcional para fechas pasadas.
+- **Empezados**: en un lote se marca cuánto queda (¼, ½, ¾). Si estaba cerrado se abre un envase (separado del resto, con la caducidad tras abrir) y lo gastado cuenta como consumido. La despensa y la ficha muestran "empezado, queda ½".
+- Ordenar la despensa por caducidad, por nombre o por tipo de alimento (sección, en el orden de la tienda) y filtrarla por tipo.
 
 ### 4.2 Lista de la compra
 - Entradas automáticas (desde el menú y el stock mínimo) y manuales (texto libre).

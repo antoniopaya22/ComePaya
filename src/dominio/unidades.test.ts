@@ -26,6 +26,7 @@ describe("formatearLote", () => {
     expect(formatearLote(400, "g", 400)).toBe("400 g");
     expect(formatearLote(12, "ud", 1)).toBe("12 ud");
     expect(formatearLote(6, "ud", 12)).toBe("6 ud");
+    expect(formatearLote(500, "ml", 1000)).toBe("500 ml");
   });
 });
 
