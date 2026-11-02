@@ -191,7 +191,8 @@ El modelo es orientativo; ajustarlo durante la implementación y mantener esta t
   - `GET https://tienda.mercadona.es/api/products/{id}/` — detalle
 - La búsqueda por texto usa Algolia con credenciales públicas de solo lectura. Referencias: proyectos `mercapy` (Python) y `mercadona-cli`.
 - Incluye EAN, por lo que sirve para marcas propias (Hacendado, Deliplus…) que falten en Open Food Facts, y para precios.
-- Precios y surtido varían según el almacén/región: hacerlo configurable.
+- Precios y surtido varían según el almacén/región: se consulta en varios a la vez (`MERCADONA_ALMACENES`, por defecto `vlc1,mad1,bcn1`) y la ficha se pide en el primero que la tenga.
+- Su buscador no permite buscar por EAN. Para resolver un código: los de marca propia (`8480000` + id de 5 cifras + control) llevan dentro el id de Mercadona; los de otros fabricantes se apuntan en `CODIGOS_CONOCIDOS` (`api/_lib/mercadona.ts`). En ambos casos se acepta solo si la ficha trae exactamente ese EAN.
 - **No es oficial y puede cambiar sin aviso**: aislarla tras un adaptador, cachear resultados y tolerar fallos.
 
 ### Carrefour
@@ -204,8 +205,8 @@ El modelo es orientativo; ajustarlo durante la implementación y mantener esta t
 1. Productos del hogar (tabla `Producto`).
 2. Catálogo compartido (`CatalogoEan`).
 3. Open Food Facts.
-4. Mercadona.
-5. Alta manual (nombre + foto), guardada para siempre.
+4. Mercadona (id dentro del código Hacendado o lista de códigos conocidos).
+5. Alta manual (nombre + foto, buscando en Mercadona por nombre o tecleando el código si la cámara no lo lee), guardada para siempre.
 
 Las consultas a Open Food Facts y Mercadona se hacen desde funciones de servidor (`/api` en Vercel): el navegador no puede fijar el `User-Agent` y Mercadona no admite CORS.
 

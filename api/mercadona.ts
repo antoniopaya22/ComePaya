@@ -1,6 +1,6 @@
-import { EAN_VALIDO, type ProductoExterno } from "../src/dominio/producto-externo.js";
+import { EAN_VALIDO } from "../src/dominio/producto-externo.js";
 import { guardarCatalogo } from "./_lib/catalogo.js";
-import { buscarEnMercadona, obtenerProductoMercadona } from "./_lib/mercadona.js";
+import { aProductoExterno, buscarEnMercadona, obtenerProductoMercadona } from "./_lib/mercadona.js";
 import { json, servidorConfigurado, tokenDe, usuarioDeToken } from "./_lib/supabase-servidor.js";
 
 /** GET /api/mercadona?q=tomate triturado → ResultadoMercadona[] (vacío si Mercadona falla: es un complemento). */
@@ -30,23 +30,7 @@ export async function POST(request: Request): Promise<Response> {
   const producto = await obtenerProductoMercadona(String(mercadona_id)).catch(() => null);
   if (!producto || producto.ean !== ean) return json({ guardado: false, motivo: "El código no coincide con el de Mercadona" });
 
-  const externo: ProductoExterno = {
-    ean,
-    nombre: producto.nombre,
-    marca: producto.marca,
-    cantidad_texto: producto.envase_texto,
-    cantidad_envase: producto.cantidad_envase,
-    unidad_envase: producto.unidad_envase,
-    foto_url: producto.foto_url,
-    nutrientes_100: null,
-    nutriscore: null,
-    nova: null,
-    niveles_nutrientes: null,
-    aditivos: [],
-    alergenos: [],
-    completitud_datos: 0.3,
-    fuente: "mercadona",
-  };
+  const externo = aProductoExterno(producto, ean);
   await guardarCatalogo(externo, producto.mercadona_id, { sobrescribir: false });
   return json({ guardado: true });
 }
