@@ -1,8 +1,8 @@
 import { Baby, CalendarDays, ChevronRight, CookingPot, Hourglass, ListChecks, Plane, Plus, ScanBarcode, TriangleAlert } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "react-router";
-import { BarraApp } from "@/components/BarraApp";
-import { Avisos, MenuUsuario } from "@/components/Cuenta";
+import { BarraApp, EnlaceBarra } from "@/components/BarraApp";
+import { Avisos } from "@/components/Cuenta";
 import { Logo } from "@/components/Logo";
 import { FilaEnlace, Grupo } from "@/components/ui/lista";
 import { Boton } from "@/components/ui/boton";
@@ -75,7 +75,6 @@ export function HoyPage() {
         titulo="Hoy"
         grande={false}
         escritorio={false}
-        buscar
         inicio={
           <Link to="/" aria-label="ComePayá">
             <Logo tamano="sm" />
@@ -83,11 +82,10 @@ export function HoyPage() {
         }
         acciones={
           <>
-            <Link to="/escanear" aria-label="Escanear" data-recorrido="escanear" className="grid size-11 place-items-center rounded-full text-texto/80 active:bg-superficie-2 [&_svg]:size-[22px]">
+            <EnlaceBarra to="/escanear" etiqueta="Escanear" data-recorrido="escanear">
               <ScanBarcode />
-            </Link>
+            </EnlaceBarra>
             <Avisos />
-            <MenuUsuario />
           </>
         }
       />

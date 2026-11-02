@@ -1,13 +1,15 @@
 import { ArrowLeft, Search } from "lucide-react";
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { Link, useNavigate, type LinkProps } from "react-router";
+import { MenuUsuario } from "@/components/Cuenta";
 import { useAbrirBuscador } from "@/features/buscador/Buscador";
 import { cn } from "@/lib/utils";
 
 /**
  * Cabecera de cada pantalla.
  * Móvil: barra de app fija arriba (volver, título y acciones). Con `grande`, el título se muestra
- * grande bajo la barra y pasa a la barra al desplazar, como en las apps nativas.
+ * grande bajo la barra y pasa a la barra al desplazar, como en las apps nativas. Las pantallas de las pestañas
+ * (sin `atras`) llevan siempre, en el mismo sitio, la lupa del buscador y la cuenta.
  * Escritorio: cabecera de página clásica; la barra superior global ya tiene buscador y cuenta.
  */
 export function BarraApp({
@@ -16,7 +18,6 @@ export function BarraApp({
   atras,
   acciones,
   principal,
-  buscar = false,
   grande = true,
   inicio,
   escritorio = true,
@@ -30,8 +31,6 @@ export function BarraApp({
   acciones?: ReactNode;
   /** Acción principal con texto: solo en escritorio (en el móvil va en un botón flotante o en la pantalla). */
   principal?: ReactNode;
-  /** Añade la lupa del buscador global en la barra del móvil. */
-  buscar?: boolean;
   grande?: boolean;
   /** Sustituye al título compacto en la barra del móvil (por ejemplo, el logo en Hoy). */
   inicio?: ReactNode;
@@ -87,12 +86,13 @@ export function BarraApp({
             (inicio ?? <h1 className="min-w-0 truncate font-sans text-[17px] font-semibold tracking-normal">{titulo}</h1>)
           )}
           <div className="ml-auto flex shrink-0 items-center">
-            {buscar && (
+            {!atras && (
               <BotonBarra etiqueta="Buscar" onClick={abrirBuscador} data-recorrido="buscar">
                 <Search />
               </BotonBarra>
             )}
             {acciones}
+            {!atras && <MenuUsuario />}
           </div>
         </div>
       </div>

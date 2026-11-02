@@ -109,7 +109,6 @@ export function MenuPage() {
       <BarraApp
         titulo="Menú"
         subtitulo={`${planificadas} de 14 franjas planificadas`}
-        buscar
         acciones={
           <>
             <BotonBarra etiqueta="Rellenar la semana" onClick={() => setPlanificando(true)}>

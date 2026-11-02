@@ -130,7 +130,6 @@ export function ListaPage() {
       <BarraApp
         titulo="Lista de la compra"
         subtitulo={items ? (pendientes ? `${pendientes} por comprar` : "Todo comprado") : undefined}
-        buscar
         acciones={
           <>
             <BotonBarra
