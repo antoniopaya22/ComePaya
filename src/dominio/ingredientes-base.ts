@@ -1,6 +1,6 @@
-import type { GrupoAlimento } from "./nutricion";
-import { mismoNombre } from "./texto";
-import type { UnidadBase } from "./unidades";
+import type { GrupoAlimento } from "./nutricion.js";
+import { mismoNombre } from "./texto.js";
+import type { UnidadBase } from "./unidades.js";
 
 // Ingredientes habituales en una casa española para no empezar de cero.
 // Caducidad por defecto (días, producto cerrado o fresco) y peso por unidad son orientativos y editables.

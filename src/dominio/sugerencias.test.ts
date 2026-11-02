@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { GrupoAlimento } from "./nutricion";
-import { REGLAS_POR_DEFECTO } from "./nutricion";
-import { puntuarRecetas, type ContextoSugerencia, type RecetaSugerible } from "./sugerencias";
+import type { GrupoAlimento } from "./nutricion.js";
+import { REGLAS_POR_DEFECTO } from "./nutricion.js";
+import { puntuarRecetas, type ContextoSugerencia, type RecetaSugerible } from "./sugerencias.js";
 
 const lentejas: RecetaSugerible = {
   id: "lentejas",

@@ -1,7 +1,7 @@
 import webpush from "web-push";
-import { sumarDias } from "../src/dominio/caducidad";
-import { avisosCaducidad, avisosPreparacion, horaLocal, type Aviso, type FranjaAviso, type LoteAviso } from "../src/dominio/recordatorios";
-import { json, rest, servidorConfigurado } from "./_lib/supabase-servidor";
+import { sumarDias } from "../src/dominio/caducidad.js";
+import { avisosCaducidad, avisosPreparacion, horaLocal, type Aviso, type FranjaAviso, type LoteAviso } from "../src/dominio/recordatorios.js";
+import { json, rest, servidorConfigurado } from "./_lib/supabase-servidor.js";
 
 interface Suscripcion {
   id: string;

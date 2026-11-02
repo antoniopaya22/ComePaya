@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buscarEnOpenFoodFacts, normalizarProductoOFF } from "./openfoodfacts";
+import { buscarEnOpenFoodFacts, normalizarProductoOFF } from "./openfoodfacts.js";
 
 describe("normalizarProductoOFF", () => {
   it("normaliza una ficha completa", () => {

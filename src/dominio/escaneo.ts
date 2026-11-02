@@ -1,4 +1,4 @@
-import { normalizar } from "./texto";
+import { normalizar } from "./texto.js";
 
 /**
  * Nombre de ingrediente propuesto a partir del nombre comercial: sin la marca, sin el formato

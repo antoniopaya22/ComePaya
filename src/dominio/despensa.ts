@@ -1,4 +1,4 @@
-import type { FechaISO } from "./caducidad";
+import type { FechaISO } from "./caducidad.js";
 
 export interface LoteDescontable {
   id: string;

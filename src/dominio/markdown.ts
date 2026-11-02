@@ -1,4 +1,4 @@
-import type { UnidadBase } from "./unidades";
+import type { UnidadBase } from "./unidades.js";
 
 // Recetas en Markdown con frontmatter (§4.3): legibles y versionables en Git.
 

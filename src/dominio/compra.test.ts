@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcularFaltantes, envasesParaCubrir, sincronizarAutomaticos, stockPorIngrediente, ubicacionPorSeccion } from "./compra";
+import { calcularFaltantes, envasesParaCubrir, sincronizarAutomaticos, stockPorIngrediente, ubicacionPorSeccion } from "./compra.js";
 
 const ing = (id: string, extra: { siempre_disponible?: boolean; stock_minimo?: number | null } = {}) => ({
   id,

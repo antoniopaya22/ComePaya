@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mismoNombre, normalizar, puntuarBusqueda } from "./texto";
+import { mismoNombre, normalizar, puntuarBusqueda } from "./texto.js";
 
 describe("normalizar", () => {
   it("quita tildes, mayúsculas y espacios sobrantes", () => {

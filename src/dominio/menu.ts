@@ -1,4 +1,4 @@
-import { sumarDias, type FechaISO } from "./caducidad";
+import { sumarDias, type FechaISO } from "./caducidad.js";
 
 export type TipoFranja = "comida" | "cena";
 

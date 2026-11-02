@@ -1,4 +1,4 @@
-import { diasHasta, sumarDias, type FechaISO } from "./caducidad";
+import { diasHasta, sumarDias, type FechaISO } from "./caducidad.js";
 
 // Recordatorios (§4.6). Todo se calcula en hora local de España, sin depender de la zona del servidor.
 

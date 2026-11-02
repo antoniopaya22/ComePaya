@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { agruparPorProducto } from "./despensa";
-import { duracionMinutos, extraerRecetaJsonLd, parsearLineaIngrediente } from "./importar";
-import { emojiPara, INGREDIENTES_BASE, ingredientesBaseQueFaltan } from "./ingredientes-base";
-import { SECCIONES_POR_DEFECTO } from "./lista";
-import { mismoNombre } from "./texto";
+import { agruparPorProducto } from "./despensa.js";
+import { duracionMinutos, extraerRecetaJsonLd, parsearLineaIngrediente } from "./importar.js";
+import { emojiPara, INGREDIENTES_BASE, ingredientesBaseQueFaltan } from "./ingredientes-base.js";
+import { SECCIONES_POR_DEFECTO } from "./lista.js";
+import { mismoNombre } from "./texto.js";
 
 describe("ingredientes base", () => {
   it("usan secciones conocidas y no repiten nombres", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planDescuento } from "./despensa";
+import { planDescuento } from "./despensa.js";
 
 const lote = (id: string, cantidad: number, fecha_caducidad: string | null, creado_en = "2026-10-01") => ({
   id,

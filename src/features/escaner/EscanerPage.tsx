@@ -301,7 +301,9 @@ async function consultar(ean: string): Promise<Escaneado> {
   try {
     const respuesta = await llamarApi(`/api/producto?ean=${ean}`);
     if (respuesta.status === 404) return { ean, estado: "desconocido" };
-    if (!respuesta.ok) return { ean, estado: "desconocido", aviso: "Open Food Facts no responde ahora mismo." };
+    if (respuesta.status === 502) return { ean, estado: "desconocido", aviso: "Open Food Facts no responde ahora mismo." };
+    if (respuesta.status === 401) return { ean, estado: "desconocido", aviso: "Tu sesión ha caducado: vuelve a entrar para buscar productos." };
+    if (!respuesta.ok) return { ean, estado: "desconocido", aviso: "No se ha podido buscar el producto." };
     return { ean, estado: "externo", externo: (await respuesta.json()) as ProductoExterno };
   } catch {
     return { ean, estado: "desconocido", aviso: "Sin conexión para buscar el producto." };

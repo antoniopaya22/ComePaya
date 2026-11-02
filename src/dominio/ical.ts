@@ -1,5 +1,5 @@
-import type { FechaISO } from "./caducidad";
-import { HORA_FRANJA, ZONA } from "./recordatorios";
+import type { FechaISO } from "./caducidad.js";
+import { HORA_FRANJA, ZONA } from "./recordatorios.js";
 
 export interface FranjaIcal {
   id: string;

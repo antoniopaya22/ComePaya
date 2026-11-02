@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diasDeSemana, escalar, lunesDe, necesidadesDelMenu, racionesACocinar, type FranjaPlan, type RecetaPlan } from "./menu";
+import { diasDeSemana, escalar, lunesDe, necesidadesDelMenu, racionesACocinar, type FranjaPlan, type RecetaPlan } from "./menu.js";
 
 describe("semanas", () => {
   it("encuentra el lunes de cualquier día", () => {

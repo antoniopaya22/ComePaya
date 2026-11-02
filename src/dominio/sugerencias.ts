@@ -1,6 +1,6 @@
-import { diasHasta, type FechaISO } from "./caducidad";
-import { DIAS_SEMANA, escalar } from "./menu";
-import { GRUPOS_ALIMENTO, type GrupoAlimento, type Regla } from "./nutricion";
+import { diasHasta, type FechaISO } from "./caducidad.js";
+import { DIAS_SEMANA, escalar } from "./menu.js";
+import { GRUPOS_ALIMENTO, type GrupoAlimento, type Regla } from "./nutricion.js";
 
 // Puntuación explicable de recetas para una franja del menú (§9.1).
 

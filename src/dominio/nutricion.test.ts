@@ -8,7 +8,7 @@ import {
   nutrientesDeIngrediente,
   REGLAS_POR_DEFECTO,
   type GrupoAlimento,
-} from "./nutricion";
+} from "./nutricion.js";
 
 describe("nutrientesDeIngrediente", () => {
   it("prefiere los valores manuales", () => {

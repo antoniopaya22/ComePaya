@@ -1,4 +1,4 @@
-import { mismoNombre } from "./texto";
+import { mismoNombre } from "./texto.js";
 
 export const SECCION_OTROS = "Otros";
 

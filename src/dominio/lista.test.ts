@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agruparPorSeccion, buscarIngrediente, dividirDictado, habituales, parsearEntrada, seccionesDisponibles, textoParaCompartir } from "./lista";
+import { agruparPorSeccion, buscarIngrediente, dividirDictado, habituales, parsearEntrada, seccionesDisponibles, textoParaCompartir } from "./lista.js";
 
 const item = (id: string, seccion: string, marcado = false, creado_en = `2026-11-01T10:00:0${id}Z`) => ({
   id,

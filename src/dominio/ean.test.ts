@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eanValido } from "./ean";
+import { eanValido } from "./ean.js";
 
 describe("eanValido", () => {
   it.each(["8410188012092", "4006381333931", "96385074", "036000291452", "5449000000996"])("acepta %s", (codigo) => {

@@ -1,5 +1,5 @@
-import type { Nutrientes100 } from "./producto-externo";
-import type { UnidadBase } from "./unidades";
+import type { Nutrientes100 } from "./producto-externo.js";
+import type { UnidadBase } from "./unidades.js";
 
 export type GrupoAlimento =
   | "legumbre"

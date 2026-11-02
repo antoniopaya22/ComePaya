@@ -1,7 +1,7 @@
-import { EAN_VALIDO, type ProductoExterno } from "../src/dominio/producto-externo";
-import { guardarCatalogo } from "./_lib/catalogo";
-import { buscarEnMercadona, obtenerProductoMercadona } from "./_lib/mercadona";
-import { json, servidorConfigurado, tokenDe, usuarioDeToken } from "./_lib/supabase-servidor";
+import { EAN_VALIDO, type ProductoExterno } from "../src/dominio/producto-externo.js";
+import { guardarCatalogo } from "./_lib/catalogo.js";
+import { buscarEnMercadona, obtenerProductoMercadona } from "./_lib/mercadona.js";
+import { json, servidorConfigurado, tokenDe, usuarioDeToken } from "./_lib/supabase-servidor.js";
 
 /** GET /api/mercadona?q=tomate triturado → ResultadoMercadona[] (vacío si Mercadona falla: es un complemento). */
 export async function GET(request: Request): Promise<Response> {

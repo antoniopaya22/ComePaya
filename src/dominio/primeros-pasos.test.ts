@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { primerosPasos, progreso, type EstadoHogar } from "./primeros-pasos";
+import { primerosPasos, progreso, type EstadoHogar } from "./primeros-pasos.js";
 
 const vacio: EstadoHogar = { lotes: 0, recetas: 0, franjasConReceta: 0, itemsLista: 0, miembros: 1, avisosActivos: false };
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ingredienteSugerido, preguntarCaducidad } from "./escaneo";
+import { ingredienteSugerido, preguntarCaducidad } from "./escaneo.js";
 
 describe("ingredienteSugerido", () => {
   it.each([

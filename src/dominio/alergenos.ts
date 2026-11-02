@@ -1,4 +1,4 @@
-import { sumarDias, type FechaISO } from "./caducidad";
+import { sumarDias, type FechaISO } from "./caducidad.js";
 
 // Los 14 alérgenos de declaración obligatoria en la UE, con las etiquetas que usa Open Food Facts.
 export const ALERGENOS = [

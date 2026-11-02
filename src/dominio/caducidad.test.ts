@@ -8,7 +8,7 @@ import {
   etiquetaCaducidad,
   sumarDias,
   sumarMeses,
-} from "./caducidad";
+} from "./caducidad.js";
 
 const HOY = "2026-11-01";
 

@@ -1,5 +1,5 @@
-import { filtrarAlergenos } from "../../src/dominio/alergenos";
-import type { NivelNutriente, Nutrientes100, ProductoExterno } from "../../src/dominio/producto-externo";
+import { filtrarAlergenos } from "../../src/dominio/alergenos.js";
+import type { NivelNutriente, Nutrientes100, ProductoExterno } from "../../src/dominio/producto-externo.js";
 
 // Open Food Facts pide un User-Agent que identifique la app (§6). OFF_CONTACTO permite añadir un contacto.
 const USER_AGENT = `ComePaya/0.1 (${process.env.OFF_CONTACTO ?? "app doméstica"})`;

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buscarEnMercadona, normalizarDetalleMercadona, normalizarHitMercadona } from "./mercadona";
+import { buscarEnMercadona, normalizarDetalleMercadona, normalizarHitMercadona } from "./mercadona.js";
 
 describe("normalizarHitMercadona", () => {
   it("convierte el envase a la unidad base", () => {

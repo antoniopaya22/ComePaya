@@ -1,4 +1,4 @@
-import type { UnidadBase } from "./unidades";
+import type { UnidadBase } from "./unidades.js";
 
 // Importar recetas de webs que publican datos estructurados schema.org/Recipe (JSON-LD).
 // No genera nada: copia lo que la web publica y lo deja en el editor para revisarlo.

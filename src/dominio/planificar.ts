@@ -1,7 +1,7 @@
-import { diasHasta, type FechaISO } from "./caducidad";
-import { escalar, type TipoFranja } from "./menu";
-import type { GrupoAlimento } from "./nutricion";
-import { puntuarRecetas, type ContextoSugerencia, type Pesos, type RecetaSugerible } from "./sugerencias";
+import { diasHasta, type FechaISO } from "./caducidad.js";
+import { escalar, type TipoFranja } from "./menu.js";
+import type { GrupoAlimento } from "./nutricion.js";
+import { puntuarRecetas, type ContextoSugerencia, type Pesos, type RecetaSugerible } from "./sugerencias.js";
 
 export interface Hueco {
   fecha: FechaISO;

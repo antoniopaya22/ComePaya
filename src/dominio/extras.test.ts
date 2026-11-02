@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { cumplimientoSemanal, masCocinadas, masTirados } from "./estadisticas";
-import { generarIcal } from "./ical";
-import { dividirRecetas, markdownAReceta, recetaAMarkdown, SEPARADOR_RECETAS, type RecetaMarkdown } from "./markdown";
-import type { GrupoAlimento } from "./nutricion";
+import { cumplimientoSemanal, masCocinadas, masTirados } from "./estadisticas.js";
+import { generarIcal } from "./ical.js";
+import { dividirRecetas, markdownAReceta, recetaAMarkdown, SEPARADOR_RECETAS, type RecetaMarkdown } from "./markdown.js";
+import type { GrupoAlimento } from "./nutricion.js";
 
 const lentejas: RecetaMarkdown = {
   nombre: "Lentejas con chorizo",

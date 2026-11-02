@@ -1,7 +1,7 @@
-import { EAN_VALIDO } from "../src/dominio/producto-externo";
-import { guardarCatalogo, leerCatalogo } from "./_lib/catalogo";
-import { buscarEnOpenFoodFacts } from "./_lib/openfoodfacts";
-import { json, servidorConfigurado, tokenDe, usuarioDeToken } from "./_lib/supabase-servidor";
+import { EAN_VALIDO } from "../src/dominio/producto-externo.js";
+import { guardarCatalogo, leerCatalogo } from "./_lib/catalogo.js";
+import { buscarEnOpenFoodFacts } from "./_lib/openfoodfacts.js";
+import { json, servidorConfigurado, tokenDe, usuarioDeToken } from "./_lib/supabase-servidor.js";
 
 /**
  * GET /api/producto?ean=8410188012092

@@ -1,7 +1,7 @@
-import { sumarDias } from "../src/dominio/caducidad";
-import { generarIcal, type FranjaIcal } from "../src/dominio/ical";
-import { horaLocal } from "../src/dominio/recordatorios";
-import { json, rest, servidorConfigurado } from "./_lib/supabase-servidor";
+import { sumarDias } from "../src/dominio/caducidad.js";
+import { generarIcal, type FranjaIcal } from "../src/dominio/ical.js";
+import { horaLocal } from "../src/dominio/recordatorios.js";
+import { json, rest, servidorConfigurado } from "./_lib/supabase-servidor.js";
 
 /**
  * GET /api/ical?token=… — menú del hogar como calendario suscribible (§4.4).

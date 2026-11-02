@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { abrirEnvase, alergenosDeIngrediente, alergenosDeReceta, conflictos, filtrarAlergenos } from "./alergenos";
+import { abrirEnvase, alergenosDeIngrediente, alergenosDeReceta, conflictos, filtrarAlergenos } from "./alergenos.js";
 
 describe("alérgenos", () => {
   it("se queda con los 14 oficiales y sin repetir", () => {

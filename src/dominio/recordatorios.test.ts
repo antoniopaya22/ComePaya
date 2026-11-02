@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avisosCaducidad, avisosPreparacion, formatearTemporizador, horaLocal, segundosRestantes, type FranjaAviso } from "./recordatorios";
+import { avisosCaducidad, avisosPreparacion, formatearTemporizador, horaLocal, segundosRestantes, type FranjaAviso } from "./recordatorios.js";
 
 describe("horaLocal", () => {
   it("convierte a hora de España en invierno y en verano", () => {

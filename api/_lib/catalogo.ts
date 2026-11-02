@@ -1,5 +1,5 @@
-import type { ProductoExterno } from "../../src/dominio/producto-externo";
-import { rest, servidorConfigurado } from "./supabase-servidor";
+import type { ProductoExterno } from "../../src/dominio/producto-externo.js";
+import { rest, servidorConfigurado } from "./supabase-servidor.js";
 
 // Caché compartida entre hogares (tabla catalogo_ean). Si falla, se sigue sin ella.
 

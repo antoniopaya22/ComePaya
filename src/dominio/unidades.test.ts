@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { baseAEnvases, envasesABase, equivalencia, formatearCantidad, formatearLote, medidaABase } from "./unidades";
+import { baseAEnvases, envasesABase, equivalencia, formatearCantidad, formatearLote, medidaABase } from "./unidades.js";
 
 describe("formatearCantidad", () => {
   it.each([

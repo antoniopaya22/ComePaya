@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { REGLAS_POR_DEFECTO, type GrupoAlimento } from "./nutricion";
-import { planificarSemana, type ContextoSemana } from "./planificar";
-import type { RecetaSugerible } from "./sugerencias";
+import { REGLAS_POR_DEFECTO, type GrupoAlimento } from "./nutricion.js";
+import { planificarSemana, type ContextoSemana } from "./planificar.js";
+import type { RecetaSugerible } from "./sugerencias.js";
 
 const receta = (id: string, ingredientes: [string, number][], extra: Partial<RecetaSugerible> = {}): RecetaSugerible => ({
   id,

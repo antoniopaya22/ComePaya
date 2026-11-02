@@ -1,6 +1,6 @@
-import { extraerRecetaJsonLd } from "../src/dominio/importar";
-import { leerUrlPublica, urlPublica } from "./_lib/red";
-import { json, servidorConfigurado, tokenDe, usuarioDeToken } from "./_lib/supabase-servidor";
+import { extraerRecetaJsonLd } from "../src/dominio/importar.js";
+import { leerUrlPublica, urlPublica } from "./_lib/red.js";
+import { json, servidorConfigurado, tokenDe, usuarioDeToken } from "./_lib/supabase-servidor.js";
 
 const TAMANO_MAXIMO = 3 * 1024 * 1024;
 

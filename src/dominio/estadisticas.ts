@@ -1,6 +1,6 @@
-import type { FechaISO } from "./caducidad";
-import { lunesDe } from "./menu";
-import { contarGrupos, evaluarEquilibrio, type GrupoAlimento, type Regla } from "./nutricion";
+import type { FechaISO } from "./caducidad.js";
+import { lunesDe } from "./menu.js";
+import { contarGrupos, evaluarEquilibrio, type GrupoAlimento, type Regla } from "./nutricion.js";
 
 // Estadísticas (§4.7): desperdicio, platos más cocinados y cumplimiento de las reglas semanales.
 
