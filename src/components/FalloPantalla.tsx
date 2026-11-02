@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { esErrorDeCarga, recargarPorVersion } from "@/lib/actualizacion";
 import { registrarError, urlReportarProblema } from "@/lib/errores";
 
 /** Si una pantalla falla al pintarse, muestra un aviso con salida en lugar de dejarla en blanco. */
@@ -10,6 +11,8 @@ export class FalloPantalla extends Component<{ children: ReactNode }, { error: E
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // Una pantalla de una versión anterior que ya no está en el servidor: recargando se pasa a la nueva.
+    if (esErrorDeCarga(error) && recargarPorVersion()) return;
     registrarError(error, `pantalla: ${info.componentStack?.split("\n").find((l) => l.trim())?.trim() ?? ""}`);
   }
 

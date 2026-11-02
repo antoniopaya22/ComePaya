@@ -168,3 +168,29 @@ test("Tirar hacia abajo recarga los datos", async ({ page }) => {
   await consulta;
   await expect(page.getByRole("status", { name: /recargar|Recargando/ })).toHaveCount(0);
 });
+
+test("Escanear abre sin fallos", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Escanear" }).first().click();
+  await expect(page).toHaveURL(/\/escanear$/);
+  await expect(page.getByText("Algo ha fallado")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+});
+
+test("Si una pantalla es de una versión anterior y no se descarga, la app recarga sola", async ({ page }) => {
+  let fallado = false;
+  // La primera vez falla como si el archivo ya no existiera en el servidor tras publicar una versión nueva.
+  await page.route(/EscanerPage/, (ruta) => {
+    if (fallado) return ruta.continue();
+    fallado = true;
+    return ruta.fulfill({ status: 404, body: "" });
+  });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  const recarga = page.waitForEvent("load");
+  await page.getByRole("link", { name: "Escanear" }).first().click();
+  await recarga;
+  await expect(page).toHaveURL(/\/escanear$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Escanear" })).toBeVisible();
+  await expect(page.getByText("Algo ha fallado")).toHaveCount(0);
+});
