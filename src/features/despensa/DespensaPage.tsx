@@ -2,9 +2,11 @@ import { ChevronDown, ChevronRight, Library, Package, Plus, Refrigerator, ScanBa
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
+import { BarraApp, EnlaceBarra } from "@/components/BarraApp";
+import { Fab } from "@/components/ui/fab";
 import { Boton } from "@/components/ui/boton";
 import { Entrada } from "@/components/ui/campos";
-import { Cabecera, Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
+import { Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
 import { describirCaducidad, estadoCaducidad, etiquetaCaducidad, hoyISO } from "@/dominio/caducidad";
 import { agruparPorProducto, type GrupoLotes } from "@/dominio/despensa";
 import { emojiPara } from "@/dominio/ingredientes-base";
@@ -13,6 +15,7 @@ import { formatearLote } from "@/dominio/unidades";
 import { UBICACIONES, type LoteConProducto, type Ubicacion } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { useLotes } from "../datos";
+import { FrescosHoja } from "./FrescosHoja";
 import { NuevoLoteHoja } from "./NuevoLoteHoja";
 import { RacionesCongeladas } from "./RacionesCongeladas";
 import { RetirarLoteHoja } from "./RetirarLoteHoja";
@@ -25,6 +28,7 @@ export function DespensaPage() {
   const [filtro, setFiltro] = useState<Ubicacion | "todo">("todo");
   const [busqueda, setBusqueda] = useState("");
   const [nuevo, setNuevo] = useState(false);
+  const [frescos, setFrescos] = useState(false);
   const [retirando, setRetirando] = useState<LoteConProducto | null>(null);
   const hoy = hoyISO();
 
@@ -44,31 +48,29 @@ export function DespensaPage() {
 
   return (
     <>
-      <Cabecera
+      <BarraApp
         titulo="Despensa"
         subtitulo={lotes ? `${new Set(lotes.map((l) => l.producto_id)).size} productos en casa` : undefined}
-        accion={
-          <div className="flex gap-2">
-            <Boton asChild variante="fantasma" tamano="icono-sm" aria-label="Todos los productos" title="Todos los productos">
-              <Link to="/productos">
-                <Library />
-              </Link>
-            </Boton>
-            <Boton asChild variante="secundario" tamano="sm">
-              <Link to="/escanear">
-                <ScanBarcode /> Escanear
-              </Link>
-            </Boton>
-            <Boton tamano="sm" className="hidden md:inline-flex" onClick={() => setNuevo(true)}>
-              <Plus /> Añadir
-            </Boton>
-          </div>
+        acciones={
+          <>
+            <EnlaceBarra to="/productos" etiqueta="Todos los productos">
+              <Library />
+            </EnlaceBarra>
+            <EnlaceBarra to="/escanear" etiqueta="Escanear">
+              <ScanBarcode />
+            </EnlaceBarra>
+          </>
+        }
+        principal={
+          <Boton tamano="sm" onClick={() => setFrescos(true)}>
+            <Plus /> Añadir
+          </Boton>
         }
       />
 
       <div className="flex flex-col gap-4 px-4 md:px-0">
         {urgentes.length > 0 && (
-          <Tarjeta className="flex items-center gap-3 border-aviso/30 bg-aviso-suave p-3.5 text-aviso">
+          <Tarjeta className="flex items-center gap-3 bg-aviso-suave p-3.5 text-aviso md:border-aviso/30">
             <TriangleAlert className="size-5 shrink-0" />
             <p className="text-sm font-medium">
               {urgentes.length === 1
@@ -78,12 +80,14 @@ export function DespensaPage() {
           </Tarjeta>
         )}
 
+        {/* Buscador y filtros quedan a mano al desplazar la lista. */}
+        <div className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20 -mx-4 flex flex-col gap-2.5 bg-fondo/90 px-4 py-2 backdrop-blur-xl md:top-16 md:mx-0 md:px-0">
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-suave" />
-          <Entrada value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar en casa" className="pl-10" type="search" />
+          <Entrada value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar en casa" className="h-11 rounded-full border-transparent bg-superficie-2 pl-10 md:rounded-xl md:border-borde md:bg-superficie" type="search" />
         </div>
 
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
           {([{ valor: "todo", etiqueta: "Todo" }, ...UBICACIONES] as const).map((u) => {
             const activo = filtro === u.valor;
             return (
@@ -101,17 +105,18 @@ export function DespensaPage() {
             );
           })}
         </div>
+        </div>
 
         {isPending ? (
           <ListaEsqueleto />
         ) : !lotes?.length ? (
           <Vacio icono={<Package />} titulo="La despensa está vacía">
-            Escanea lo que tienes en la nevera, el congelador o los armarios, o añádelo a mano con el botón +.
+            Escanea lo que tienes en la nevera, el congelador o los armarios, o añade fruta, verdura, carne o pan con «Añadir».
           </Vacio>
         ) : !grupos.length ? (
           <p className="py-10 text-center text-sm text-suave">No hay nada que coincida.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="overflow-hidden rounded-2xl bg-superficie shadow-[0_1px_2px_rgb(0_0_0/0.04)] md:border md:border-borde [&>li+li]:border-t [&>li+li]:border-borde/70">
             <AnimatePresence initial={false}>
               {grupos.map((g) => (
                 <motion.li key={g.producto_id} layout="position" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -40 }}>
@@ -127,15 +132,11 @@ export function DespensaPage() {
         <div className="h-16 md:hidden" />
       </div>
 
-      <motion.button
-        whileTap={{ scale: 0.92 }}
-        onClick={() => setNuevo(true)}
-        aria-label="Añadir a la despensa"
-        className="fixed right-5 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 grid size-14 place-items-center rounded-2xl bg-primario text-primario-texto shadow-lg shadow-primario/30 md:hidden"
-      >
-        <Plus className="size-6" />
-      </motion.button>
+      <Fab icono={<Plus />} onClick={() => setFrescos(true)}>
+        Añadir
+      </Fab>
 
+      <FrescosHoja abierta={frescos} onAbiertaChange={setFrescos} onEnvasado={() => setNuevo(true)} />
       <NuevoLoteHoja abierta={nuevo} onAbiertaChange={setNuevo} />
       <RetirarLoteHoja lote={retirando} onCerrar={() => setRetirando(null)} />
     </>
@@ -156,18 +157,18 @@ function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProduct
   const estado = estadoCaducidad(grupo.proxima, hoy);
 
   return (
-    <Tarjeta className="overflow-hidden">
-      <button onClick={() => (varios ? setAbierto(!abierto) : onLote(grupo.lotes[0]))} className="flex w-full items-center gap-3 p-3 text-left transition-colors active:bg-superficie-2">
+    <div>
+      <button onClick={() => (varios ? setAbierto(!abierto) : onLote(grupo.lotes[0]))} className="flex min-h-16 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors active:bg-superficie-2">
         {producto.foto_url ? (
-          <img src={producto.foto_url} alt="" className="size-12 shrink-0 rounded-xl bg-white object-contain" loading="lazy" />
+          <img src={producto.foto_url} alt="" className="size-11 shrink-0 rounded-xl bg-white object-contain" loading="lazy" />
         ) : (
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-superficie-2 text-2xl">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-superficie-2 text-2xl">
             {emojiPara(producto.ingrediente.nombre, producto.ingrediente.seccion_super, producto.ingrediente.emoji)}
           </span>
         )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium">{producto.nombre}</span>
-          <span className="block truncate text-sm text-suave">
+          <span className="block truncate text-[16px] font-medium">{producto.nombre}</span>
+          <span className="block truncate text-[13.5px] text-suave">
             {formatearLote(grupo.total, unidad, producto.cantidad_envase)}
             {producto.marca ? ` · ${producto.marca}` : ""}
           </span>
@@ -183,12 +184,12 @@ function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProduct
       </button>
       <AnimatePresence initial={false}>
         {abierto && (
-          <motion.ul initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden border-t border-borde bg-superficie-2/50">
+          <motion.ul initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden border-t border-borde/70 bg-superficie-2/50">
             {grupo.lotes.map((l) => {
               const Icono = ICONOS[l.ubicacion];
               return (
                 <li key={l.id}>
-                  <button onClick={() => onLote(l)} className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-superficie-2">
+                  <button onClick={() => onLote(l)} className="flex min-h-12 w-full items-center gap-3 pr-4 pl-[4.25rem] text-left text-[15px] active:bg-superficie-2">
                     <Icono className="size-4 text-suave" />
                     <span className="flex-1">{formatearLote(l.cantidad, unidad, producto.cantidad_envase)}</span>
                     <Etiqueta tono={tono(estadoCaducidad(l.fecha_caducidad, hoy))}>{describirCaducidad(l.fecha_caducidad, hoy)}</Etiqueta>
@@ -197,13 +198,13 @@ function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProduct
               );
             })}
             <li>
-              <Link to={`/productos/${producto.id}`} className="flex items-center gap-1 px-4 py-2.5 text-sm font-medium text-primario">
+              <Link to={`/productos/${producto.id}`} className="flex min-h-12 items-center gap-1 pr-4 pl-[4.25rem] text-[15px] font-medium text-primario">
                 Ver ficha <ChevronRight className="size-4" />
               </Link>
             </li>
           </motion.ul>
         )}
       </AnimatePresence>
-    </Tarjeta>
+    </div>
   );
 }

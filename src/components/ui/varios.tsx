@@ -3,7 +3,8 @@ import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export function Tarjeta({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("rounded-2xl border border-borde bg-superficie", className)} {...props} />;
+  // En el móvil, sin borde: superficie sobre el fondo, como las tarjetas nativas.
+  return <div className={cn("rounded-2xl bg-superficie shadow-[0_1px_2px_rgb(0_0_0/0.04)] md:border md:border-borde", className)} {...props} />;
 }
 
 const tonos = {
@@ -66,14 +67,3 @@ export function Vacio({ icono, titulo, children }: { icono: ReactNode; titulo: s
   );
 }
 
-export function Cabecera({ titulo, subtitulo, accion }: { titulo: string; subtitulo?: ReactNode; accion?: ReactNode }) {
-  return (
-    <header className="flex items-end justify-between gap-3 px-4 pt-6 pb-4 md:px-0 md:pt-10">
-      <div className="min-w-0">
-        <h1 className="text-[30px] leading-tight font-semibold">{titulo}</h1>
-        {subtitulo && <p className="mt-0.5 text-sm text-suave">{subtitulo}</p>}
-      </div>
-      {accion}
-    </header>
-  );
-}

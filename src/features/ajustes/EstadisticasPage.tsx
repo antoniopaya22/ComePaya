@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ChartColumn } from "lucide-react";
+import { ChartColumn } from "lucide-react";
 import { useMemo } from "react";
-import { Link } from "react-router";
-import { Cabecera, Cargando, Tarjeta, Vacio } from "@/components/ui/varios";
+import { BarraApp } from "@/components/BarraApp";
+import { Cargando, Tarjeta, Vacio } from "@/components/ui/varios";
 import { hoyISO, sumarDias } from "@/dominio/caducidad";
 import { cumplimientoSemanal, masCocinadas, masTirados } from "@/dominio/estadisticas";
 import { gruposDeReceta, type GrupoAlimento } from "@/dominio/nutricion";
@@ -57,12 +57,7 @@ export function EstadisticasPage() {
 
   return (
     <>
-      <div className="px-4 pt-4 md:px-0">
-        <Link to="/ajustes" className="inline-flex items-center gap-1 text-sm text-suave">
-          <ArrowLeft className="size-4" /> Ajustes
-        </Link>
-      </div>
-      <Cabecera titulo="Estadísticas" subtitulo="Últimos 90 días" />
+      <BarraApp titulo="Estadísticas" atras="/ajustes" subtitulo="Últimos 90 días" />
       {isPending ? (
         <Cargando />
       ) : !datos.retirados && !datos.masCocinadas.length ? (

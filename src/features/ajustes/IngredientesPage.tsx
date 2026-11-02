@@ -1,12 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Carrot, Plus, Search, Trash2 } from "lucide-react";
+import { Carrot, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
+import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Entrada, Interruptor, Opciones, Selector } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
-import { Cabecera, Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
+import { Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
 import { emojiPara, ingredientesBaseQueFaltan } from "@/dominio/ingredientes-base";
 import { seccionesDisponibles } from "@/dominio/lista";
 import { normalizar } from "@/dominio/texto";
@@ -72,15 +73,16 @@ export function IngredientesPage() {
 
   return (
     <>
-      <div className="px-4 pt-4 md:px-0">
-        <Link to="/ajustes" className="inline-flex items-center gap-1 text-sm text-suave">
-          <ArrowLeft className="size-4" /> Ajustes
-        </Link>
-      </div>
-      <Cabecera
+      <BarraApp
         titulo="Ingredientes"
+        atras="/ajustes"
         subtitulo="Lo que piden las recetas. Cada producto apunta a uno."
-        accion={
+        acciones={
+          <BotonBarra etiqueta="Nuevo ingrediente" onClick={() => setEditando("nuevo")} className="md:hidden">
+            <Plus />
+          </BotonBarra>
+        }
+        principal={
           <Boton tamano="sm" onClick={() => setEditando("nuevo")}>
             <Plus /> Nuevo
           </Boton>
@@ -89,7 +91,7 @@ export function IngredientesPage() {
       <div className="flex flex-col gap-4 px-4 md:px-0">
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-suave" />
-          <Entrada value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar ingrediente" className="pl-10" type="search" />
+          <Entrada value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar ingrediente" className="h-11 rounded-full border-transparent bg-superficie-2 pl-10 md:rounded-xl md:border-borde md:bg-superficie" type="search" />
         </div>
         {faltan > 0 && !busqueda && (
           <Tarjeta className="flex items-center gap-3 border-primario/30 bg-primario-suave p-3.5">

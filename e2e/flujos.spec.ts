@@ -194,3 +194,40 @@ test("Si una pantalla es de una versión anterior y no se descarga, la app recar
   await expect(page.getByRole("heading", { level: 1, name: "Escanear" })).toBeVisible();
   await expect(page.getByText("Algo ha fallado")).toHaveCount(0);
 });
+
+test("Despensa: repartir unidades de un lote entre despensa y nevera", async ({ page }) => {
+  await page.goto("/productos/p-tomate");
+  await page.getByRole("button", { name: /2 × 400 g/ }).click();
+  const hoja = page.getByRole("dialog");
+  await hoja.getByRole("button", { name: "Menos" }).click();
+  await hoja.getByText("Nevera", { exact: true }).click();
+  await expect(page.getByText("400 g a nevera")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^400 g\s*Nevera/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^400 g\s*Despensa/ })).toBeVisible();
+});
+
+test("Producto: cambiar el nombre desde su ficha", async ({ page }) => {
+  await page.goto("/productos/p-tomate");
+  await page.getByRole("button", { name: "Editar producto" }).click();
+  const hoja = page.getByRole("dialog");
+  const nombre = hoja.getByRole("textbox").first();
+  await nombre.fill("Tomate de bote");
+  await hoja.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tomate de bote");
+});
+
+test("Despensa: alta rápida de frescos sin código de barras", async ({ page }) => {
+  await page.goto("/despensa");
+  // El botón flotante (el último «Añadir»; las raciones congeladas tienen otro).
+  await page.getByRole("button", { name: "Añadir", exact: true }).last().click();
+  const hoja = page.getByRole("dialog");
+  await hoja.getByRole("button", { name: /Plátano/ }).click();
+  await hoja.getByRole("button", { name: "6 ud", exact: true }).click();
+  if (process.env.CAPTURA) await page.screenshot({ path: process.env.CAPTURA });
+  await hoja.getByRole("button", { name: "Añadir 6 ud" }).click();
+  await expect(page.getByText("6 ud de plátano")).toBeVisible();
+  // Sigue abierta para añadir lo siguiente.
+  await expect(hoja.getByRole("button", { name: /Plátano/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Plátano").first()).toBeVisible();
+});

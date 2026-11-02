@@ -3,9 +3,10 @@ import { Bug, CalendarPlus, Carrot, ChartColumn, ChevronRight, Copy, HeartPulse,
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
+import { BarraApp } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { Contador, Interruptor, Selector } from "@/components/ui/campos";
-import { Cabecera, Etiqueta, Tarjeta } from "@/components/ui/varios";
+import { Etiqueta, Tarjeta } from "@/components/ui/varios";
 import { urlReportarProblema, VERSION } from "@/lib/errores";
 import { supabase } from "@/lib/supabase";
 import type { Tienda } from "@/lib/tipos";
@@ -55,7 +56,7 @@ export function AjustesPage() {
 
   return (
     <>
-      <Cabecera titulo="Ajustes" subtitulo={usuario.email} />
+      <BarraApp titulo="Ajustes" atras="/" subtitulo={usuario.email} />
 
       <div className="flex flex-col gap-6 px-4 md:px-0">
         <Bloque titulo="Hogar">
@@ -148,7 +149,7 @@ export function AjustesPage() {
         </Bloque>
 
         <Bloque titulo="Compra">
-          <Tarjeta className="divide-y divide-borde">
+          <Tarjeta className="divide-y divide-borde/70">
             {tiendas.map((t) => (
               <Fila key={t.id} icono={<Store />} titulo={t.nombre} detalle={`${t.orden_secciones.length} secciones en orden de recorrido`} onClick={() => setTienda(t)} />
             ))}
@@ -157,7 +158,7 @@ export function AjustesPage() {
         </Bloque>
 
         <Bloque titulo="Cocina y salud">
-          <Tarjeta className="divide-y divide-borde">
+          <Tarjeta className="divide-y divide-borde/70">
             <Link to="/ajustes/ingredientes" className="block">
               <Fila icono={<Carrot />} titulo="Ingredientes" detalle="Unidades, secciones, grupos, nutrientes y caducidad" />
             </Link>
@@ -191,9 +192,11 @@ export function AjustesPage() {
           <InterruptorAvisos />
         </Bloque>
 
-        <Boton variante="contorno" onClick={() => cerrarSesion()} className="mb-4">
-          <LogOut /> Cerrar sesión
-        </Boton>
+        <Tarjeta>
+          <button onClick={() => cerrarSesion()} className="flex min-h-14 w-full items-center justify-center gap-2 font-medium text-peligro active:bg-superficie-2">
+            <LogOut className="size-5" /> Cerrar sesión
+          </button>
+        </Tarjeta>
       </div>
 
       <SaludHoja abierta={salud} onCerrar={() => setSalud(false)} />
@@ -244,7 +247,7 @@ function InterruptorAvisos() {
 function Bloque({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="px-1 text-xs font-semibold tracking-wide text-suave uppercase">{titulo}</h2>
+      <h2 className="px-1 text-[13px] font-semibold tracking-wide text-suave uppercase">{titulo}</h2>
       {children}
     </section>
   );
@@ -253,15 +256,15 @@ function Bloque({ titulo, children }: { titulo: string; children: ReactNode }) {
 function Fila({ icono, titulo, detalle, onClick }: { icono: ReactNode; titulo: string; detalle?: string; onClick?: () => void }) {
   const contenido = (
     <>
-      <span className="grid size-9 place-items-center rounded-xl bg-superficie-2 text-suave [&_svg]:size-[18px]">{icono}</span>
+      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-superficie-2 text-suave [&_svg]:size-5">{icono}</span>
       <span className="min-w-0 flex-1 text-left">
-        <span className="block font-medium">{titulo}</span>
-        {detalle && <span className="block truncate text-sm text-suave">{detalle}</span>}
+        <span className="block text-[16px]">{titulo}</span>
+        {detalle && <span className="block truncate text-[13.5px] text-suave">{detalle}</span>}
       </span>
       <ChevronRight className="size-4 text-suave" />
     </>
   );
-  const clases = "flex w-full items-center gap-3 px-4 py-3 transition-colors hover:bg-superficie-2";
+  const clases = "flex min-h-14 w-full items-center gap-3 px-4 py-2.5 transition-colors hover:bg-superficie-2 active:bg-superficie-2";
   return onClick ? (
     <button onClick={onClick} className={clases}>
       {contenido}

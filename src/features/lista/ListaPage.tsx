@@ -3,9 +3,10 @@ import { CalendarDays, Check, CloudOff, ListChecks, Mic, Pencil, Plus, Refrigera
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { Entrada, Selector } from "@/components/ui/campos";
-import { Cabecera, ListaEsqueleto, Vacio } from "@/components/ui/varios";
+import { ListaEsqueleto, Vacio } from "@/components/ui/varios";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { agruparPorSeccion, dividirDictado, textoParaCompartir } from "@/dominio/lista";
 import { supabase } from "@/lib/supabase";
@@ -126,49 +127,69 @@ export function ListaPage() {
 
   return (
     <>
-      <Cabecera
+      <BarraApp
         titulo="Lista de la compra"
         subtitulo={items ? (pendientes ? `${pendientes} por comprar` : "Todo comprado") : undefined}
-        accion={
-          <div className="flex items-center gap-1">
-          {(items?.length ?? 0) > 0 && (
-            <Boton variante="fantasma" tamano="icono-sm" aria-label="Compartir la lista" title="Compartir (WhatsApp…)" onClick={compartir}>
-              <Share2 />
-            </Boton>
-          )}
-          {tiendas.length > 1 && (
-            <label className="flex items-center gap-1.5 text-suave">
-              <Store className="size-4" />
-              <Selector
-                aria-label="Tienda"
-                className="h-9 w-auto border-transparent bg-superficie-2 pr-1 text-sm"
-                value={tienda?.id}
-                onChange={(e) => {
-                  setTiendaId(e.target.value);
-                  guardarTiendaActiva(hogar.id, e.target.value);
-                }}
-              >
-                {tiendas.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.nombre}
-                  </option>
-                ))}
-              </Selector>
-            </label>
-          )}
-          </div>
+        buscar
+        acciones={
+          <>
+            <BotonBarra etiqueta="Completar desde el menú" onClick={desdeElMenu} disabled={generando} className={cn("md:hidden", generando && "animate-pulse")}>
+              <CalendarDays />
+            </BotonBarra>
+            {(items?.length ?? 0) > 0 && (
+              <BotonBarra etiqueta="Compartir la lista" onClick={compartir}>
+                <Share2 />
+              </BotonBarra>
+            )}
+          </>
+        }
+        principal={
+          <Boton variante="secundario" tamano="sm" onClick={desdeElMenu} disabled={generando}>
+            <CalendarDays /> {generando ? "Calculando…" : "Completar desde el menú"}
+          </Boton>
         }
       />
 
       <div className="flex flex-col gap-5 px-4 md:px-0">
+        {tiendas.length > 1 && (
+          <label className="-mt-1 flex items-center gap-2 self-start text-suave">
+            <Store className="size-4" />
+            <Selector
+              aria-label="Tienda"
+              className="h-9 w-auto rounded-full border-transparent bg-superficie-2 pr-1 text-sm"
+              value={tienda?.id}
+              onChange={(e) => {
+                setTiendaId(e.target.value);
+                guardarTiendaActiva(hogar.id, e.target.value);
+              }}
+            >
+              {tiendas.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.nombre}
+                </option>
+              ))}
+            </Selector>
+          </label>
+        )}
         {(!enLinea || sinEnviar > 0) && (
           <p className="flex items-center gap-2 rounded-xl bg-aviso-suave px-3 py-2 text-sm text-aviso">
             <CloudOff className="size-4 shrink-0" />
             {enLinea ? `Enviando ${sinEnviar} cambios…` : `Sin conexión. ${sinEnviar ? `${sinEnviar} cambios se enviarán al volver la red.` : "Puedes seguir marcando y añadiendo."}`}
           </p>
         )}
-        <form onSubmit={anadir} className="sticky top-0 z-10 -mx-4 flex gap-2 bg-fondo/90 px-4 py-2 backdrop-blur md:mx-0 md:px-0">
-          <Entrada ref={entrada} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Añadir… (p. ej. 2 kg tomates)" enterKeyHint="done" />
+        {/* Móvil: abajo, sobre la navegación, al alcance del pulgar. Escritorio: arriba. */}
+        <form
+          onSubmit={anadir}
+          className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4rem)] z-20 flex items-center gap-2 border-t border-borde/70 bg-fondo/90 px-3 py-2 backdrop-blur-xl md:sticky md:top-16 md:bottom-auto md:z-10 md:border-0 md:px-0"
+        >
+          <Entrada
+            ref={entrada}
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            placeholder="Añadir… (p. ej. 2 kg tomates)"
+            enterKeyHint="done"
+            className="h-12 rounded-full bg-superficie px-5 md:h-11 md:rounded-xl md:px-3.5"
+          />
           {dictado.disponible && (
             <Boton
               type="button"
@@ -176,38 +197,34 @@ export function ListaPage() {
               tamano="icono"
               aria-label={dictado.escuchando ? "Dejar de escuchar" : "Dictar por voz"}
               onClick={dictado.escuchando ? dictado.parar : dictado.empezar}
-              className={cn(dictado.escuchando && "animate-pulse")}
+              className={cn("size-12 shrink-0 rounded-full md:size-11 md:rounded-xl", dictado.escuchando && "animate-pulse")}
             >
               <Mic />
             </Boton>
           )}
-          <Boton type="submit" tamano="icono" aria-label="Añadir" disabled={!texto.trim()}>
+          <Boton type="submit" tamano="icono" aria-label="Añadir" disabled={!texto.trim()} className="size-12 shrink-0 rounded-full md:size-11 md:rounded-xl">
             <Plus />
           </Boton>
         </form>
-        {dictado.error && <p className="-mt-3 text-sm text-peligro">{dictado.error}</p>}
+        {dictado.error && <p className="text-sm text-peligro">{dictado.error}</p>}
 
         <Habituales items={items ?? []} onAnadir={anadirTexto} />
-
-        <Boton variante="secundario" onClick={desdeElMenu} disabled={generando} className="-mt-2 self-start">
-          <CalendarDays /> {generando ? "Calculando…" : "Completar desde el menú"}
-        </Boton>
 
         {isPending ? (
           <ListaEsqueleto filas={6} />
         ) : !items?.length ? (
           <Vacio icono={<ListChecks />} titulo="Nada que comprar">
-            Escribe arriba lo que falta. Se ordena solo por secciones del súper, en el orden de tu tienda.
+            Escribe lo que falta o complétala desde el menú. Se ordena sola por secciones del súper, en el orden de tu tienda.
           </Vacio>
         ) : (
           <div className="flex flex-col gap-5">
             {grupos.map((grupo) => (
               <section key={grupo.seccion}>
-                <h2 className="mb-1.5 flex items-center justify-between px-1 text-xs font-semibold tracking-wide text-suave uppercase">
+                <h2 className="mb-1.5 flex items-center justify-between px-1 text-[13px] font-semibold tracking-wide text-suave uppercase">
                   {grupo.seccion}
                   <span className="font-medium normal-case">{grupo.pendientes || "✓"}</span>
                 </h2>
-                <ul className="overflow-hidden rounded-2xl border border-borde bg-superficie">
+                <ul className="overflow-hidden rounded-2xl bg-superficie shadow-[0_1px_2px_rgb(0_0_0/0.04)] md:border md:border-borde">
                   <AnimatePresence initial={false}>
                     {grupo.items.map((item) => (
                       <motion.li
@@ -217,7 +234,7 @@ export function ListaPage() {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="touch-pan-y border-b border-borde bg-superficie last:border-b-0"
+                        className="touch-pan-y border-b border-borde/70 bg-superficie last:border-b-0"
                         // Deslizar hacia la izquierda quita el elemento (con deshacer).
                         drag="x"
                         dragConstraints={{ left: 0, right: 0 }}
@@ -230,16 +247,16 @@ export function ListaPage() {
                         <div className="flex items-center">
                           <button
                             onClick={() => alternar.mutate({ id: item.id, marcado: !item.marcado })}
-                            className="flex min-h-13 flex-1 items-center gap-3 py-2 pl-3.5 text-left"
+                            className="flex min-h-14 flex-1 items-center gap-3 py-2 pl-4 text-left text-[16px]"
                             aria-pressed={item.marcado}
                           >
                             <span
                               className={cn(
-                                "grid size-6 shrink-0 place-items-center rounded-full border-2 transition-colors",
+                                "grid size-7 shrink-0 place-items-center rounded-full border-2 transition-colors",
                                 item.marcado ? "border-primario bg-primario text-primario-texto" : "border-borde",
                               )}
                             >
-                              {item.marcado && <Check className="size-3.5" strokeWidth={3} />}
+                              {item.marcado && <Check className="size-4" strokeWidth={3} />}
                             </span>
                             <span className={cn("text-xl leading-none transition-opacity", item.marcado && "opacity-40 grayscale")} aria-hidden>
                               {emojiPara(item.texto, item.seccion_super, item.ingrediente_id ? emojiDe.get(item.ingrediente_id) : null)}
@@ -252,9 +269,9 @@ export function ListaPage() {
                                 </span>
                               )}
                             </span>
-                            {item.cantidad && <span className="text-sm text-suave">{item.cantidad}</span>}
+                            {item.cantidad && <span className="text-[15px] text-suave">{item.cantidad}</span>}
                           </button>
-                          <button onClick={() => setEditando(item)} className="h-13 px-3.5 text-xs text-suave" aria-label={`Editar ${item.texto}`}>
+                          <button onClick={() => setEditando(item)} className="grid h-14 w-12 place-items-center text-suave/70 active:bg-superficie-2" aria-label={`Editar ${item.texto}`}>
                             <Pencil className="size-4" />
                           </button>
                         </div>
@@ -286,6 +303,8 @@ export function ListaPage() {
             )}
           </div>
         )}
+        {/* Hueco para que el campo de añadir no tape lo último de la lista. */}
+        <div className="h-16 md:hidden" />
       </div>
 
       <EditarItemHoja item={editando} onCerrar={() => setEditando(null)} ordenSecciones={tienda?.orden_secciones ?? []} />

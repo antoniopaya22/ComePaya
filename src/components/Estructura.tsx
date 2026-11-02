@@ -1,45 +1,20 @@
-import {
-  BarChart3,
-  Bell,
-  BookOpen,
-  CalendarDays,
-  Check,
-  ChevronsUpDown,
-  House,
-  ListChecks,
-  LogOut,
-  Bug,
-  Package,
-  Plus,
-  Refrigerator,
-  RefreshCw,
-  ScanBarcode,
-  Search,
-  Settings,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, Check, ChevronsUpDown, House, ListChecks, Package, Plus, Refrigerator, ScanBarcode, Search, Settings, type LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
-import { Suspense, useCallback, useEffect, useMemo, useState, type ComponentProps } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
-import { toast } from "sonner";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigationType } from "react-router";
+import { Avisos, iniciales, MenuUsuario, useUrgentes } from "@/components/Cuenta";
 import { FalloPantalla } from "@/components/FalloPantalla";
 import { Logo } from "@/components/Logo";
 import { TirarParaRecargar } from "@/components/TirarParaRecargar";
 import { Menu, MenuContenido, MenuDisparador, MenuEtiqueta, MenuOpcion, MenuSeparador } from "@/components/ui/menu";
 import { Cargando } from "@/components/ui/varios";
-import { describirCaducidad, estadoCaducidad, hoyISO } from "@/dominio/caducidad";
-import { emojiPara } from "@/dominio/ingredientes-base";
-import { ATAJO_BUSCAR, Buscador, useAtajoBuscar } from "@/features/buscador/Buscador";
-import { useLista, useLotes } from "@/features/datos";
+import { ATAJO_BUSCAR, Buscador, ProveedorBuscador, useAtajoBuscar } from "@/features/buscador/Buscador";
+import { useLista } from "@/features/datos";
 import { useHogar } from "@/features/hogar/HogarProvider";
-import { iniciarRecorrido, Recorrido } from "@/features/recorrido/Recorrido";
-import { cerrarSesion, useUsuario } from "@/features/sesion/SesionProvider";
-import { recargar } from "@/lib/actualizacion";
-import { urlReportarProblema, VERSION } from "@/lib/errores";
+import { Recorrido } from "@/features/recorrido/Recorrido";
+import { VERSION } from "@/lib/errores";
 import { modoDemo } from "@/lib/supabase";
 import { useSincronizacionHogar } from "@/lib/tiempo-real";
-import type { LoteConProducto } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 interface Seccion {
@@ -62,15 +37,6 @@ const HERRAMIENTAS: Seccion[] = [
   { ruta: "/ajustes/estadisticas", etiqueta: "Estadísticas", icono: BarChart3 },
 ];
 
-/** Lo que está caducado o caduca en los próximos días, lo más urgente primero. */
-function useUrgentes(): LoteConProducto[] {
-  const { data: lotes } = useLotes();
-  return useMemo(() => {
-    const hoy = hoyISO();
-    return (lotes ?? []).filter((l) => ["caducado", "pronto"].includes(estadoCaducidad(l.fecha_caducidad, hoy)));
-  }, [lotes]);
-}
-
 /** Número sobre el icono de la app instalada. */
 function useContadorEnIcono(n: number) {
   useEffect(() => {
@@ -79,12 +45,38 @@ function useContadorEnIcono(n: number) {
   }, [n]);
 }
 
-/** Móvil: barra superior y navegación inferior. Escritorio (md+): barra lateral y barra superior con buscador. */
+/** Pantallas con navegación inferior en el móvil; las demás se abren encima, con su flecha de volver. */
+const RAICES = SECCIONES.map((s) => s.ruta);
+
+/**
+ * Al ir a una pantalla nueva se empieza arriba; al volver atrás, donde se estaba (como en una app).
+ */
+function useDesplazamientoComoApp() {
+  const location = useLocation();
+  const tipo = useNavigationType();
+  const posiciones = useRef(new Map<string, number>());
+  useEffect(() => {
+    const clave = location.key;
+    if (tipo === "POP") {
+      const y = posiciones.current.get(clave) ?? 0;
+      requestAnimationFrame(() => window.scrollTo(0, y));
+    } else {
+      window.scrollTo(0, 0);
+    }
+    return () => {
+      posiciones.current.set(clave, window.scrollY);
+    };
+  }, [location.key, tipo]);
+}
+
+/** Móvil: cada pantalla con su barra de app y navegación inferior en las principales. Escritorio (md+): barra lateral y barra superior con buscador. */
 export function Estructura() {
   // Al cambiar de pantalla se reinicia el aviso de fallo.
   const location = useLocation();
+  const tipo = useNavigationType();
   const { hogar } = useHogar();
   useSincronizacionHogar(hogar.id);
+  useDesplazamientoComoApp();
   const urgentes = useUrgentes();
   const { data: lista } = useLista();
   const pendientes = (lista ?? []).filter((i) => !i.marcado).length;
@@ -97,32 +89,44 @@ export function Estructura() {
     "/lista": { n: pendientes },
     "/despensa": { n: urgentes.length, aviso: true },
   };
+  const raiz = RAICES.includes(location.pathname);
+  // Entre pestañas, un fundido; al abrir una pantalla, entra desde la derecha; al volver, solo fundido.
+  const entrada = raiz || tipo === "POP" ? { opacity: 0 } : { opacity: 0, x: 28 };
 
   return (
-    <div className="min-h-dvh md:flex">
-      <BarraLateral contadores={contadores} />
+    <ProveedorBuscador value={abrirBuscador}>
+      <div className="min-h-dvh md:flex">
+        <BarraLateral contadores={contadores} />
 
-      <div className="min-w-0 flex-1">
-        <BarraSuperior urgentes={urgentes} onBuscar={abrirBuscador} />
-        <main className="mx-auto w-full max-w-2xl pb-28 md:px-8 md:pb-12">
-          {modoDemo && (
-            <p className="mx-4 mt-3 rounded-full bg-aviso-suave px-3 py-1 text-center text-xs font-medium text-aviso md:mx-0">
-              Modo demo: datos de ejemplo, se reinician al reiniciar el servidor
-            </p>
-          )}
-          <FalloPantalla key={location.pathname}>
-            <Suspense fallback={<Cargando className="min-h-[60dvh]" />}>
-              <Outlet />
-            </Suspense>
-          </FalloPantalla>
-        </main>
+        <div className="min-w-0 flex-1">
+          <BarraSuperior onBuscar={abrirBuscador} />
+          <main
+            className={cn(
+              "mx-auto w-full max-w-2xl md:px-8 md:pb-12",
+              raiz ? "pb-[calc(env(safe-area-inset-bottom)+6.5rem)]" : "pb-[calc(env(safe-area-inset-bottom)+2rem)]",
+            )}
+          >
+            <FalloPantalla key={location.pathname}>
+              <motion.div initial={entrada} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
+                <Suspense fallback={<Cargando className="min-h-[60dvh]" />}>
+                  <Outlet />
+                </Suspense>
+              </motion.div>
+            </FalloPantalla>
+            {modoDemo && (
+              <p className="mx-4 mt-8 rounded-full bg-aviso-suave px-3 py-1 text-center text-xs font-medium text-aviso md:mx-0">
+                Modo demo: datos de ejemplo, se reinician al reiniciar el servidor
+              </p>
+            )}
+          </main>
+        </div>
+
+        {raiz && <NavegacionInferior contadores={contadores} />}
+        <Buscador abierto={buscando} onCambiar={setBuscando} />
+        <Recorrido />
+        <TirarParaRecargar />
       </div>
-
-      <NavegacionInferior contadores={contadores} />
-      <Buscador abierto={buscando} onCambiar={setBuscando} />
-      <Recorrido />
-      <TirarParaRecargar />
-    </div>
+    </ProveedorBuscador>
   );
 }
 
@@ -218,19 +222,15 @@ function SelectorHogar() {
   );
 }
 
-function BarraSuperior({ urgentes, onBuscar }: { urgentes: LoteConProducto[]; onBuscar: () => void }) {
+/** Barra superior de escritorio; en el móvil cada pantalla tiene su barra de app (BarraApp). */
+function BarraSuperior({ onBuscar }: { onBuscar: () => void }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-borde/70 bg-fondo/85 backdrop-blur-lg">
-      <div className="mx-auto flex h-14 items-center gap-2 px-4 md:h-16 md:px-8">
-        <Link to="/" className="md:hidden" aria-label="Inicio">
-          <Logo tamano="sm" />
-        </Link>
-
-        {/* Escritorio: campo de búsqueda. */}
+    <header className="sticky top-0 z-30 hidden border-b border-borde/70 bg-fondo/85 backdrop-blur-lg md:block">
+      <div className="mx-auto flex h-16 items-center gap-2 px-8">
         <button
           onClick={onBuscar}
           data-recorrido="buscar"
-          className="hidden h-10 w-full max-w-md items-center gap-3 rounded-xl border border-borde bg-superficie px-3 text-sm text-suave shadow-xs transition-colors hover:border-primario/40 md:flex"
+          className="flex h-10 w-full max-w-md items-center gap-3 rounded-xl border border-borde bg-superficie px-3 text-sm text-suave shadow-xs transition-colors hover:border-primario/40"
         >
           <Search className="size-4" />
           <span className="flex-1 text-left">Buscar recetas, productos, ingredientes…</span>
@@ -238,9 +238,6 @@ function BarraSuperior({ urgentes, onBuscar }: { urgentes: LoteConProducto[]; on
         </button>
 
         <div className="ml-auto flex items-center gap-1">
-          <BotonIcono etiqueta="Buscar" onClick={onBuscar} className="md:hidden" data-recorrido="buscar">
-            <Search />
-          </BotonIcono>
           <Link
             to="/escanear"
             data-recorrido="escanear"
@@ -251,123 +248,11 @@ function BarraSuperior({ urgentes, onBuscar }: { urgentes: LoteConProducto[]; on
           <Link to="/escanear" aria-label="Escanear" data-recorrido="escanear" className="grid size-10 place-items-center rounded-xl text-suave transition-colors hover:bg-superficie-2 hover:text-texto lg:hidden [&_svg]:size-5">
             <ScanBarcode />
           </Link>
-          <Avisos urgentes={urgentes} />
+          <Avisos />
           <MenuUsuario />
         </div>
       </div>
     </header>
-  );
-}
-
-function BotonIcono({ etiqueta, className, ...props }: ComponentProps<"button"> & { etiqueta: string }) {
-  return (
-    <button
-      aria-label={etiqueta}
-      title={etiqueta}
-      className={cn("relative grid size-10 place-items-center rounded-xl text-suave transition-colors hover:bg-superficie-2 hover:text-texto [&_svg]:size-5", className)}
-      {...props}
-    />
-  );
-}
-
-/** Campana con lo que caduca: un vistazo rápido sin ir a la despensa. */
-function Avisos({ urgentes }: { urgentes: LoteConProducto[] }) {
-  const navigate = useNavigate();
-  const hoy = hoyISO();
-  return (
-    <Menu>
-      <MenuDisparador asChild>
-        <BotonIcono etiqueta={urgentes.length ? `${urgentes.length} avisos de caducidad` : "Avisos"} data-recorrido="avisos">
-          <Bell />
-          {urgentes.length > 0 && (
-            <span className="absolute top-1.5 right-1.5 grid min-w-4 place-items-center rounded-full bg-aviso px-1 text-[10px] leading-4 font-bold text-white ring-2 ring-fondo">
-              {urgentes.length > 9 ? "9+" : urgentes.length}
-            </span>
-          )}
-        </BotonIcono>
-      </MenuDisparador>
-      <MenuContenido className="w-80">
-        <MenuEtiqueta>Caducidades</MenuEtiqueta>
-        {urgentes.length === 0 && <p className="px-3 pt-1 pb-3 text-sm text-suave">Nada caduca en los próximos días. 👌</p>}
-        {urgentes.slice(0, 6).map((l) => {
-          const p = l.producto;
-          const caducado = estadoCaducidad(l.fecha_caducidad, hoy) === "caducado";
-          return (
-            <MenuOpcion key={l.id} onSelect={() => navigate(`/productos/${p.id}`)} className="py-1.5">
-              <span className="text-lg">{emojiPara(p.ingrediente?.nombre ?? p.nombre, p.ingrediente?.seccion_super ?? null, p.ingrediente?.emoji)}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">{p.nombre}</span>
-                <span className={cn("block text-xs first-letter:uppercase", caducado ? "text-peligro" : "text-aviso")}>
-                  {describirCaducidad(l.fecha_caducidad, hoy)}
-                </span>
-              </span>
-            </MenuOpcion>
-          );
-        })}
-        {urgentes.length > 0 && (
-          <>
-            <MenuSeparador />
-            <MenuOpcion onSelect={() => navigate("/despensa")} className="justify-center font-medium text-primario">
-              Ver la despensa{urgentes.length > 6 ? ` (${urgentes.length - 6} más)` : ""}
-            </MenuOpcion>
-          </>
-        )}
-      </MenuContenido>
-    </Menu>
-  );
-}
-
-function MenuUsuario() {
-  const usuario = useUsuario();
-  const { hogar } = useHogar();
-  const navigate = useNavigate();
-  const nombre: string = usuario.user_metadata.full_name ?? usuario.user_metadata.name ?? usuario.email ?? "";
-  return (
-    <Menu>
-      <MenuDisparador data-recorrido="hogar" className="ml-1 rounded-full ring-offset-2 ring-offset-fondo outline-none focus-visible:ring-2 focus-visible:ring-primario" aria-label="Tu cuenta">
-        <Avatar url={usuario.user_metadata.avatar_url} nombre={nombre} />
-      </MenuDisparador>
-      <MenuContenido className="w-64">
-        <div className="flex items-center gap-3 px-3 py-2.5">
-          <Avatar url={usuario.user_metadata.avatar_url} nombre={nombre} />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{nombre}</p>
-            <p className="truncate text-xs text-suave">{usuario.email}</p>
-          </div>
-        </div>
-        <p className="mx-3 mb-1 truncate rounded-lg bg-superficie-2 px-2 py-1 text-xs text-suave md:hidden">🏠 {hogar.nombre}</p>
-        <MenuSeparador />
-        <MenuOpcion onSelect={() => navigate("/ajustes")}>
-          <Settings /> Ajustes y hogar
-        </MenuOpcion>
-        <MenuOpcion onSelect={() => navigate("/ajustes/estadisticas")}>
-          <BarChart3 /> Estadísticas
-        </MenuOpcion>
-        <MenuOpcion onSelect={() => toast.promise(recargar(), { loading: "Actualizando…", success: "Todo al día", error: "No se ha podido actualizar" })}>
-          <RefreshCw /> Actualizar
-        </MenuOpcion>
-        <MenuOpcion onSelect={iniciarRecorrido}>
-          <Sparkles /> Ver el recorrido
-        </MenuOpcion>
-        <MenuOpcion onSelect={() => window.open(urlReportarProblema(), "_blank", "noopener")}>
-          <Bug /> Reportar un problema
-        </MenuOpcion>
-        <MenuSeparador />
-        <MenuOpcion peligro onSelect={() => cerrarSesion()}>
-          <LogOut /> Cerrar sesión
-        </MenuOpcion>
-      </MenuContenido>
-    </Menu>
-  );
-}
-
-function Avatar({ url, nombre }: { url?: string; nombre: string }) {
-  const [fallo, setFallo] = useState(false);
-  if (url && !fallo) {
-    return <img src={url} alt="" referrerPolicy="no-referrer" onError={() => setFallo(true)} className="size-9 shrink-0 rounded-full border border-borde object-cover" />;
-  }
-  return (
-    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primario text-sm font-semibold text-primario-texto">{iniciales(nombre) || "?"}</span>
   );
 }
 
@@ -412,12 +297,3 @@ function NavegacionInferior({ contadores }: { contadores: Record<string, { n: nu
   );
 }
 
-function iniciales(nombre: string): string {
-  return nombre
-    .replace(/^(casa|hogar) de /i, "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0].toUpperCase())
-    .join("");
-}

@@ -16,7 +16,7 @@ import {
   Settings,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { emojiPara } from "@/dominio/ingredientes-base";
@@ -67,6 +67,13 @@ export function useAtajoBuscar(abrir: () => void) {
     window.addEventListener("keydown", alPulsar);
     return () => window.removeEventListener("keydown", alPulsar);
   }, [abrir]);
+}
+
+const AbrirBuscador = createContext<() => void>(() => {});
+/** Lo pone la estructura de la app para que cualquier pantalla pueda abrir el buscador (la lupa de su barra). */
+export const ProveedorBuscador = AbrirBuscador.Provider;
+export function useAbrirBuscador() {
+  return useContext(AbrirBuscador);
 }
 
 export const ATAJO_BUSCAR = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K";

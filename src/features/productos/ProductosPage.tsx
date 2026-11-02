@@ -1,8 +1,9 @@
-import { ArrowLeft, Package, Search } from "lucide-react";
+import { Package, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
+import { BarraApp } from "@/components/BarraApp";
 import { Entrada } from "@/components/ui/campos";
-import { Cabecera, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
+import { ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { normalizar } from "@/dominio/texto";
 import { formatearCantidad, formatearLote } from "@/dominio/unidades";
@@ -35,12 +36,7 @@ export function ProductosPage() {
 
   return (
     <>
-      <div className="px-4 pt-4 md:px-0">
-        <Link to="/despensa" className="inline-flex items-center gap-1 text-sm text-suave">
-          <ArrowLeft className="size-4" /> Despensa
-        </Link>
-      </div>
-      <Cabecera titulo="Productos" subtitulo={productos ? `${productos.length} conocidos en casa` : undefined} />
+      <BarraApp titulo="Productos" atras="/despensa" subtitulo={productos ? `${productos.length} conocidos en casa` : undefined} />
       <div className="flex flex-col gap-4 px-4 md:px-0">
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-suave" />

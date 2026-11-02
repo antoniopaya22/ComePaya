@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, PackageOpen, Trash2, Utensils } from "lucide-react";
+import { ChevronRight, PackageOpen, Pencil, Trash2, Utensils } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -8,11 +8,12 @@ import { Campo, Contador, Entrada, Opciones } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
 import { abrirEnvase } from "@/dominio/alergenos";
 import { describirCaducidad, hoyISO, type FechaISO } from "@/dominio/caducidad";
+import { planMover } from "@/dominio/despensa";
 import { baseAEnvases, envasesABase, formatearLote } from "@/dominio/unidades";
 import { supabase } from "@/lib/supabase";
 import { UBICACIONES, type LoteConProducto, type Ubicacion } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
-import { claves } from "../datos";
+import { claves, useLotes } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
 import { aplicarCambiosDespensa } from "./cambios";
 import { SelectorCaducidad } from "./SelectorCaducidad";
@@ -21,6 +22,7 @@ import { SelectorCaducidad } from "./SelectorCaducidad";
 export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | null; onCerrar: () => void }) {
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
+  const { data: lotes } = useLotes();
   const [envases, setEnvases] = useState(1);
   const [guardando, setGuardando] = useState(false);
   const [cantidadReal, setCantidadReal] = useState("");
@@ -113,12 +115,25 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
     onCerrar();
   }
 
+  /** Mueve los envases elegidos en el contador: todos o solo una parte ("2 de los 6 a la nevera"). */
   async function mover(ubicacion: Ubicacion) {
     if (!actual || ubicacion === actual.ubicacion) return;
-    setActual({ ...actual, ubicacion });
-    const { error } = await supabase.from("lote_despensa").update({ ubicacion }).eq("id", actual.id);
-    if (error) return toast.error(mensajeError(error));
+    const cantidad = Math.min(actual.cantidad, envasesABase(envases, producto.cantidad_envase));
+    const plan = planMover(actual, cantidad, ubicacion, lotes ?? []);
+    if (!plan) return;
+    try {
+      await aplicarCambiosDespensa(hogar.id, {
+        lotes_actualizar: plan.cambiarUbicacion ? [{ id: plan.cambiarUbicacion.id, ubicacion }] : undefined,
+        lotes_delta: plan.deltas.length ? plan.deltas : undefined,
+        lotes_crear: plan.crear ? [{ ...plan.crear, ubicacion }] : undefined,
+      });
+    } catch (error) {
+      return toast.error(mensajeError(error));
+    }
     refrescar();
+    const destino = UBICACIONES.find((u) => u.valor === ubicacion)?.etiqueta.toLowerCase();
+    toast.success(cantidad >= actual.cantidad ? `Movido a ${destino}` : `${formatearLote(cantidad, producto.ingrediente.unidad_base, producto.cantidad_envase)} a ${destino}`);
+    onCerrar();
   }
 
   return (
@@ -139,7 +154,10 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
       }
     >
       <div className="flex flex-col gap-5">
-        <Campo etiqueta={`Cuánto retiras (hay ${formatearLote(actual.cantidad, producto.ingrediente.unidad_base, producto.cantidad_envase)})`}>
+        <Campo
+          etiqueta={`Cuántos (hay ${formatearLote(actual.cantidad, producto.ingrediente.unidad_base, producto.cantidad_envase)})`}
+          ayuda="Para marcarlos como consumidos o tirados, o para moverlos a otro sitio."
+        >
           <Contador valor={envases} onChange={(v) => setEnvases(Math.min(v, total))} min={0} paso={producto.cantidad_envase ? 1 : total > 10 ? 10 : 1} />
         </Campo>
         {actual.abierto_en ? (
@@ -150,7 +168,7 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
             {producto.ingrediente.dias_tras_abrir ? <span className="font-normal text-suave">· dura {producto.ingrediente.dias_tras_abrir} días</span> : null}
           </Boton>
         )}
-        <Campo etiqueta="Mover a">
+        <Campo etiqueta={envases < total ? `Mover ${envases} de ${total} a` : "Mover a"}>
           <Opciones opciones={UBICACIONES} valor={actual.ubicacion} onChange={mover} />
         </Campo>
         <details className="rounded-xl border border-borde px-3.5 py-3">
@@ -167,9 +185,14 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
             </div>
           </div>
         </details>
-        <Link to={`/productos/${producto.id}`} onClick={onCerrar} className="inline-flex items-center gap-1 self-start text-sm font-medium text-primario">
-          Ver ficha del producto <ChevronRight className="size-4" />
-        </Link>
+        <div className="flex flex-wrap gap-x-5 gap-y-1">
+          <Link to={`/productos/${producto.id}?editar=1`} onClick={onCerrar} className="inline-flex h-10 items-center gap-1.5 text-[15px] font-medium text-primario">
+            <Pencil className="size-4" /> Cambiar nombre o datos
+          </Link>
+          <Link to={`/productos/${producto.id}`} onClick={onCerrar} className="inline-flex h-10 items-center gap-1 text-[15px] font-medium text-primario">
+            Ver ficha <ChevronRight className="size-4" />
+          </Link>
+        </div>
       </div>
     </Hoja>
   );

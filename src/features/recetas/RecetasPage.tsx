@@ -1,12 +1,15 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { BookOpen, Clock, Download, Globe, Plus, Search, Upload, Users } from "lucide-react";
+import { BookOpen, Clock, Download, EllipsisVertical, Globe, Plus, Search, Upload, Users } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
+import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { Entrada } from "@/components/ui/campos";
+import { Fab } from "@/components/ui/fab";
+import { Menu, MenuContenido, MenuDisparador, MenuOpcion } from "@/components/ui/menu";
 import { Estrellas } from "@/components/ui/estrellas";
-import { Cabecera, Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
+import { Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { normalizar } from "@/dominio/texto";
 import type { RecetaCompleta } from "@/lib/tipos";
@@ -44,28 +47,39 @@ export function RecetasPage() {
 
   return (
     <>
-      <Cabecera
+      <BarraApp
         titulo="Recetas"
         subtitulo={recetas ? `${recetas.length} en vuestro recetario` : undefined}
-        accion={
-          <div className="flex gap-1">
-            <Boton variante="fantasma" tamano="icono-sm" aria-label="Importar desde una web" title="Importar desde una web" onClick={() => setImportando(true)}>
+        acciones={
+          <>
+            <BotonBarra etiqueta="Importar desde una web" onClick={() => setImportando(true)}>
               <Globe />
-            </Boton>
-            <Boton variante="fantasma" tamano="icono-sm" aria-label="Importar recetas en Markdown" title="Importar (.md)" onClick={() => archivo.current?.click()}>
-              <Upload />
-            </Boton>
-            {recetas && recetas.length > 0 && (
-              <Boton variante="fantasma" tamano="icono-sm" aria-label="Exportar todas en Markdown" title="Exportar todas (.md)" onClick={() => exportarTodas(recetas)}>
-                <Download />
-              </Boton>
-            )}
-            <Boton asChild tamano="sm">
-              <Link to="/recetas/nueva">
-                <Plus /> Nueva
-              </Link>
-            </Boton>
-          </div>
+            </BotonBarra>
+            <Menu>
+              <MenuDisparador asChild>
+                <BotonBarra etiqueta="Más opciones">
+                  <EllipsisVertical />
+                </BotonBarra>
+              </MenuDisparador>
+              <MenuContenido>
+                <MenuOpcion onSelect={() => archivo.current?.click()}>
+                  <Upload /> Importar recetas (.md)
+                </MenuOpcion>
+                {recetas && recetas.length > 0 && (
+                  <MenuOpcion onSelect={() => exportarTodas(recetas)}>
+                    <Download /> Exportar todas (.md)
+                  </MenuOpcion>
+                )}
+              </MenuContenido>
+            </Menu>
+          </>
+        }
+        principal={
+          <Boton asChild tamano="sm">
+            <Link to="/recetas/nueva">
+              <Plus /> Nueva
+            </Link>
+          </Boton>
         }
       />
       <input
@@ -88,24 +102,32 @@ export function RecetasPage() {
         }}
       />
       <div className="flex flex-col gap-4 px-4 md:px-0">
+        <div className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20 -mx-4 flex flex-col gap-2.5 bg-fondo/90 px-4 py-2 backdrop-blur-xl md:top-16 md:mx-0 md:px-0">
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-suave" />
-          <Entrada value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar por nombre o ingrediente" className="pl-10" type="search" />
+          <Entrada
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por nombre o ingrediente"
+            className="h-11 rounded-full border-transparent bg-superficie-2 pl-10 md:rounded-xl md:border-borde md:bg-superficie"
+            type="search"
+          />
         </div>
 
         {etiquetas.length > 0 && (
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
             {etiquetas.map((e) => (
               <button
                 key={e}
                 onClick={() => setEtiqueta(etiqueta === e ? null : e)}
-                className={cn("h-8 shrink-0 rounded-full px-3.5 text-sm font-medium", etiqueta === e ? "bg-primario text-primario-texto" : "bg-superficie-2 text-suave")}
+                className={cn("h-9 shrink-0 rounded-full px-4 text-sm font-medium", etiqueta === e ? "bg-primario text-primario-texto" : "bg-superficie-2 text-suave")}
               >
                 {e}
               </button>
             ))}
           </div>
         )}
+        </div>
 
         {isPending ? (
           <ListaEsqueleto />
@@ -124,11 +146,11 @@ export function RecetasPage() {
                 <li key={r.id}>
                   <Link to={`/recetas/${r.id}`}>
                     <Tarjeta className="flex h-full flex-col overflow-hidden transition-transform active:scale-[0.98]">
-                      <div className="relative aspect-[4/3] bg-superficie-2">
+                      <div className="relative aspect-[16/11] bg-superficie-2">
                         {r.foto_url ? (
                           <img src={r.foto_url} alt="" className="size-full object-cover" loading="lazy" />
                         ) : (
-                          <span className="grid size-full place-items-center text-4xl opacity-80">{platoEmoji(r)}</span>
+                          <span className="grid size-full place-items-center text-[44px]">{platoEmoji(r)}</span>
                         )}
                         {r.valoracion && (
                           <span className="absolute top-2 right-2 rounded-full bg-black/55 px-1.5 py-0.5 backdrop-blur">
@@ -137,7 +159,7 @@ export function RecetasPage() {
                         )}
                       </div>
                       <div className="flex flex-1 flex-col gap-1.5 p-3">
-                        <p className="font-titulo leading-snug font-semibold">{r.nombre}</p>
+                        <p className="line-clamp-2 text-[15px] leading-snug font-semibold">{r.nombre}</p>
                         <p className="mt-auto flex items-center gap-3 text-xs text-suave">
                           <span className="flex items-center gap-1">
                             <Users className="size-3.5" /> {r.raciones}
@@ -149,7 +171,7 @@ export function RecetasPage() {
                           )}
                         </p>
                         {r.etiquetas.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
+                          <div className="hidden flex-wrap gap-1 sm:flex">
                             {r.etiquetas.slice(0, 2).map((e) => (
                               <Etiqueta key={e}>{e}</Etiqueta>
                             ))}
@@ -163,7 +185,12 @@ export function RecetasPage() {
             })}
           </ul>
         )}
+        {/* Hueco para que el botón flotante no tape la última fila. */}
+        <div className="h-16 md:hidden" />
       </div>
+      <Fab icono={<Plus />} to="/recetas/nueva">
+        Nueva
+      </Fab>
       <ImportarRecetaHoja abierta={importando} onCerrar={() => setImportando(false)} />
     </>
   );

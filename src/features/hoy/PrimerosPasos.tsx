@@ -43,7 +43,7 @@ function guardar(hogarId: string, recordado: Recordado) {
 }
 
 /** Tarjeta de Hoy con lo que falta para empezar a usar la app. Desaparece al completarla o al cerrarla. */
-export function PrimerosPasos({ franjas }: { franjas: FranjaMenu[] }) {
+export function PrimerosPasos({ franjas, className }: { franjas: FranjaMenu[]; className?: string }) {
   const { hogar } = useHogar();
   const { data: lotes } = useLotes();
   const { data: recetas } = useRecetas();
@@ -102,7 +102,7 @@ export function PrimerosPasos({ franjas }: { franjas: FranjaMenu[] }) {
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
-          className="overflow-hidden"
+          className={cn("overflow-hidden", className)}
           aria-labelledby="primeros-pasos"
         >
           <Tarjeta className="relative overflow-hidden p-4">

@@ -1,12 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ChevronRight, History, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
+import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Entrada } from "@/components/ui/campos";
 import { useConfirmar } from "@/components/ui/confirmar";
 import { Hoja } from "@/components/ui/hoja";
+import { Fila, FilaBoton, Grupo } from "@/components/ui/lista";
 import { Esqueleto, Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
 import { describirCaducidad, estadoCaducidad, hoyISO } from "@/dominio/caducidad";
 import { emojiPara } from "@/dominio/ingredientes-base";
@@ -35,7 +37,9 @@ export function ProductoPage() {
   const producto = productos?.find((p) => p.id === id);
   const [lote, setLote] = useState<LoteConProducto | null>(null);
   const [anadiendo, setAnadiendo] = useState(false);
-  const [editando, setEditando] = useState(false);
+  const [params, setParams] = useSearchParams();
+  // ?editar=1: se llega desde la despensa para cambiarle el nombre.
+  const [editando, setEditando] = useState(params.get("editar") === "1");
   const hoy = hoyISO();
 
   const { data: movimientos = [] } = useQuery({
@@ -77,102 +81,108 @@ export function ProductoPage() {
   }
 
   return (
-    <article className="flex flex-col gap-5 px-4 pt-4 md:px-0">
-      <div className="flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-sm text-suave">
-          <ArrowLeft className="size-4" /> Volver
-        </button>
-        <div className="flex gap-1">
-          <Boton variante="fantasma" tamano="icono-sm" aria-label="Borrar producto" onClick={borrar}>
-            <Trash2 />
-          </Boton>
-          <Boton variante="secundario" tamano="sm" onClick={() => setEditando(true)}>
-            <Pencil /> Editar
-          </Boton>
-        </div>
-      </div>
-
-      <header className="flex items-center gap-4">
-        {producto.foto_url ? (
-          <img src={producto.foto_url} alt="" className="size-24 shrink-0 rounded-3xl bg-white object-contain p-1.5 shadow-sm" />
-        ) : (
-          <div className="grid size-24 shrink-0 place-items-center rounded-3xl bg-superficie-2 text-5xl">
-            {emojiPara(producto.ingrediente.nombre, producto.ingrediente.seccion_super, producto.ingrediente.emoji)}
+    <>
+      <BarraApp
+        titulo={producto.nombre}
+        atras="/despensa"
+        acciones={
+          <>
+            <BotonBarra etiqueta="Editar producto" onClick={() => setEditando(true)}>
+              <Pencil />
+            </BotonBarra>
+            <BotonBarra etiqueta="Borrar producto" onClick={borrar}>
+              <Trash2 />
+            </BotonBarra>
+          </>
+        }
+      />
+      <article className="flex flex-col gap-6">
+        <div className="flex items-center gap-4 px-4 md:px-0">
+          {producto.foto_url ? (
+            <img src={producto.foto_url} alt="" className="size-20 shrink-0 rounded-3xl bg-white object-contain p-1.5 shadow-sm" />
+          ) : (
+            <div className="grid size-20 shrink-0 place-items-center rounded-3xl bg-superficie text-4xl shadow-[0_1px_2px_rgb(0_0_0/0.04)]">
+              {emojiPara(producto.ingrediente.nombre, producto.ingrediente.seccion_super, producto.ingrediente.emoji)}
+            </div>
+          )}
+          <div className="min-w-0">
+            {(producto.marca || producto.cantidad_envase) && (
+              <p className="text-[15px] text-suave">{[producto.marca, producto.cantidad_envase && formatearCantidad(producto.cantidad_envase, unidad)].filter(Boolean).join(" · ")}</p>
+            )}
+            <Link to={`/ingredientes/${producto.ingrediente.id}`} className="-ml-1 inline-flex h-10 items-center gap-1 px-1 text-[15px] font-medium text-primario">
+              {producto.ingrediente.nombre} <ChevronRight className="size-4" />
+            </Link>
           </div>
-        )}
-        <div className="min-w-0">
-          <h1 className="font-titulo text-[26px] leading-tight font-semibold">{producto.nombre}</h1>
-          <p className="text-sm text-suave">{[producto.marca, producto.cantidad_envase && formatearCantidad(producto.cantidad_envase, unidad)].filter(Boolean).join(" · ")}</p>
-          <Link to={`/ingredientes/${producto.ingrediente.id}`} className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primario">
-            {producto.ingrediente.nombre} <ChevronRight className="size-3.5" />
-          </Link>
         </div>
-      </header>
 
-      <section className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            En casa{" "}
-            <span className="font-normal text-suave">{total ? formatearLote(total, unidad, producto.cantidad_envase) : "· nada"}</span>
-          </h2>
-          <Boton variante="secundario" tamano="sm" onClick={() => setAnadiendo(true)}>
-            <Plus /> Añadir
-          </Boton>
-        </div>
-        {suyos.length > 0 && (
-          <Tarjeta className="divide-y divide-borde">
-            {suyos.map((l) => {
-              const estado = estadoCaducidad(l.fecha_caducidad, hoy);
-              return (
-                <button key={l.id} onClick={() => setLote(l)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-superficie-2">
-                  <span className="flex-1">
-                    <span className="block font-medium">{formatearLote(l.cantidad, unidad, producto.cantidad_envase)}</span>
-                    <span className="block text-xs text-suave">{UBICACIONES.find((u) => u.valor === l.ubicacion)?.etiqueta}</span>
-                  </span>
-                  <Etiqueta tono={estado === "caducado" ? "peligro" : estado === "pronto" ? "aviso" : "neutro"}>{describirCaducidad(l.fecha_caducidad, hoy)}</Etiqueta>
-                </button>
-              );
-            })}
-          </Tarjeta>
-        )}
-      </section>
+        <Grupo
+          titulo={
+            <>
+              En casa <span className="font-medium normal-case">· {total ? formatearLote(total, unidad, producto.cantidad_envase) : "nada"}</span>
+            </>
+          }
+          extra={
+            <button onClick={() => setAnadiendo(true)} className="-my-2 flex h-9 items-center gap-1 font-medium text-primario">
+              <Plus className="size-4" /> Añadir
+            </button>
+          }
+        >
+          {suyos.length === 0 && <Fila titulo="No queda nada en casa" />}
+          {suyos.map((l) => {
+            const estado = estadoCaducidad(l.fecha_caducidad, hoy);
+            return (
+              <FilaBoton
+                key={l.id}
+                onClick={() => setLote(l)}
+                titulo={formatearLote(l.cantidad, unidad, producto.cantidad_envase)}
+                detalle={UBICACIONES.find((u) => u.valor === l.ubicacion)?.etiqueta}
+                fin={<Etiqueta tono={estado === "caducado" ? "peligro" : estado === "pronto" ? "aviso" : "neutro"}>{describirCaducidad(l.fecha_caducidad, hoy)}</Etiqueta>}
+              />
+            );
+          })}
+        </Grupo>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">Salud</h2>
-        {conSalud ? (
-          <Tarjeta className="p-4">
-            <FichaProducto producto={productoAExterno(producto)} />
-          </Tarjeta>
-        ) : (
-          <p className="text-sm text-suave">Sin datos. Si tiene código de barras, escanéalo para traer su información de Open Food Facts.</p>
-        )}
-      </section>
-
-      {movimientos.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <History className="size-4 text-suave" /> Historial
-          </h2>
-          <Tarjeta className="divide-y divide-borde">
-            {movimientos.map((m) => (
-              <div key={m.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                <span>
-                  {TEXTO_MOVIMIENTO[m.tipo]}
-                  {m.motivo && <span className="text-suave"> · {m.motivo}</span>}
-                </span>
-                <span className="text-suave">
-                  {formatearCantidad(Math.abs(m.cantidad), unidad)} · {new Date(m.creado_en).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
-                </span>
-              </div>
-            ))}
-          </Tarjeta>
+        <section className="flex flex-col gap-1.5 px-4 md:px-0">
+          <h2 className="px-0 text-[13px] font-semibold tracking-wide text-suave uppercase md:px-1">Salud</h2>
+          {conSalud ? (
+            <Tarjeta className="p-4">
+              <FichaProducto producto={productoAExterno(producto)} />
+            </Tarjeta>
+          ) : (
+            <p className="text-[15px] text-suave">Sin datos. Si tiene código de barras, escanéalo para traer su información de Open Food Facts.</p>
+          )}
         </section>
-      )}
+
+        {movimientos.length > 0 && (
+          <Grupo
+            titulo={
+              <span className="flex items-center gap-1.5">
+                <History className="size-3.5" /> Historial
+              </span>
+            }
+          >
+            {movimientos.map((m) => (
+              <Fila
+                key={m.id}
+                titulo={TEXTO_MOVIMIENTO[m.tipo]}
+                detalle={m.motivo}
+                fin={`${formatearCantidad(Math.abs(m.cantidad), unidad)} · ${new Date(m.creado_en).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
+              />
+            ))}
+          </Grupo>
+        )}
+      </article>
 
       <RetirarLoteHoja lote={lote} onCerrar={() => setLote(null)} />
       <NuevoLoteHoja abierta={anadiendo} onAbiertaChange={setAnadiendo} productoInicial={producto} />
-      <EditarProductoHoja producto={editando ? producto : null} onCerrar={() => setEditando(false)} />
-    </article>
+      <EditarProductoHoja
+        producto={editando ? producto : null}
+        onCerrar={() => {
+          setEditando(false);
+          if (params.has("editar")) setParams({}, { replace: true });
+        }}
+      />
+    </>
   );
 }
 

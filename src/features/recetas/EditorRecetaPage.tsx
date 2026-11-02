@@ -1,8 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, ImagePlus, LoaderCircle, Plus, Timer, Trash2, X } from "lucide-react";
+import { Check, ImagePlus, LoaderCircle, Plus, Timer, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
+import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { useConfirmar } from "@/components/ui/confirmar";
 import { AreaTexto, Campo, Contador, Entrada, Opciones } from "@/components/ui/campos";
@@ -249,18 +250,19 @@ export function EditorRecetaPage() {
   if (id && isPending) return <Cargando />;
 
   return (
-    <div className="flex flex-col gap-6 px-4 pt-4 md:px-0">
-      <div className="flex items-center justify-between">
-        <Link to={original ? `/recetas/${original.id}` : "/recetas"} className="inline-flex items-center gap-1 text-sm text-suave">
-          <ArrowLeft className="size-4" /> {original ? "Receta" : "Recetas"}
-        </Link>
-        {original && (
-          <Boton variante="peligro" tamano="sm" onClick={borrar}>
-            <Trash2 /> Borrar
-          </Boton>
-        )}
-      </div>
-      <h1 className="text-[28px] font-bold tracking-tight">{original ? "Editar receta" : "Nueva receta"}</h1>
+    <>
+    <BarraApp
+      titulo={original ? "Editar receta" : "Nueva receta"}
+      atras={original ? `/recetas/${original.id}` : "/recetas"}
+      acciones={
+        original && (
+          <BotonBarra etiqueta="Borrar receta" onClick={borrar} className="text-peligro!">
+            <Trash2 />
+          </BotonBarra>
+        )
+      }
+    />
+    <div className="flex flex-col gap-6 px-4 md:px-0">
 
       <label className="relative block aspect-[16/9] cursor-pointer overflow-hidden rounded-3xl border border-dashed border-borde bg-superficie-2">
         {fotoUrl ? (
@@ -445,12 +447,14 @@ export function EditorRecetaPage() {
         </Campo>
       </Tarjeta>
 
-      <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 -mx-4 border-t border-borde bg-fondo/90 px-4 py-3 backdrop-blur md:bottom-0 md:mx-0 md:px-0">
+      <div className="pb-seguro sticky bottom-0 z-10 -mx-4 border-t border-borde/70 bg-fondo/90 px-4 pt-3 backdrop-blur-xl md:mx-0 md:px-0">
         <Boton tamano="lg" className="w-full" onClick={guardar} disabled={!valida || guardando}>
           <Check /> {guardando ? "Guardando…" : "Guardar receta"}
         </Boton>
         {errorCantidad && <p className="mt-1.5 text-center text-sm text-peligro">Cada ingrediente necesita una cantidad mayor que 0.</p>}
+        <div className="h-3" />
       </div>
     </div>
+    </>
   );
 }

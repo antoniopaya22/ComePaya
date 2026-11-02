@@ -77,7 +77,7 @@ export default defineConfig({
         display: "standalone",
         orientation: "portrait",
         background_color: "#f7f6f2",
-        theme_color: "#2f6b4f",
+        theme_color: "#f7f6f2",
         // Al mantener pulsado el icono de la app en Android.
         shortcuts: [
           { name: "Escanear", short_name: "Escanear", url: "/escanear", icons: [{ src: "pwa-192x192.png", sizes: "192x192" }] },

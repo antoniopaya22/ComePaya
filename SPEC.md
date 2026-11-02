@@ -61,6 +61,9 @@ Los módulos se alimentan entre sí:
 - **Ingredientes básicos "siempre disponibles"** (sal, aceite, especias, ajo…): no se inventarían al gramo y nunca cuentan como faltantes.
 - **Raciones congeladas** de comida ya cocinada como elementos del inventario, con fecha.
 - Al retirar algo: distinguir **consumido** vs **tirado** (registro de desperdicio).
+- **Alta rápida de frescos** (sin código de barras): cuadrícula de ingredientes por sección (fruta y verdura, carnicería, pescadería, panadería, charcutería), cantidades rápidas (unidades o 250 g–2 kg), ubicación y caducidad propuestas. Cada ingrediente usa un producto "a granel" sin marca ni código.
+- **Repartir un lote**: mover parte de las unidades a otra ubicación ("2 de los 6 yogures a la nevera"); si en el destino hay un lote igual (misma caducidad y estado), se suman.
+- Caducidades rápidas: +3 días, +1 semana, +15 días, +1 mes, +6 meses o sin caducidad.
 
 ### 4.2 Lista de la compra
 - Entradas automáticas (desde el menú y el stock mínimo) y manuales (texto libre).
@@ -115,6 +118,8 @@ Los módulos se alimentan entre sí:
 - Escritorio: barra lateral (selector de hogar, secciones con contadores de lista y caducidades, herramientas, ajustes) y barra superior (buscador, escanear, campana de caducidades, menú de cuenta). Móvil: barra superior compacta y navegación inferior.
 - Buscador global (Ctrl/⌘+K o la lupa): recetas, productos (con cuántos hay en casa), ingredientes, pantallas y acciones; sin tildes ni mayúsculas y exigiendo todas las palabras. Lo que no encuentra se puede añadir a la lista con ↵.
 - Recorrido guiado la primera vez que se entra (se puede repetir desde el menú de cuenta) y tarjeta de "Primeros pasos" en Hoy: añadir a la despensa, guardar una receta, planificar, hacer la lista, invitar a la familia y activar avisos. Lo hecho se recuerda por hogar y la tarjeta se puede cerrar.
+
+- Móvil con aspecto de app nativa: cada pantalla tiene su barra de app (título grande que pasa a la barra al desplazar, flecha de volver, acciones con icono), la navegación inferior solo en las cinco pantallas principales, listas agrupadas con separadores, botón flotante para la acción principal (Despensa, Recetas), campo de añadir de la lista abajo y botón de cocinar fijo en la receta. Transiciones al abrir pantallas y desplazamiento recordado al volver.
 
 ### 4.9 Caché y sincronización
 - Los datos del hogar se guardan en el dispositivo (IndexedDB) durante 7 días: la app abre al instante y funciona sin conexión.

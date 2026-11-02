@@ -111,3 +111,30 @@ input[type="number"] {
     transform: scale(0.97) translateY(-4px);
   }
 }
+
+/* Sensación de app: sin selección de texto ni menú de "mantener pulsado" en los controles,
+   sin retardo del doble toque y con la barra de estado del color del fondo. */
+button,
+a,
+[role="button"],
+nav,
+header {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+html {
+  touch-action: manipulation;
+}
+
+.pt-seguro {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Al pulsar, en pantallas táctiles: un velo sutil en vez del hover de escritorio. */
+.pulsable {
+  transition: background-color 120ms ease, transform 120ms ease;
+}
+.pulsable:active {
+  background-color: var(--superficie-2);
+}

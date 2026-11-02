@@ -1,9 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ChefHat, ListPlus, Pencil } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { toast } from "sonner";
-import { Boton } from "@/components/ui/boton";
+import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { CLAVES_NUTRIENTES, GRUPOS_ALIMENTO } from "@/dominio/nutricion";
@@ -19,7 +19,6 @@ import { FichaEsqueleto } from "./ProductoPage";
 /** Ficha de ingrediente: cuánto hay, con qué productos, en qué recetas y qué aporta. */
 export function IngredientePage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
   const { data: ingredientes, isPending } = useIngredientes();
@@ -53,26 +52,26 @@ export function IngredientePage() {
   }
 
   return (
-    <article className="flex flex-col gap-5 px-4 pt-4 md:px-0">
-      <div className="flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-sm text-suave">
-          <ArrowLeft className="size-4" /> Volver
-        </button>
-        <div className="flex gap-2">
-          <Boton variante="secundario" tamano="sm" onClick={aLaLista}>
-            <ListPlus /> A la lista
-          </Boton>
-          <Boton variante="secundario" tamano="sm" onClick={() => setEditando(true)}>
-            <Pencil /> Editar
-          </Boton>
-        </div>
-      </div>
-
+    <>
+    <BarraApp
+      titulo={ingrediente.nombre}
+      atras="/ajustes/ingredientes"
+      acciones={
+        <>
+          <BotonBarra etiqueta="Añadir a la lista" onClick={aLaLista}>
+            <ListPlus />
+          </BotonBarra>
+          <BotonBarra etiqueta="Editar ingrediente" onClick={() => setEditando(true)}>
+            <Pencil />
+          </BotonBarra>
+        </>
+      }
+    />
+    <article className="flex flex-col gap-5 px-4 md:px-0">
       <header className="flex items-center gap-4">
-        <div className="grid size-20 shrink-0 place-items-center rounded-3xl bg-superficie-2 text-5xl">{emojiPara(ingrediente.nombre, ingrediente.seccion_super, ingrediente.emoji)}</div>
+        <div className="grid size-20 shrink-0 place-items-center rounded-3xl bg-superficie text-5xl shadow-[0_1px_2px_rgb(0_0_0/0.04)]">{emojiPara(ingrediente.nombre, ingrediente.seccion_super, ingrediente.emoji)}</div>
         <div className="min-w-0">
-          <h1 className="font-titulo text-[26px] leading-tight font-semibold">{ingrediente.nombre}</h1>
-          <div className="mt-1 flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1">
             <Etiqueta>{ingrediente.seccion_super}</Etiqueta>
             {grupo && <Etiqueta tono="primario">{grupo}</Etiqueta>}
             {ingrediente.siempre_disponible && <Etiqueta tono="primario">Básico</Etiqueta>}
@@ -161,5 +160,6 @@ export function IngredientePage() {
 
       <IngredienteHoja ingrediente={editando ? ingrediente : null} onCerrar={() => setEditando(false)} />
     </article>
+    </>
   );
 }

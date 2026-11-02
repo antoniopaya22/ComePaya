@@ -1,6 +1,10 @@
 import { CalendarDays, ChevronRight, CookingPot, Hourglass, ListChecks, Plane, Plus, ScanBarcode, TriangleAlert } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "react-router";
+import { BarraApp } from "@/components/BarraApp";
+import { Avisos, MenuUsuario } from "@/components/Cuenta";
+import { Logo } from "@/components/Logo";
+import { FilaEnlace, Grupo } from "@/components/ui/lista";
 import { Boton } from "@/components/ui/boton";
 import { Esqueleto, Etiqueta, Tarjeta } from "@/components/ui/varios";
 import { describirCaducidad, estadoCaducidad, hoyISO, sumarDias } from "@/dominio/caducidad";
@@ -55,25 +59,44 @@ export function HoyPage() {
   const emojiDe = new Map(ingredientes.map((i) => [i.id, i.emoji]));
 
   return (
-    <div className="flex flex-col gap-5 px-4 pt-6 md:px-0 md:pt-10">
-      <header>
-        <div>
-          <p className="text-sm text-suave first-letter:uppercase">
-            {DIAS[ahora.getDay()]}, {ahora.getDate()} de {MESES[ahora.getMonth()]}
-          </p>
-          <h1 className="font-titulo text-[30px] leading-tight font-semibold">
-            {saludo(ahora.getHours())}
-            {nombrePila ? `, ${nombrePila}` : ""}
-          </h1>
-        </div>
+    <div className="flex flex-col gap-6 md:pt-10">
+      <BarraApp
+        titulo="Hoy"
+        grande={false}
+        escritorio={false}
+        buscar
+        inicio={
+          <Link to="/" aria-label="ComePayá">
+            <Logo tamano="sm" />
+          </Link>
+        }
+        acciones={
+          <>
+            <Link to="/escanear" aria-label="Escanear" data-recorrido="escanear" className="grid size-11 place-items-center rounded-full text-texto/80 active:bg-superficie-2 [&_svg]:size-[22px]">
+              <ScanBarcode />
+            </Link>
+            <Avisos />
+            <MenuUsuario />
+          </>
+        }
+      />
+
+      <header className="px-4 md:px-0">
+        <p className="text-[15px] text-suave first-letter:uppercase">
+          {DIAS[ahora.getDay()]}, {ahora.getDate()} de {MESES[ahora.getMonth()]}
+        </p>
+        <h1 className="font-titulo text-[32px] leading-[1.1] font-semibold tracking-tight">
+          {saludo(ahora.getHours())}
+          {nombrePila ? `, ${nombrePila}` : ""}
+        </h1>
       </header>
 
-      {!isPending && <PrimerosPasos franjas={franjas} />}
+      {!isPending && <PrimerosPasos franjas={franjas} className="mx-4 md:mx-0" />}
 
-      <section className="flex flex-col gap-2">
+      <section className="flex flex-col gap-2.5 px-4 md:px-0">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Hoy en {hogar.nombre.replace(/^Casa de /, "casa de ")}</h2>
-          <Link to="/menu" className="flex items-center gap-0.5 text-sm font-medium text-primario">
+          <h2 className="text-[19px] font-semibold">Hoy en {hogar.nombre.replace(/^Casa de /, "casa de ")}</h2>
+          <Link to="/menu" className="-mr-2 flex h-10 items-center gap-0.5 px-2 text-[15px] font-medium text-primario">
             Menú <ChevronRight className="size-4" />
           </Link>
         </div>
@@ -94,7 +117,7 @@ export function HoyPage() {
       </section>
 
       {preparaciones.length > 0 && (
-        <Tarjeta className="flex flex-col gap-2 border-aviso/30 bg-aviso-suave p-4 text-aviso">
+        <Tarjeta className="mx-4 flex flex-col gap-2 bg-aviso-suave p-4 text-aviso md:mx-0 md:border-aviso/30">
           <h2 className="flex items-center gap-2 font-semibold">
             <Hourglass className="size-4" /> Por preparar
           </h2>
@@ -106,53 +129,53 @@ export function HoyPage() {
         </Tarjeta>
       )}
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2.5 px-4 md:px-0">
         <Atajo to="/escanear" icono={<ScanBarcode />} texto="Escanear" />
         <Atajo to="/lista" icono={<Plus />} texto="A la lista" />
         <Atajo to="/menu" icono={<CalendarDays />} texto="Planificar" />
       </div>
 
       {urgentes.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <TriangleAlert className="size-4 text-aviso" /> Caduca pronto
-            </h2>
-            <Link to="/despensa" className="flex items-center gap-0.5 text-sm font-medium text-primario">
-              Despensa <ChevronRight className="size-4" />
+        <Grupo
+          titulo={
+            <span className="flex items-center gap-1.5">
+              <TriangleAlert className="size-3.5 text-aviso" /> Caduca pronto
+            </span>
+          }
+          extra={
+            <Link to="/despensa" className="font-medium text-primario">
+              Despensa
             </Link>
-          </div>
-          <Tarjeta className="divide-y divide-borde">
-            {urgentes.slice(0, 5).map((l) => (
-              <Link key={l.id} to={`/productos/${l.producto_id}`} className="flex items-center gap-3 px-4 py-2.5">
-                <span className="text-xl">{emojiPara(l.producto.ingrediente.nombre, l.producto.ingrediente.seccion_super, l.producto.ingrediente.emoji)}</span>
-                <span className="min-w-0 flex-1 truncate font-medium">{l.producto.nombre}</span>
-                <Etiqueta tono={estadoCaducidad(l.fecha_caducidad, hoy) === "caducado" ? "peligro" : "aviso"}>{describirCaducidad(l.fecha_caducidad, hoy)}</Etiqueta>
-              </Link>
-            ))}
-          </Tarjeta>
-        </section>
+          }
+        >
+          {urgentes.slice(0, 5).map((l) => (
+            <FilaEnlace
+              key={l.id}
+              to={`/productos/${l.producto_id}`}
+              inicio={emojiPara(l.producto.ingrediente.nombre, l.producto.ingrediente.seccion_super, l.producto.ingrediente.emoji)}
+              titulo={l.producto.nombre}
+              fin={<Etiqueta tono={estadoCaducidad(l.fecha_caducidad, hoy) === "caducado" ? "peligro" : "aviso"}>{describirCaducidad(l.fecha_caducidad, hoy)}</Etiqueta>}
+            />
+          ))}
+        </Grupo>
       )}
 
-      <Link to="/lista">
-        <Tarjeta className="flex items-center gap-4 p-4 transition-colors active:bg-superficie-2">
-          <span className="grid size-12 place-items-center rounded-2xl bg-primario-suave text-primario">
-            <ListChecks className="size-6" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-semibold">Lista de la compra</span>
-            <span className="block truncate text-sm text-suave">
-              {pendientes.length
-                ? `${pendientes.length} por comprar: ${pendientes
-                    .slice(0, 4)
-                    .map((i) => i.texto.toLowerCase())
-                    .join(", ")}${pendientes.length > 4 ? "…" : ""}`
-                : "No falta nada"}
-            </span>
-          </span>
-          <ChevronRight className="size-5 text-suave" />
-        </Tarjeta>
-      </Link>
+      <Grupo titulo="Compra">
+        <FilaEnlace
+          to="/lista"
+          inicio={<ListChecks className="text-primario!" />}
+          titulo="Lista de la compra"
+          detalle={
+            pendientes.length
+              ? `${pendientes.length} por comprar: ${pendientes
+                  .slice(0, 4)
+                  .map((i) => i.texto.toLowerCase())
+                  .join(", ")}${pendientes.length > 4 ? "…" : ""}`
+              : "No falta nada"
+          }
+          fin={<ChevronRight className="size-5" />}
+        />
+      </Grupo>
     </div>
   );
 }
@@ -234,7 +257,10 @@ function PlatoDeHoy({
 
 function Atajo({ to, icono, texto }: { to: string; icono: React.ReactNode; texto: string }) {
   return (
-    <Link to={to} className="flex flex-col items-center gap-1.5 rounded-2xl border border-borde bg-superficie py-3 text-sm font-medium transition-colors active:bg-superficie-2 [&_svg]:size-5 [&_svg]:text-primario">
+    <Link
+      to={to}
+      className="flex flex-col items-center gap-1.5 rounded-2xl bg-superficie py-3.5 text-[14px] font-medium shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition-colors active:bg-superficie-2 md:border md:border-borde [&_svg]:size-[22px] [&_svg]:text-primario"
+    >
       {icono}
       {texto}
     </Link>

@@ -96,6 +96,7 @@ describe("ATAJOS_CADUCIDAD", () => {
     expect(ATAJOS_CADUCIDAD.map((a) => a.calcular(HOY))).toEqual([
       "2026-11-04",
       "2026-11-08",
+      "2026-11-16",
       "2026-12-01",
       "2027-05-01",
       null,

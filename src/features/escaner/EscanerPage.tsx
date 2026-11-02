@@ -1,13 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Camera, Flashlight, FlashlightOff, LoaderCircle, ScanBarcode, Undo2, X } from "lucide-react";
+import { Camera, Flashlight, FlashlightOff, LoaderCircle, ScanBarcode, Undo2, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRef, useState } from "react";
-import { Link } from "react-router";
 import { toast } from "sonner";
+import { BarraApp } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { Opciones } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
-import { Cabecera, Etiqueta, Tarjeta } from "@/components/ui/varios";
+import { Etiqueta, Tarjeta } from "@/components/ui/varios";
 import { preguntarCaducidad } from "@/dominio/escaneo";
 import type { ProductoExterno } from "@/dominio/producto-externo";
 import { planDescuento } from "@/dominio/despensa";
@@ -169,19 +169,16 @@ export function EscanerPage() {
 
   return (
     <>
-      <div className="px-4 pt-4 md:px-0">
-        <Link to="/despensa" className="inline-flex items-center gap-1 text-sm text-suave">
-          <ArrowLeft className="size-4" /> Despensa
-        </Link>
-      </div>
-      <Cabecera
+      <BarraApp
         titulo="Escanear"
+        atras="/despensa"
+        grande={false}
         subtitulo={modo === "meter" ? "Todo lo que escanees va a:" : "Cada producto escaneado sale de la despensa (lo que antes caduca)"}
-        accion={camara.motor && <Etiqueta tono="primario">{camara.motor === "nativo" ? "Detector nativo" : "WebAssembly"}</Etiqueta>}
+        acciones={camara.motor && <Etiqueta tono="primario" className="mr-2">{camara.motor === "nativo" ? "Detector nativo" : "WebAssembly"}</Etiqueta>}
       />
 
       <div className="flex flex-col gap-4 px-4 md:px-0">
-        <div className="-mt-2 flex flex-col gap-2">
+        <div className="flex flex-col gap-2 md:-mt-2">
           <Opciones
             opciones={[
               { valor: "meter" as const, etiqueta: "➕ Meter" },
@@ -193,7 +190,7 @@ export function EscanerPage() {
           {modo === "meter" && <Opciones opciones={UBICACIONES} valor={ubicacion} onChange={setUbicacion} />}
         </div>
 
-        <div className="relative aspect-[3/4] w-full overflow-hidden rounded-3xl bg-black md:aspect-video">
+        <div className="relative h-[min(62dvh,560px)] w-full overflow-hidden rounded-3xl bg-black md:aspect-video md:h-auto">
           <video ref={camara.video} playsInline muted className={cn("size-full object-cover", camara.estado !== "escaneando" && "opacity-0")} />
 
           {camara.estado === "escaneando" && (

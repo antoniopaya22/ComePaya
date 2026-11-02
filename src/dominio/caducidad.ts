@@ -104,6 +104,7 @@ export interface AtajoCaducidad {
 export const ATAJOS_CADUCIDAD: AtajoCaducidad[] = [
   { etiqueta: "+3 días", calcular: (hoy) => sumarDias(hoy, 3) },
   { etiqueta: "+1 semana", calcular: (hoy) => sumarDias(hoy, 7) },
+  { etiqueta: "+15 días", calcular: (hoy) => sumarDias(hoy, 15) },
   { etiqueta: "+1 mes", calcular: (hoy) => sumarMeses(hoy, 1) },
   { etiqueta: "+6 meses", calcular: (hoy) => sumarMeses(hoy, 6) },
   { etiqueta: "Sin caducidad", calcular: () => null },

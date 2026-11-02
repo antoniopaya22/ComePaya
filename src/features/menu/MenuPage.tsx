@@ -2,8 +2,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, CircleCheck, Copy, ListChecks, Plane, Plus, Repeat, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
-import { Cabecera, Tarjeta } from "@/components/ui/varios";
+import { Tarjeta } from "@/components/ui/varios";
 import { hoyISO, sumarDias, type FechaISO } from "@/dominio/caducidad";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { DIAS_SEMANA, diasDeSemana, lunesDe, type TipoFranja } from "@/dominio/menu";
@@ -101,18 +102,24 @@ export function MenuPage() {
 
   return (
     <>
-      <Cabecera
+      <BarraApp
         titulo="Menú"
         subtitulo={`${planificadas} de 14 franjas planificadas`}
-        accion={
-          <div className="flex gap-1.5">
-            <Boton variante="secundario" tamano="icono-sm" aria-label="Rellenar la semana" title="Rellenar la semana" onClick={() => setPlanificando(true)}>
+        buscar
+        acciones={
+          <>
+            <BotonBarra etiqueta="Rellenar la semana" onClick={() => setPlanificando(true)}>
               <Sparkles />
-            </Boton>
-            <Boton variante="secundario" tamano="sm" onClick={generarLista} disabled={generando}>
-              <ListChecks /> {generando ? "Calculando…" : "A la lista"}
-            </Boton>
-          </div>
+            </BotonBarra>
+            <BotonBarra etiqueta="Pasar a la lista" onClick={generarLista} disabled={generando} className={cn("md:hidden", generando && "animate-pulse")}>
+              <ListChecks />
+            </BotonBarra>
+          </>
+        }
+        principal={
+          <Boton variante="secundario" tamano="sm" onClick={generarLista} disabled={generando}>
+            <ListChecks /> {generando ? "Calculando…" : "A la lista"}
+          </Boton>
         }
       />
 
@@ -131,12 +138,12 @@ export function MenuPage() {
         </div>
 
         {/* Tira de días: de un vistazo qué está planificado; tocar un día lleva a él. */}
-        <div className="sticky top-0 z-10 -mx-4 grid grid-cols-7 gap-1 bg-fondo/90 px-4 py-1.5 backdrop-blur md:hidden">
+        <div className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20 -mx-4 grid grid-cols-7 gap-1 bg-fondo/90 px-4 py-1.5 backdrop-blur-xl md:hidden">
           {diasDeSemana(lunes).map((fecha, i) => (
             <button
               key={fecha}
               onClick={() => document.getElementById(`dia-${fecha}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}
-              className={cn("flex flex-col items-center rounded-xl py-1.5", fecha === hoy ? "bg-primario text-primario-texto" : fecha < hoy ? "text-suave" : "")}
+              className={cn("flex flex-col items-center rounded-2xl py-1.5", fecha === hoy ? "bg-primario text-primario-texto" : fecha < hoy ? "text-suave" : "")}
             >
               <span className="text-[11px] font-semibold">{DIAS_SEMANA[i].slice(0, 1)}</span>
               <span className="text-sm font-semibold">{Number(fecha.slice(8))}</span>
@@ -173,8 +180,8 @@ export function MenuPage() {
             const esHoy = fecha === hoy;
             const pasado = fecha < hoy;
             return (
-              <li key={fecha} id={`dia-${fecha}`} className="scroll-mt-24">
-                <Tarjeta className={cn("overflow-hidden", esHoy && "border-primario ring-1 ring-primario", pasado && "opacity-60")}>
+              <li key={fecha} id={`dia-${fecha}`} className="scroll-mt-36">
+                <Tarjeta className={cn("overflow-hidden", esHoy && "ring-2 ring-primario md:border-primario md:ring-1", pasado && "opacity-60")}>
                   <div className="flex items-baseline justify-between px-4 pt-3 pb-1">
                     <p className="font-semibold">
                       {DIAS_SEMANA[i]} <span className="font-normal text-suave">{Number(fecha.slice(8))}</span>
