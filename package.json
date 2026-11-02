@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "iconos": "pwa-assets-generator --preset minimal-2023 public/favicon.svg",
+    "iconos": "pwa-assets-generator",
     "dev:demo": "vite --config vite.demo.config.ts --mode demo",
     "test:e2e": "playwright test",
     "migrar": "node scripts/aplicar-migracion.mjs"
