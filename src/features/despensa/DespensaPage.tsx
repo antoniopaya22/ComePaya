@@ -1,9 +1,24 @@
-import { ArrowDownUp, Check, ChevronDown, ChevronRight, Library, Package, Plus, Refrigerator, ScanBarcode, Search, Snowflake, TriangleAlert, Warehouse } from "lucide-react";
+import {
+  ArrowDownUp,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Library,
+  Package,
+  Plus,
+  Refrigerator,
+  ScanBarcode,
+  Search,
+  Snowflake,
+  TriangleAlert,
+  Warehouse,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { BarraApp, EnlaceBarra } from "@/components/BarraApp";
 import { Fab } from "@/components/ui/fab";
+import { PasarAUnidades } from "../productos/PasarAUnidades";
 import { Menu, MenuContenido, MenuDisparador, MenuEtiqueta, MenuOpcion } from "@/components/ui/menu";
 import { Boton } from "@/components/ui/boton";
 import { Entrada } from "@/components/ui/campos";
@@ -61,8 +76,7 @@ export function DespensaPage() {
       (l) =>
         (filtro === "todo" || l.ubicacion === filtro) &&
         (!tipo || l.producto.ingrediente.seccion_super === tipo) &&
-        (!texto ||
-          normalizar(`${l.producto.nombre} ${l.producto.marca ?? ""} ${l.producto.ingrediente.nombre}`).includes(texto)),
+        (!texto || normalizar(`${l.producto.nombre} ${l.producto.marca ?? ""} ${l.producto.ingrediente.nombre}`).includes(texto)),
     );
   }, [lotes, filtro, tipo, busqueda]);
 
@@ -120,6 +134,7 @@ export function DespensaPage() {
       />
 
       <div className="flex flex-col gap-4 px-4 md:px-0">
+        <PasarAUnidades />
         {urgentes.length > 0 && (
           <Tarjeta className="flex items-center gap-3 bg-aviso-suave p-3.5 text-aviso md:border-aviso/30">
             <TriangleAlert className="size-5 shrink-0" />
@@ -133,65 +148,80 @@ export function DespensaPage() {
 
         {/* Buscador y filtros quedan a mano al desplazar la lista. */}
         <div className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20 -mx-4 flex flex-col gap-2.5 bg-fondo/90 px-4 py-2 backdrop-blur-xl md:top-16 md:mx-0 md:px-0">
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-suave" />
-          <Entrada value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar en casa" className="h-11 rounded-full border-transparent bg-superficie-2 pl-10 md:rounded-xl md:border-borde md:bg-superficie" type="search" />
-        </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-suave" />
+            <Entrada
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar en casa"
+              className="h-11 rounded-full border-transparent bg-superficie-2 pl-10 md:rounded-xl md:border-borde md:bg-superficie"
+              type="search"
+            />
+          </div>
 
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
-          {([{ valor: "todo", etiqueta: "Todo" }, ...UBICACIONES] as const).map((u) => {
-            const activo = filtro === u.valor;
-            return (
-              <button
-                key={u.valor}
-                onClick={() => setFiltro(u.valor)}
-                className={cn("relative h-9 shrink-0 rounded-full px-4 text-sm font-medium transition-colors", activo ? "text-primario-texto" : "bg-superficie-2 text-suave")}
-              >
-                {activo && <motion.span layoutId="filtro-ubicacion" className="absolute inset-0 rounded-full bg-primario" transition={{ type: "spring", stiffness: 500, damping: 38 }} />}
-                <span className="relative">
-                  {u.etiqueta}
-                  {u.valor !== "todo" && lotes ? ` · ${cuenta(u.valor)}` : ""}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex items-center gap-2">
-          <Menu>
-            <MenuDisparador className={cn(claseDesplegable, tipo && "bg-primario-suave text-primario")}>
-              {tipo ? `${EMOJI_SECCION[tipo] ?? "🧺"} ${tipo}` : "Todos los tipos"} <ChevronDown className="size-4" />
-            </MenuDisparador>
-            <MenuContenido align="start" className="max-h-[60dvh] overflow-y-auto">
-              <MenuEtiqueta>Tipo de alimento</MenuEtiqueta>
-              <MenuOpcion onSelect={() => setTipo(null)}>
-                <span className="flex-1">Todos</span>
-                {!tipo && <Check className="text-primario!" />}
-              </MenuOpcion>
-              {tipos.map((t) => (
-                <MenuOpcion key={t.seccion} onSelect={() => setTipo(t.seccion)}>
-                  <span>{EMOJI_SECCION[t.seccion] ?? "🧺"}</span>
-                  <span className="flex-1">{t.seccion}</span>
-                  <span className="text-xs text-suave">{t.n}</span>
-                  {tipo === t.seccion && <Check className="text-primario!" />}
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
+            {([{ valor: "todo", etiqueta: "Todo" }, ...UBICACIONES] as const).map((u) => {
+              const activo = filtro === u.valor;
+              return (
+                <button
+                  key={u.valor}
+                  onClick={() => setFiltro(u.valor)}
+                  className={cn(
+                    "relative h-9 shrink-0 rounded-full px-4 text-sm font-medium transition-colors",
+                    activo ? "text-primario-texto" : "bg-superficie-2 text-suave",
+                  )}
+                >
+                  {activo && (
+                    <motion.span
+                      layoutId="filtro-ubicacion"
+                      className="absolute inset-0 rounded-full bg-primario"
+                      transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                    />
+                  )}
+                  <span className="relative">
+                    {u.etiqueta}
+                    {u.valor !== "todo" && lotes ? ` · ${cuenta(u.valor)}` : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2">
+            <Menu>
+              <MenuDisparador className={cn(claseDesplegable, tipo && "bg-primario-suave text-primario")}>
+                {tipo ? `${EMOJI_SECCION[tipo] ?? "🧺"} ${tipo}` : "Todos los tipos"} <ChevronDown className="size-4" />
+              </MenuDisparador>
+              <MenuContenido align="start" className="max-h-[60dvh] overflow-y-auto">
+                <MenuEtiqueta>Tipo de alimento</MenuEtiqueta>
+                <MenuOpcion onSelect={() => setTipo(null)}>
+                  <span className="flex-1">Todos</span>
+                  {!tipo && <Check className="text-primario!" />}
                 </MenuOpcion>
-              ))}
-            </MenuContenido>
-          </Menu>
-          <Menu>
-            <MenuDisparador className={cn(claseDesplegable, "ml-auto")} aria-label="Ordenar">
-              <ArrowDownUp className="size-4" /> {ORDENES.find((o) => o.valor === orden)?.etiqueta}
-            </MenuDisparador>
-            <MenuContenido>
-              <MenuEtiqueta>Ordenar por</MenuEtiqueta>
-              {ORDENES.map((o) => (
-                <MenuOpcion key={o.valor} onSelect={() => cambiarOrden(o.valor)}>
-                  <span className="flex-1">{o.etiqueta}</span>
-                  {orden === o.valor && <Check className="text-primario!" />}
-                </MenuOpcion>
-              ))}
-            </MenuContenido>
-          </Menu>
-        </div>
+                {tipos.map((t) => (
+                  <MenuOpcion key={t.seccion} onSelect={() => setTipo(t.seccion)}>
+                    <span>{EMOJI_SECCION[t.seccion] ?? "🧺"}</span>
+                    <span className="flex-1">{t.seccion}</span>
+                    <span className="text-xs text-suave">{t.n}</span>
+                    {tipo === t.seccion && <Check className="text-primario!" />}
+                  </MenuOpcion>
+                ))}
+              </MenuContenido>
+            </Menu>
+            <Menu>
+              <MenuDisparador className={cn(claseDesplegable, "ml-auto")} aria-label="Ordenar">
+                <ArrowDownUp className="size-4" /> {ORDENES.find((o) => o.valor === orden)?.etiqueta}
+              </MenuDisparador>
+              <MenuContenido>
+                <MenuEtiqueta>Ordenar por</MenuEtiqueta>
+                {ORDENES.map((o) => (
+                  <MenuOpcion key={o.valor} onSelect={() => cambiarOrden(o.valor)}>
+                    <span className="flex-1">{o.etiqueta}</span>
+                    {orden === o.valor && <Check className="text-primario!" />}
+                  </MenuOpcion>
+                ))}
+              </MenuContenido>
+            </Menu>
+          </div>
         </div>
 
         {isPending ? (
@@ -217,7 +247,13 @@ export function DespensaPage() {
                 <ul className="overflow-hidden rounded-2xl bg-superficie shadow-[0_1px_2px_rgb(0_0_0/0.04)] md:border md:border-borde [&>li+li]:border-t [&>li+li]:border-borde/70">
                   <AnimatePresence initial={false}>
                     {bloque.grupos.map((g) => (
-                      <motion.li key={g.producto_id} layout="position" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -40 }}>
+                      <motion.li
+                        key={g.producto_id}
+                        layout="position"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -40 }}
+                      >
                         <FilaProducto grupo={g} hoy={hoy} onLote={setRetirando} />
                       </motion.li>
                     ))}
@@ -261,7 +297,10 @@ function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProduct
 
   return (
     <div>
-      <button onClick={() => (varios ? setAbierto(!abierto) : onLote(grupo.lotes[0]))} className="flex min-h-16 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors active:bg-superficie-2">
+      <button
+        onClick={() => (varios ? setAbierto(!abierto) : onLote(grupo.lotes[0]))}
+        className="flex min-h-16 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors active:bg-superficie-2"
+      >
         {producto.foto_url ? (
           <img src={producto.foto_url} alt="" className="size-11 shrink-0 rounded-xl bg-white object-contain" loading="lazy" />
         ) : (
@@ -288,16 +327,30 @@ function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProduct
       </button>
       <AnimatePresence initial={false}>
         {abierto && (
-          <motion.ul initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden border-t border-borde/70 bg-superficie-2/50">
+          <motion.ul
+            initial={{ height: 0 }}
+            animate={{ height: "auto" }}
+            exit={{ height: 0 }}
+            className="overflow-hidden border-t border-borde/70 bg-superficie-2/50"
+          >
             {grupo.lotes.map((l) => {
               const Icono = ICONOS[l.ubicacion];
               return (
                 <li key={l.id}>
-                  <button onClick={() => onLote(l)} className="flex min-h-12 w-full items-center gap-3 pr-4 pl-[4.25rem] text-left text-[15px] active:bg-superficie-2">
+                  <button
+                    onClick={() => onLote(l)}
+                    className="flex min-h-12 w-full items-center gap-3 pr-4 pl-[4.25rem] text-left text-[15px] active:bg-superficie-2"
+                  >
                     <Icono className="size-4 text-suave" />
                     <span className="flex-1">
                       {formatearLote(l.cantidad, unidad, producto.cantidad_envase)}
-                      {l.abierto_en && <span className="text-suave"> · empezado{describirQueda(l.cantidad, producto.cantidad_envase) ? `, ${describirQueda(l.cantidad, producto.cantidad_envase)}` : ""}</span>}
+                      {l.abierto_en && (
+                        <span className="text-suave">
+                          {" "}
+                          · empezado
+                          {describirQueda(l.cantidad, producto.cantidad_envase) ? `, ${describirQueda(l.cantidad, producto.cantidad_envase)}` : ""}
+                        </span>
+                      )}
                     </span>
                     <Etiqueta tono={tono(estadoCaducidad(l.fecha_caducidad, hoy))}>{describirCaducidad(l.fecha_caducidad, hoy)}</Etiqueta>
                   </button>
@@ -305,7 +358,10 @@ function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProduct
               );
             })}
             <li>
-              <Link to={`/productos/${producto.id}`} className="flex min-h-12 items-center gap-1 pr-4 pl-[4.25rem] text-[15px] font-medium text-primario">
+              <Link
+                to={`/productos/${producto.id}`}
+                className="flex min-h-12 items-center gap-1 pr-4 pl-[4.25rem] text-[15px] font-medium text-primario"
+              >
                 Ver ficha <ChevronRight className="size-4" />
               </Link>
             </li>

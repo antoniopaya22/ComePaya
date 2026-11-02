@@ -88,7 +88,10 @@ test("Ajustes: el código de invitación del hogar está visible", async ({ page
 test("Landing: se ve la portada y lleva a la app", async ({ page }) => {
   await page.goto("/bienvenida");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("La cocina de casa");
-  await page.getByRole("link", { name: /Ir a mi cocina/ }).first().click();
+  await page
+    .getByRole("link", { name: /Ir a mi cocina/ })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/$/);
 });
 
@@ -132,8 +135,9 @@ test("Recorrido guiado: sale la primera vez, se recorre y no vuelve a salir", as
 
 test("Primeros pasos: en un hogar vacío guían hacia lo siguiente", async ({ page }) => {
   for (const tabla of ["lote_despensa", "receta", "item_lista", "franja_menu"]) {
-    await page.route((url) => url.pathname.endsWith(`/rest/v1/${tabla}`), (ruta) =>
-      ruta.request().method() === "GET" ? ruta.fulfill({ json: [] }) : ruta.continue(),
+    await page.route(
+      (url) => url.pathname.endsWith(`/rest/v1/${tabla}`),
+      (ruta) => (ruta.request().method() === "GET" ? ruta.fulfill({ json: [] }) : ruta.continue()),
     );
   }
   await page.goto("/");
@@ -268,4 +272,69 @@ test("Despensa: filtrar por tipo de alimento y ordenar por tipo", async ({ page 
   await expect(page.getByRole("heading", { name: /Fruta y verdura/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Lácteos y huevos/ })).toBeVisible();
   if (process.env.CAPTURA) await page.screenshot({ path: process.env.CAPTURA });
+});
+
+test("Recetas: unir un ingrediente con un producto de la despensa y marcar básicos", async ({ page }) => {
+  await page.goto("/recetas/r-merluza");
+  await page.getByRole("button", { name: /Merluza 400 g/ }).click();
+  const hoja = page.getByRole("dialog");
+  await expect(hoja.getByText("No hay en casa")).toBeVisible();
+  await hoja.getByRole("searchbox").fill("pollo");
+  await hoja.getByRole("button", { name: /Muslos de pollo/ }).click();
+  await expect(hoja.getByText(/son lo mismo/)).toBeVisible();
+  if (process.env.CAPTURA) await page.screenshot({ path: process.env.CAPTURA });
+  await hoja.getByRole("button", { name: "Unir" }).click();
+  await expect(page.getByText("«Merluza» unido con «Muslos de pollo»")).toBeVisible();
+  // Ahora la receta cuenta lo que hay de ese producto.
+  await expect(page.getByRole("button", { name: "Hay en casa Muslos de pollo 400 g" })).toBeVisible();
+
+  await page.getByRole("button", { name: /Perejil 10 g/ }).click();
+  await page.getByRole("dialog").getByRole("switch").click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Hay en casa Perejil 10 g" })).toBeVisible();
+});
+
+test("Menú: comidas propias del bebé y alimentos que aún no ha probado", async ({ page }) => {
+  await page.goto("/ajustes");
+  await page.getByRole("switch", { name: /Menú de bebé/ }).click();
+  await page.getByRole("textbox", { name: "Nombre" }).fill("Lucía");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Menú de Lucía activado")).toBeVisible();
+
+  await page.goto("/menu");
+  await page.getByRole("button", { name: "comida de Lucía" }).first().click();
+  const hoja = page.getByRole("dialog");
+  await expect(hoja.getByRole("heading", { name: /Comida de Lucía/ })).toBeVisible();
+  // Solo sus recetas (etiqueta «bebé»).
+  await expect(hoja.getByRole("button", { name: /Lentejas con chorizo/ })).toHaveCount(0);
+  await hoja
+    .getByRole("button", { name: /Puré de verduras/ })
+    .last()
+    .click();
+  await expect(hoja.getByText("Primera vez para Lucía: calabacín.")).toBeVisible();
+  if (process.env.CAPTURA) await page.screenshot({ path: process.env.CAPTURA });
+  await hoja.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByRole("button", { name: "comida de Lucía" }).first()).toContainText("Puré de verduras");
+  // La casa sigue con sus 14 franjas.
+  await expect(page.getByText(/de 14 franjas planificadas/).first()).toBeVisible();
+
+  await page.goto("/ajustes/bebe");
+  await expect(page.getByRole("button", { name: /Zanahoria/ })).toContainText(/\d/);
+  await page.getByRole("button", { name: /Calabacín.*Ya lo ha probado/ }).click();
+  await expect(page.getByText(/Ya probados · 3/)).toBeVisible();
+});
+
+test("Ingredientes: pasar a unidades lo que se cuenta por piezas", async ({ page }) => {
+  await page.goto("/ajustes/ingredientes");
+  await page.getByRole("link", { name: /Cebolla/ }).first().click();
+  await page.getByRole("button", { name: "Editar ingrediente" }).click();
+  const hoja = page.getByRole("dialog");
+  // Simula un hogar antiguo con la cebolla en gramos.
+  await hoja.getByRole("radiogroup").getByText("Gramos").click();
+  await hoja.getByRole("button", { name: "Guardar" }).click();
+  await page.goto("/despensa");
+  await expect(page.getByText("Contar por unidades, sin pesar")).toBeVisible();
+  await page.getByRole("button", { name: "Pasar a unidades" }).click();
+  await expect(page.getByText(/pasa a contarse por unidades/)).toBeVisible();
+  await expect(page.getByText("Contar por unidades, sin pesar")).toHaveCount(0);
 });

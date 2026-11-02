@@ -36,6 +36,9 @@ El código de dominio (`src/dominio/`) es TypeScript puro y es donde van los tes
 1. Crea el proyecto (plan gratuito, región Europa). Deja activado **Enable Data API**. Puedes desactivar *Automatically expose new tables* y activar *Enable automatic RLS*: las migraciones ya dan los permisos y activan RLS.
 2. En **SQL Editor** ejecuta, en orden, todos los archivos de [supabase/migrations/](supabase/migrations/).
    Alternativa con la CLI: `npx supabase link --project-ref <ref>` y `npx supabase db push`.
+   Para aplicar una migración nueva sin abrir Supabase: pon la contraseña de la base de datos en tu terminal
+   (`$env:SUPABASE_DB_PASSWORD = "…"` en PowerShell) y ejecuta `npm run migrar -- supabase/migrations/<archivo>.sql`.
+   Va en una transacción: si algo falla, no cambia nada.
 3. En **Project Settings → API keys** copia la *publishable key* y la *secret key* (ver `.env.example`).
 
 ### 2. Login con Google

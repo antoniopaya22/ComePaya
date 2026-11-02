@@ -20,6 +20,7 @@ export function datosIniciales(hoy: FechaISO): Tablas {
     stock_minimo: b.nombre === "Huevo" ? 6 : b.nombre === "Leche" ? 2000 : null,
     nutrientes_100: null,
     equivalencias: null,
+    bebe_introducido: ["Patata", "Zanahoria"].includes(b.nombre) ? sumarDias(hoy, -20) : null,
     creado_en: hace(30),
   }));
   const id = (nombre: string) => ing.find((i) => i.nombre === nombre)!.id;
@@ -64,7 +65,7 @@ export function datosIniciales(hoy: FechaISO): Tablas {
       fuente: "openfoodfacts",
     }),
     producto("p-pollo", "Muslos de pollo", null, "Muslos de pollo", 500),
-    producto("p-patatas", "Patatas", null, "Patata", 2000),
+    producto("p-patatas", "Patatas", null, "Patata", 10),
   ];
 
   const lote = (lid: string, pid: string, cantidad: number, ubicacion: string, dias: number | null) => ({
@@ -122,21 +123,21 @@ export function datosIniciales(hoy: FechaISO): Tablas {
       "r-lentejas",
       "Lentejas con chorizo",
       { raciones: 4, tiempo_prep_min: 10, tiempo_coccion_min: 45, etiquetas: ["legumbre", "cuchara"], valoracion: 5, notas: "Mejor de un día para otro." },
-      [ri("a1", "Lentejas", 400, 0), ri("a2", "Chorizo", 200, 1), ri("a3", "Patata", 300, 2), ri("a4", "Aceite de oliva", 30, 3), ri("a5", "Tomate triturado", 100, 4, true)],
+      [ri("a1", "Lentejas", 400, 0), ri("a2", "Chorizo", 200, 1), ri("a3", "Patata", 2, 2), ri("a4", "Aceite de oliva", 30, 3), ri("a5", "Tomate triturado", 100, 4, true)],
       ["Sofríe el chorizo en rodajas.", "Añade las lentejas, la patata troceada y cubre con agua.", "Cuece a fuego medio hasta que estén tiernas."],
     ),
     receta(
       "r-tortilla",
       "Tortilla de patatas",
       { tiempo_prep_min: 15, tiempo_coccion_min: 25, etiquetas: ["rápida"], valoracion: 4 },
-      [ri("b1", "Huevo", 5, 0), ri("b2", "Patata", 500, 1), ri("b3", "Aceite de oliva", 100, 2)],
+      [ri("b1", "Huevo", 5, 0), ri("b2", "Patata", 3, 1), ri("b3", "Aceite de oliva", 100, 2)],
       ["Pela y corta las patatas.", "Fríelas a fuego suave.", "Bate los huevos, mezcla y cuaja la tortilla."],
     ),
     receta(
       "r-pollo",
       "Pollo al horno con patatas",
       { raciones: 3, tiempo_prep_min: 15, tiempo_coccion_min: 60, etiquetas: ["horno"], preparacion_previa: "Sacar el pollo del congelador", preparacion_previa_horas: 12 },
-      [ri("c1", "Muslos de pollo", 750, 0), ri("c2", "Patata", 600, 1)],
+      [ri("c1", "Muslos de pollo", 750, 0), ri("c2", "Patata", 3, 1)],
       ["Precalienta el horno a 200 ºC.", "Hornea el pollo con las patatas una hora."],
     ),
     receta(
@@ -145,6 +146,13 @@ export function datosIniciales(hoy: FechaISO): Tablas {
       { tiempo_prep_min: 10, tiempo_coccion_min: 15, etiquetas: ["pescado", "rápida"], valoracion: 4 },
       [ri("d1", "Merluza", 400, 0), ri("d2", "Perejil", 10, 1), ri("d3", "Ajo", 2, 2)],
     ),
+    receta(
+      "r-pure",
+      "Puré de verduras",
+      { raciones: 4, tiempo_prep_min: 10, tiempo_coccion_min: 25, etiquetas: ["bebé"] },
+      [ri("e1", "Patata", 1, 0), ri("e2", "Zanahoria", 2, 1), ri("e3", "Calabacín", 1, 2)],
+      ["Pela y trocea las verduras.", "Cuece todo 25 minutos y tritura con un poco del caldo."],
+    ),
   ];
 
   const franja = (fid: string, dia: number, tipo: string, extra: Fila) => ({
@@ -152,6 +160,7 @@ export function datosIniciales(hoy: FechaISO): Tablas {
     hogar_id: HOGAR_ID,
     fecha: sumarDias(lunes, dia),
     tipo,
+    para: "casa",
     receta_id: null,
     raciones: 2,
     fuera_de_casa: false,
@@ -180,6 +189,7 @@ export function datosIniciales(hoy: FechaISO): Tablas {
         aditivos_vigilados: ["E250"],
         alergenos: [],
         ical_token: "0123456789abcdef0123456789abcdef",
+        bebe_nombre: null,
         creado_por: USUARIO_ID,
         creado_en: hace(30),
       },
@@ -198,7 +208,7 @@ export function datosIniciales(hoy: FechaISO): Tablas {
       lote("l5", "p-pollo", 1000, "congelador", 60),
       lote("l6", "p-tomate", 800, "despensa", 300),
       lote("l7", "p-lentejas", 500, "despensa", null),
-      lote("l8", "p-patatas", 1500, "despensa", 20),
+      lote("l8", "p-patatas", 8, "despensa", 20),
     ],
     movimiento_despensa: [{ id: "m1", hogar_id: HOGAR_ID, producto_id: "p-leche", cantidad: 1000, tipo: "alta", motivo: "Compra", creado_en: hace(5) }],
     tienda: [

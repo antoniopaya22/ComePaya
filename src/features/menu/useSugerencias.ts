@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { alergenosDeReceta, conflictos } from "@/dominio/alergenos";
+import { paraDe, recetasPara, type ParaFranja } from "@/dominio/bebe";
 import { diasHasta, hoyISO, sumarDias, type FechaISO } from "@/dominio/caducidad";
 import { contarGrupos, gruposDeReceta, type GrupoAlimento } from "@/dominio/nutricion";
 import type { ContextoSemana } from "@/dominio/planificar";
@@ -19,9 +20,15 @@ export const claveRechazos = (hogarId: string) => ["rechazos", hogarId];
 /**
  * Todo lo que la puntuación de recetas necesita saber de la semana (§9): recetas aptas (sin alérgenos del hogar),
  * stock, caducidades, grupos ya planificados, cuándo se comió cada plato y rechazos recientes.
- * `excluir`: franja que se está editando (no cuenta como ya planificada).
+ * `excluir`: franja que se está editando (no cuenta como ya planificada). `para`: la casa o el bebé, cada uno
+ * con sus recetas y su propia variedad.
  */
-export function useContextoSemana(desde: FechaISO, franjasSemana: FranjaMenu[], excluir?: string): { aptas: RecetaCompleta[]; base: ContextoSemana } {
+export function useContextoSemana(
+  desde: FechaISO,
+  todasLasFranjas: FranjaMenu[],
+  excluir?: string,
+  para: ParaFranja = "casa",
+): { aptas: RecetaCompleta[]; base: ContextoSemana } {
   const { hogar } = useHogar();
   const { data: recetas = [] } = useRecetas();
   const { data: ingredientes = [] } = useIngredientes();
@@ -48,6 +55,7 @@ export function useContextoSemana(desde: FechaISO, franjasSemana: FranjaMenu[], 
   });
 
   return useMemo(() => {
+    const franjasSemana = todasLasFranjas.filter((f) => paraDe(f) === para);
     const nombre = new Map(ingredientes.map((i) => [i.id, i.nombre]));
     const grupoDe = new Map(ingredientes.map((i) => [i.id, i.grupo_alimento]));
     const gruposPorReceta = new Map<string, Set<GrupoAlimento>>(
@@ -64,12 +72,12 @@ export function useContextoSemana(desde: FechaISO, franjasSemana: FranjaMenu[], 
     }
 
     const ultimaVez = new Map<string, FechaISO>();
-    for (const f of [...historial, ...franjasSemana.filter((f) => f.id !== excluir)]) {
+    for (const f of [...historial.filter((f) => paraDe(f) === para), ...franjasSemana.filter((f) => f.id !== excluir)]) {
       if (f.receta_id && !f.fuera_de_casa && (ultimaVez.get(f.receta_id) ?? "") < f.fecha) ultimaVez.set(f.receta_id, f.fecha);
     }
 
     // Nunca se sugiere un plato con alérgenos que afecten al hogar.
-    const aptas = recetas.filter(
+    const aptas = recetasPara(para, recetas).filter(
       (r) =>
         !conflictos(
           alergenosDeReceta(r.ingredientes.map((ri) => ({ opcional: ri.opcional, alergenos: alergenosIngrediente.get(ri.ingrediente_id) ?? [] }))).contiene,
@@ -91,12 +99,18 @@ export function useContextoSemana(desde: FechaISO, franjasSemana: FranjaMenu[], 
         rechazadas: new Set(rechazadas),
       },
     };
-  }, [recetas, ingredientes, lotes, reglas, historial, rechazadas, franjasSemana, desde, hoy, excluir, alergenosIngrediente, hogar.alergenos]);
+  }, [recetas, ingredientes, lotes, reglas, historial, rechazadas, todasLasFranjas, para, desde, hoy, excluir, alergenosIngrediente, hogar.alergenos]);
 }
 
 /** Sugerencias de recetas para una franja (§9.1). */
-export function useSugerencias(fecha: FechaISO, raciones: number, franjaId: string | undefined, franjasSemana: FranjaMenu[]): Sugerencia[] {
-  const { aptas, base } = useContextoSemana(fecha, franjasSemana, franjaId);
+export function useSugerencias(
+  fecha: FechaISO,
+  raciones: number,
+  franjaId: string | undefined,
+  franjasSemana: FranjaMenu[],
+  para: ParaFranja = "casa",
+): Sugerencia[] {
+  const { aptas, base } = useContextoSemana(fecha, franjasSemana, franjaId, para);
   return useMemo(() => {
     // Para este día, la variedad solo mira hacia atrás.
     const ultimaVez = new Map([...base.ultimaVez].filter(([, f]) => f < fecha));

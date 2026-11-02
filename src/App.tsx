@@ -23,6 +23,7 @@ import { SesionProvider, useSesion } from "@/features/sesion/SesionProvider";
 const EscanerPage = lazy(() => import("@/features/escaner/EscanerPage").then((m) => ({ default: m.EscanerPage })));
 const ModoCocinaPage = lazy(() => import("@/features/cocina/ModoCocinaPage").then((m) => ({ default: m.ModoCocinaPage })));
 const EditorRecetaPage = lazy(() => import("@/features/recetas/EditorRecetaPage").then((m) => ({ default: m.EditorRecetaPage })));
+const AlimentosBebePage = lazy(() => import("@/features/ajustes/AlimentosBebePage").then((m) => ({ default: m.AlimentosBebePage })));
 const EstadisticasPage = lazy(() => import("@/features/ajustes/EstadisticasPage").then((m) => ({ default: m.EstadisticasPage })));
 
 export function App() {
@@ -53,35 +54,36 @@ function ConSesion() {
   }
   return (
     <HogarProvider>
-        <Routes>
-          <Route path="entrar" element={<Navigate to="/" replace />} />
-          <Route
-            path="recetas/:id/cocinar"
-            element={
-              <Suspense fallback={<Cargando className="min-h-dvh" />}>
-                <ModoCocinaPage />
-              </Suspense>
-            }
-          />
-          <Route element={<Estructura />}>
-            <Route index element={<HoyPage />} />
-            <Route path="menu" element={<MenuPage />} />
-            <Route path="lista" element={<ListaPage />} />
-            <Route path="despensa" element={<DespensaPage />} />
-            <Route path="productos" element={<ProductosPage />} />
-            <Route path="productos/:id" element={<ProductoPage />} />
-            <Route path="ingredientes/:id" element={<IngredientePage />} />
-            <Route path="escanear" element={<EscanerPage />} />
-            <Route path="recetas" element={<RecetasPage />} />
-            <Route path="recetas/nueva" element={<EditorRecetaPage />} />
-            <Route path="recetas/:id" element={<RecetaPage />} />
-            <Route path="recetas/:id/editar" element={<EditorRecetaPage />} />
-            <Route path="ajustes" element={<AjustesPage />} />
-            <Route path="ajustes/ingredientes" element={<IngredientesPage />} />
-            <Route path="ajustes/estadisticas" element={<EstadisticasPage />} />
-            <Route path="*" element={<HoyPage />} />
-          </Route>
-        </Routes>
+      <Routes>
+        <Route path="entrar" element={<Navigate to="/" replace />} />
+        <Route
+          path="recetas/:id/cocinar"
+          element={
+            <Suspense fallback={<Cargando className="min-h-dvh" />}>
+              <ModoCocinaPage />
+            </Suspense>
+          }
+        />
+        <Route element={<Estructura />}>
+          <Route index element={<HoyPage />} />
+          <Route path="menu" element={<MenuPage />} />
+          <Route path="lista" element={<ListaPage />} />
+          <Route path="despensa" element={<DespensaPage />} />
+          <Route path="productos" element={<ProductosPage />} />
+          <Route path="productos/:id" element={<ProductoPage />} />
+          <Route path="ingredientes/:id" element={<IngredientePage />} />
+          <Route path="escanear" element={<EscanerPage />} />
+          <Route path="recetas" element={<RecetasPage />} />
+          <Route path="recetas/nueva" element={<EditorRecetaPage />} />
+          <Route path="recetas/:id" element={<RecetaPage />} />
+          <Route path="recetas/:id/editar" element={<EditorRecetaPage />} />
+          <Route path="ajustes" element={<AjustesPage />} />
+          <Route path="ajustes/ingredientes" element={<IngredientesPage />} />
+          <Route path="ajustes/estadisticas" element={<EstadisticasPage />} />
+          <Route path="ajustes/bebe" element={<AlimentosBebePage />} />
+          <Route path="*" element={<HoyPage />} />
+        </Route>
+      </Routes>
     </HogarProvider>
   );
 }
@@ -92,8 +94,8 @@ function FaltaConfiguracion() {
       <h1 className="text-2xl font-bold">Falta configurar Supabase</h1>
       <p className="text-suave">
         Copia <code className="rounded bg-superficie-2 px-1">.env.example</code> a <code className="rounded bg-superficie-2 px-1">.env.local</code> y
-        rellena <code className="rounded bg-superficie-2 px-1">VITE_SUPABASE_URL</code> y <code className="rounded bg-superficie-2 px-1">VITE_SUPABASE_PUBLISHABLE_KEY</code>.
-        Los pasos completos están en el README.
+        rellena <code className="rounded bg-superficie-2 px-1">VITE_SUPABASE_URL</code> y{" "}
+        <code className="rounded bg-superficie-2 px-1">VITE_SUPABASE_PUBLISHABLE_KEY</code>. Los pasos completos están en el README.
       </p>
     </main>
   );

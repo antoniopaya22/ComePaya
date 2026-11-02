@@ -1,3 +1,4 @@
+import type { ParaFranja } from "@/dominio/bebe";
 import type { FechaISO } from "@/dominio/caducidad";
 import type { GrupoAlimento } from "@/dominio/nutricion";
 import type { Nutrientes100, ProductoExterno } from "@/dominio/producto-externo";
@@ -24,6 +25,8 @@ export interface Hogar {
   alergenos: string[];
   /** Secreto del feed iCal del menú. */
   ical_token: string | null;
+  /** Nombre del bebé con menú propio (comida y cena); null si no hay. */
+  bebe_nombre: string | null;
   creado_en: string;
 }
 
@@ -55,6 +58,8 @@ export interface Ingrediente {
   siempre_disponible: boolean;
   stock_minimo: number | null;
   caducidad_defecto_dias: number | null;
+  /** Cuándo lo probó el bebé por primera vez; null si aún no. */
+  bebe_introducido: FechaISO | null;
   creado_en: string;
 }
 
@@ -178,6 +183,7 @@ export interface FranjaMenu {
   hogar_id: string;
   fecha: FechaISO;
   tipo: "comida" | "cena";
+  para: ParaFranja;
   receta_id: string | null;
   raciones: number;
   fuera_de_casa: boolean;

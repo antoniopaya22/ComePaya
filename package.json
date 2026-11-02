@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "iconos": "pwa-assets-generator --preset minimal-2023 public/favicon.svg",
     "dev:demo": "vite --config vite.demo.config.ts --mode demo",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "migrar": "node scripts/aplicar-migracion.mjs"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",
@@ -52,6 +53,7 @@
     "@types/web-push": "^3.6.4",
     "@vite-pwa/assets-generator": "^2.0.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "postgres": "^3.4.7",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",

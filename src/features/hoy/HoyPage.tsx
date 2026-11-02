@@ -1,4 +1,4 @@
-import { CalendarDays, ChevronRight, CookingPot, Hourglass, ListChecks, Plane, Plus, ScanBarcode, TriangleAlert } from "lucide-react";
+import { Baby, CalendarDays, ChevronRight, CookingPot, Hourglass, ListChecks, Plane, Plus, ScanBarcode, TriangleAlert } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "react-router";
 import { BarraApp } from "@/components/BarraApp";
@@ -7,6 +7,7 @@ import { Logo } from "@/components/Logo";
 import { FilaEnlace, Grupo } from "@/components/ui/lista";
 import { Boton } from "@/components/ui/boton";
 import { Esqueleto, Etiqueta, Tarjeta } from "@/components/ui/varios";
+import { paraDe, type ParaFranja } from "@/dominio/bebe";
 import { describirCaducidad, estadoCaducidad, hoyISO, sumarDias } from "@/dominio/caducidad";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { lunesDe, type TipoFranja } from "@/dominio/menu";
@@ -42,8 +43,18 @@ export function HoyPage() {
   const { data: ingredientes = [] } = useIngredientes();
 
   const franjas = [...estaSemana, ...siguiente.filter((f) => !estaSemana.some((e) => e.id === f.id))];
-  const buscar = (fecha: string, tipo: TipoFranja) => franjas.find((f) => f.fecha === fecha && f.tipo === tipo);
+  const buscar = (fecha: string, tipo: TipoFranja, para: ParaFranja = "casa") =>
+    franjas.find((f) => f.fecha === fecha && f.tipo === tipo && paraDe(f) === para);
   const receta = (f?: FranjaMenu) => recetas.find((r) => r.id === f?.receta_id);
+  // Lo del bebé hoy, en una línea: "comida: puré de verduras · cena: sin planificar".
+  const hoyBebe = hogar.bebe_nombre
+    ? (["comida", "cena"] as const)
+        .map((tipo) => {
+          const f = buscar(hoy, tipo, "bebe");
+          return `${tipo}: ${f?.fuera_de_casa ? "fuera de casa" : (receta(f)?.nombre.toLowerCase() ?? "sin planificar")}`;
+        })
+        .join(" · ")
+    : null;
   const nombrePila = (usuario.user_metadata.full_name ?? usuario.user_metadata.name ?? "").split(" ")[0];
 
   // Preparación previa de lo que queda por cocinar hoy y mañana (remojos, descongelar…).
@@ -113,6 +124,14 @@ export function HoyPage() {
               </motion.div>
             ))}
           </div>
+        )}
+        {hoyBebe && (
+          <Link to="/menu" className="flex items-center gap-2 rounded-2xl bg-superficie-2 px-3.5 py-2.5 text-sm">
+            <Baby className="size-4 shrink-0 text-primario" />
+            <span className="min-w-0 flex-1 truncate">
+              <strong className="font-semibold">{hogar.bebe_nombre}</strong> · {hoyBebe}
+            </span>
+          </Link>
         )}
       </section>
 

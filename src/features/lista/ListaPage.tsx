@@ -70,7 +70,8 @@ export function ListaPage() {
 
   function anadir(e: FormEvent) {
     e.preventDefault();
-    if (!texto.trim()) return;
+    // Con el campo vacío, el botón lleva al campo (no se queda gris sin explicar por qué).
+    if (!texto.trim()) return entrada.current?.focus();
     anadirTexto(texto);
     setTexto("");
     entrada.current?.focus();
@@ -111,7 +112,6 @@ export function ListaPage() {
     });
   }
 
-
   async function desdeElMenu() {
     setGenerando(true);
     try {
@@ -133,7 +133,12 @@ export function ListaPage() {
         buscar
         acciones={
           <>
-            <BotonBarra etiqueta="Completar desde el menú" onClick={desdeElMenu} disabled={generando} className={cn("md:hidden", generando && "animate-pulse")}>
+            <BotonBarra
+              etiqueta="Completar desde el menú"
+              onClick={desdeElMenu}
+              disabled={generando}
+              className={cn("md:hidden", generando && "animate-pulse")}
+            >
               <CalendarDays />
             </BotonBarra>
             {(items?.length ?? 0) > 0 && (
@@ -174,7 +179,9 @@ export function ListaPage() {
         {(!enLinea || sinEnviar > 0) && (
           <p className="flex items-center gap-2 rounded-xl bg-aviso-suave px-3 py-2 text-sm text-aviso">
             <CloudOff className="size-4 shrink-0" />
-            {enLinea ? `Enviando ${sinEnviar} cambios…` : `Sin conexión. ${sinEnviar ? `${sinEnviar} cambios se enviarán al volver la red.` : "Puedes seguir marcando y añadiendo."}`}
+            {enLinea
+              ? `Enviando ${sinEnviar} cambios…`
+              : `Sin conexión. ${sinEnviar ? `${sinEnviar} cambios se enviarán al volver la red.` : "Puedes seguir marcando y añadiendo."}`}
           </p>
         )}
         {/* Móvil: abajo, sobre la navegación, al alcance del pulgar. Escritorio: arriba. */}
@@ -202,7 +209,7 @@ export function ListaPage() {
               <Mic />
             </Boton>
           )}
-          <Boton type="submit" tamano="icono" aria-label="Añadir" disabled={!texto.trim()} className="size-12 shrink-0 rounded-full md:size-11 md:rounded-xl">
+          <Boton type="submit" tamano="icono" aria-label="Añadir" className="size-12 shrink-0 rounded-full md:size-11 md:rounded-xl">
             <Plus />
           </Boton>
         </form>
@@ -271,7 +278,11 @@ export function ListaPage() {
                             </span>
                             {item.cantidad && <span className="text-[15px] text-suave">{item.cantidad}</span>}
                           </button>
-                          <button onClick={() => setEditando(item)} className="grid h-14 w-12 place-items-center text-suave/70 active:bg-superficie-2" aria-label={`Editar ${item.texto}`}>
+                          <button
+                            onClick={() => setEditando(item)}
+                            className="grid h-14 w-12 place-items-center text-suave/70 active:bg-superficie-2"
+                            aria-label={`Editar ${item.texto}`}
+                          >
                             <Pencil className="size-4" />
                           </button>
                         </div>

@@ -15,6 +15,7 @@ import { cerrarSesion, useUsuario } from "../sesion/SesionProvider";
 import { claves, useMiembros, useTiendas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
 import { SaludHoja } from "../salud/SaludHoja";
+import { AjusteBebe } from "./AjusteBebe";
 import { activarAvisos, avisosDisponibles, desactivarAvisos, suscripcionActual } from "./avisos";
 import { TiendaHoja } from "./TiendaHoja";
 
@@ -67,7 +68,12 @@ export function AjustesPage() {
                 <p className="text-sm text-suave">Todo lo que hay en la app es compartido entre sus miembros.</p>
               </div>
               {hogares.length > 1 && (
-                <Selector aria-label="Cambiar de hogar" className="h-9 w-auto text-sm" value={hogar.id} onChange={(e) => cambiarHogar(e.target.value)}>
+                <Selector
+                  aria-label="Cambiar de hogar"
+                  className="h-9 w-auto text-sm"
+                  value={hogar.id}
+                  onChange={(e) => cambiarHogar(e.target.value)}
+                >
                   {hogares.map((h) => (
                     <option key={h.hogar.id} value={h.hogar.id}>
                       {h.hogar.nombre}
@@ -148,10 +154,20 @@ export function AjustesPage() {
           </Boton>
         </Bloque>
 
+        <Bloque titulo="Bebé">
+          <AjusteBebe />
+        </Bloque>
+
         <Bloque titulo="Compra">
           <Tarjeta className="divide-y divide-borde/70">
             {tiendas.map((t) => (
-              <Fila key={t.id} icono={<Store />} titulo={t.nombre} detalle={`${t.orden_secciones.length} secciones en orden de recorrido`} onClick={() => setTienda(t)} />
+              <Fila
+                key={t.id}
+                icono={<Store />}
+                titulo={t.nombre}
+                detalle={`${t.orden_secciones.length} secciones en orden de recorrido`}
+                onClick={() => setTienda(t)}
+              />
             ))}
             <Fila icono={<Plus />} titulo="Añadir tienda" onClick={() => setTienda("nueva")} />
           </Tarjeta>
@@ -162,7 +178,12 @@ export function AjustesPage() {
             <Link to="/ajustes/ingredientes" className="block">
               <Fila icono={<Carrot />} titulo="Ingredientes" detalle="Unidades, secciones, grupos, nutrientes y caducidad" />
             </Link>
-            <Fila icono={<HeartPulse />} titulo="Equilibrio y aditivos" detalle="Reglas semanales por grupo de alimentos" onClick={() => setSalud(true)} />
+            <Fila
+              icono={<HeartPulse />}
+              titulo="Equilibrio y aditivos"
+              detalle="Reglas semanales por grupo de alimentos"
+              onClick={() => setSalud(true)}
+            />
             <Link to="/ajustes/estadisticas" className="block">
               <Fila icono={<ChartColumn />} titulo="Estadísticas" detalle="Desperdicio, platos más cocinados y equilibrio" />
             </Link>
@@ -183,7 +204,11 @@ export function AjustesPage() {
         <Bloque titulo="Ayuda">
           <Tarjeta>
             <a href={urlReportarProblema()} target="_blank" rel="noreferrer" className="block">
-              <Fila icono={<Bug />} titulo="Reportar un problema o una idea" detalle={`Abre un aviso en GitHub con los datos del móvil · versión ${VERSION}`} />
+              <Fila
+                icono={<Bug />}
+                titulo="Reportar un problema o una idea"
+                detalle={`Abre un aviso en GitHub con los datos del móvil · versión ${VERSION}`}
+              />
             </a>
           </Tarjeta>
         </Bloque>
@@ -193,7 +218,10 @@ export function AjustesPage() {
         </Bloque>
 
         <Tarjeta>
-          <button onClick={() => cerrarSesion()} className="flex min-h-14 w-full items-center justify-center gap-2 font-medium text-peligro active:bg-superficie-2">
+          <button
+            onClick={() => cerrarSesion()}
+            className="flex min-h-14 w-full items-center justify-center gap-2 font-medium text-peligro active:bg-superficie-2"
+          >
             <LogOut className="size-5" /> Cerrar sesión
           </button>
         </Tarjeta>
@@ -222,7 +250,9 @@ function InterruptorAvisos() {
   }, []);
 
   if (!avisosDisponibles) {
-    return <p className="px-1 text-sm text-suave">Este navegador no admite notificaciones, o la app aún no tiene configuradas las claves de avisos.</p>;
+    return (
+      <p className="px-1 text-sm text-suave">Este navegador no admite notificaciones, o la app aún no tiene configuradas las claves de avisos.</p>
+    );
   }
 
   return (

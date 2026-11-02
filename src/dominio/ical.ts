@@ -5,13 +5,15 @@ export interface FranjaIcal {
   id: string;
   fecha: FechaISO;
   tipo: "comida" | "cena";
+  /** Las del bebé llevan su nombre delante. */
+  para?: "casa" | "bebe";
   fuera_de_casa: boolean;
   es_sobra_de: string | null;
   receta: { nombre: string } | null;
 }
 
 /** Feed iCal del menú (§4.4): un evento de una hora por comida o cena planificada. */
-export function generarIcal(nombreHogar: string, franjas: FranjaIcal[], generado: Date): string {
+export function generarIcal(nombreHogar: string, franjas: FranjaIcal[], generado: Date, nombreBebe: string | null = null): string {
   const sello = generado.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
   const lineas = [
     "BEGIN:VCALENDAR",
@@ -33,7 +35,7 @@ export function generarIcal(nombreHogar: string, franjas: FranjaIcal[], generado
       `DTSTAMP:${sello}`,
       `DTSTART;TZID=${ZONA}:${dia}T${String(hora).padStart(2, "0")}0000`,
       `DTEND;TZID=${ZONA}:${dia}T${String(hora + 1).padStart(2, "0")}0000`,
-      `SUMMARY:${escapar(`${f.tipo === "comida" ? "Comida" : "Cena"}: ${titulo}`)}`,
+      `SUMMARY:${escapar(`${f.para === "bebe" ? `${nombreBebe ?? "Bebé"} · ` : ""}${f.tipo === "comida" ? "Comida" : "Cena"}: ${titulo}`)}`,
       "TRANSP:TRANSPARENT",
       "END:VEVENT",
     );

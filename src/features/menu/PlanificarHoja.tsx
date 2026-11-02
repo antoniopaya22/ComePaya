@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Hoja } from "@/components/ui/hoja";
+import { paraDe } from "@/dominio/bebe";
 import { diasDeSemana, DIAS_SEMANA } from "@/dominio/menu";
 import { planificarSemana, type Hueco } from "@/dominio/planificar";
 import { hoyISO, type FechaISO } from "@/dominio/caducidad";
@@ -37,7 +38,7 @@ export function PlanificarHoja({ abierta, lunes, franjas, onCerrar }: { abierta:
         .flatMap((fecha) =>
           (["comida", "cena"] as const)
             .filter((tipo) => {
-              const f = franjas.find((x) => x.fecha === fecha && x.tipo === tipo);
+              const f = franjas.find((x) => x.fecha === fecha && x.tipo === tipo && paraDe(x) === "casa");
               return !f || (!f.receta_id && !f.fuera_de_casa);
             })
             .map((tipo) => ({ fecha, tipo, raciones: hogar.comensales ?? 2 })),
@@ -52,8 +53,8 @@ export function PlanificarHoja({ abierta, lunes, franjas, onCerrar }: { abierta:
   async function aplicar() {
     setGuardando(true);
     const { error } = await supabase.from("franja_menu").upsert(
-      elegidas.map((p) => ({ hogar_id: hogar.id, fecha: p.fecha, tipo: p.tipo, receta_id: p.receta_id, raciones: p.raciones, fuera_de_casa: false, es_sobra_de: null, cocinado: false })),
-      { onConflict: "hogar_id,fecha,tipo" },
+      elegidas.map((p) => ({ hogar_id: hogar.id, fecha: p.fecha, tipo: p.tipo, para: "casa", receta_id: p.receta_id, raciones: p.raciones, fuera_de_casa: false, es_sobra_de: null, cocinado: false })),
+      { onConflict: "hogar_id,fecha,tipo,para" },
     );
     setGuardando(false);
     if (error) return toast.error(mensajeError(error));

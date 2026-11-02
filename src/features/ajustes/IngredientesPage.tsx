@@ -8,7 +8,7 @@ import { Boton } from "@/components/ui/boton";
 import { Campo, Entrada, Interruptor, Opciones, Selector } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
 import { Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
-import { emojiPara, ingredientesBaseQueFaltan } from "@/dominio/ingredientes-base";
+import { datosBaseDe, emojiPara, ingredientesBaseQueFaltan } from "@/dominio/ingredientes-base";
 import { seccionesDisponibles } from "@/dominio/lista";
 import { normalizar } from "@/dominio/texto";
 import { formatearCantidad, UNIDADES_BASE, type UnidadBase } from "@/dominio/unidades";
@@ -20,6 +20,9 @@ import type { Nutrientes100 } from "@/dominio/producto-externo";
 import { claves, useIngredientes, useNutrientesIngredientes, useProductos, useRecetas, useTiendas } from "../datos";
 import { cargarIngredientesBase } from "../despensa/altas";
 import { SelectorAlergenos } from "../salud/Alergenos";
+import { necesitaPesoUnidad } from "@/dominio/fusion";
+import { cambiarUnidad } from "../productos/fusionar";
+import { PasarAUnidades } from "../productos/PasarAUnidades";
 import { useHogar } from "../hogar/HogarProvider";
 
 /** Equivalencias propias de medidas caseras; las vacías usan las estándar. */
@@ -89,9 +92,16 @@ export function IngredientesPage() {
         }
       />
       <div className="flex flex-col gap-4 px-4 md:px-0">
+        <PasarAUnidades />
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-suave" />
-          <Entrada value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar ingrediente" className="h-11 rounded-full border-transparent bg-superficie-2 pl-10 md:rounded-xl md:border-borde md:bg-superficie" type="search" />
+          <Entrada
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar ingrediente"
+            className="h-11 rounded-full border-transparent bg-superficie-2 pl-10 md:rounded-xl md:border-borde md:bg-superficie"
+            type="search"
+          />
         </div>
         {faltan > 0 && !busqueda && (
           <Tarjeta className="flex items-center gap-3 border-primario/30 bg-primario-suave p-3.5">
@@ -112,7 +122,9 @@ export function IngredientesPage() {
           <Tarjeta className="divide-y divide-borde">
             {visibles.map((i) => (
               <Link key={i.id} to={`/ingredientes/${i.id}`} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-superficie-2">
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-superficie-2 text-lg">{emojiPara(i.nombre, i.seccion_super, i.emoji)}</span>
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-superficie-2 text-lg">
+                  {emojiPara(i.nombre, i.seccion_super, i.emoji)}
+                </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium">{i.nombre}</span>
                   <span className="block truncate text-sm text-suave">
@@ -156,7 +168,8 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
   const enUso =
     ingrediente !== null &&
     ingrediente !== "nuevo" &&
-    (productos.some((p) => p.ingrediente_id === ingrediente.id) || recetas.some((r) => r.ingredientes.some((ri) => ri.ingrediente_id === ingrediente.id)));
+    (productos.some((p) => p.ingrediente_id === ingrediente.id) ||
+      recetas.some((r) => r.ingredientes.some((ri) => ri.ingrediente_id === ingrediente.id)));
 
   useEffect(() => {
     if (!ingrediente) return;
@@ -167,9 +180,7 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
     setDiasAbrir(i?.dias_tras_abrir?.toString() ?? "");
     setEqCucharada(i?.equivalencias?.cucharada?.toString().replace(".", ",") ?? "");
     setEqVaso(i?.equivalencias?.vaso?.toString().replace(".", ",") ?? "");
-    setNutrientes(
-      Object.fromEntries(Object.entries(i?.nutrientes_100 ?? {}).map(([clave, valor]) => [clave, String(valor).replace(".", ",")])),
-    );
+    setNutrientes(Object.fromEntries(Object.entries(i?.nutrientes_100 ?? {}).map(([clave, valor]) => [clave, String(valor).replace(".", ",")])));
     setNombre(i?.nombre ?? "");
     setEmoji(i?.emoji ?? "");
     setUnidad(i?.unidad_base ?? "g");
@@ -186,26 +197,45 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
     queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
   };
 
+  const original = ingrediente && ingrediente !== "nuevo" ? ingrediente : null;
+  const cambiaUnidad = Boolean(enUso && original && unidad !== original.unidad_base);
+  const pesoNumero = Number(pesoUnidad.replace(",", ".")) || null;
+  const faltaPeso = cambiaUnidad && necesitaPesoUnidad(original!.unidad_base, unidad) && !pesoNumero;
+
   async function guardar() {
+    if (cambiaUnidad) {
+      // Ya tiene recetas o despensa: se convierten sus cantidades antes de guardar lo demás.
+      try {
+        await cambiarUnidad(original!, unidad, pesoNumero);
+        queryClient.invalidateQueries({ queryKey: claves.recetas(hogar.id) });
+        queryClient.invalidateQueries({ queryKey: claves.lista(hogar.id) });
+      } catch (error) {
+        return toast.error(mensajeError(error));
+      }
+    }
     const datos = {
       nombre: nombre.trim(),
       emoji: emoji.trim() || null,
       unidad_base: unidad,
       seccion_super: seccion,
       siempre_disponible: basico,
-      stock_minimo: stockMinimo ? Number(stockMinimo.replace(",", ".")) : null,
+      // Al cambiar de unidad, el stock mínimo ya lo ha convertido cambiarUnidad.
+      ...(cambiaUnidad ? {} : { stock_minimo: stockMinimo ? Number(stockMinimo.replace(",", ".")) : null }),
       caducidad_defecto_dias: caducidadDias ? Math.round(Number(caducidadDias)) : null,
       grupo_alimento: grupo || null,
       peso_unidad_g: unidad === "ud" && pesoUnidad ? Number(pesoUnidad.replace(",", ".")) : null,
       nutrientes_100: nutrientesManuales(nutrientes),
       alergenos,
       dias_tras_abrir: diasAbrir ? Math.round(Number(diasAbrir)) || null : null,
-      equivalencias: equivalenciasDe(eqCucharada, eqVaso),
+      ...(cambiaUnidad ? {} : { equivalencias: equivalenciasDe(eqCucharada, eqVaso) }),
     };
     const { error } =
       ingrediente === "nuevo"
         ? await supabase.from("ingrediente").insert({ ...datos, hogar_id: hogar.id })
-        : await supabase.from("ingrediente").update(datos).eq("id", (ingrediente as Ingrediente).id);
+        : await supabase
+            .from("ingrediente")
+            .update(datos)
+            .eq("id", (ingrediente as Ingrediente).id);
     if (error) return toast.error(mensajeError(error));
     refrescar();
     onCerrar();
@@ -231,7 +261,7 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
               <Trash2 />
             </Boton>
           )}
-          <Boton onClick={guardar} disabled={!nombre.trim()} className={ingrediente === "nuevo" ? "col-span-2" : ""}>
+          <Boton onClick={guardar} disabled={!nombre.trim() || faltaPeso} className={ingrediente === "nuevo" ? "col-span-2" : ""}>
             Guardar
           </Boton>
         </div>
@@ -240,7 +270,13 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-[4.5rem_1fr] gap-3">
           <Campo etiqueta="Icono">
-            <Entrada value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder={emojiPara(nombre, seccion)} className="text-center text-xl" maxLength={8} />
+            <Entrada
+              value={emoji}
+              onChange={(e) => setEmoji(e.target.value)}
+              placeholder={emojiPara(nombre, seccion)}
+              className="text-center text-xl"
+              maxLength={8}
+            />
           </Campo>
           <Campo etiqueta="Nombre">
             <Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Garbanzos cocidos" />
@@ -248,14 +284,26 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
         </div>
         <Campo
           etiqueta="Se mide en"
-          ayuda={enUso ? "No se puede cambiar: ya tiene productos o recetas, y sus cantidades dejarían de cuadrar." : undefined}
+          ayuda={cambiaUnidad ? "Al guardar se convierten las cantidades de sus recetas, la despensa y la lista." : undefined}
         >
-          {enUso ? (
-            <span className="text-[15px] font-medium">{UNIDADES_BASE.find((u) => u.valor === unidad)?.etiqueta}</span>
-          ) : (
-            <Opciones opciones={UNIDADES_BASE} valor={unidad} onChange={setUnidad} />
-          )}
+          <Opciones
+            opciones={UNIDADES_BASE}
+            valor={unidad}
+            onChange={(u) => {
+              setUnidad(u);
+              // Lo que pesa una pieza, si es un ingrediente conocido.
+              if (u === "ud" && !pesoUnidad) setPesoUnidad(datosBaseDe(nombre).peso_unidad_g?.toString() ?? "");
+            }}
+          />
         </Campo>
+        {cambiaUnidad && necesitaPesoUnidad(original!.unidad_base, unidad) && (
+          <Campo
+            etiqueta={`¿Cuántos ${unidad === "ud" ? original!.unidad_base : unidad} pesa una unidad?`}
+            ayuda="Para pasar las cantidades. Por ejemplo, una patata mediana ≈ 200 g."
+          >
+            <Entrada inputMode="decimal" value={pesoUnidad} onChange={(e) => setPesoUnidad(e.target.value)} placeholder="200" />
+          </Campo>
+        )}
         <Campo etiqueta="Sección del súper">
           <Selector value={seccion} onChange={(e) => setSeccion(e.target.value)}>
             {secciones.map((s) => (
@@ -279,7 +327,7 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
             ))}
           </Selector>
         </Campo>
-        {unidad === "ud" && (
+        {unidad === "ud" && !cambiaUnidad && (
           <Campo etiqueta="Peso de una unidad (g)" ayuda="Para calcular los nutrientes de las recetas. Un huevo ≈ 60 g.">
             <Entrada inputMode="decimal" value={pesoUnidad} onChange={(e) => setPesoUnidad(e.target.value)} placeholder="—" className="w-32" />
           </Campo>
@@ -300,7 +348,13 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
           </div>
         )}
         <Campo etiqueta="Una vez abierto, dura (días)" ayuda="Al marcar un envase como abierto, su caducidad se acorta a esto.">
-          <Entrada inputMode="numeric" value={diasAbrir} onChange={(e) => setDiasAbrir(e.target.value.replace(/\D/g, ""))} placeholder="—" className="w-28" />
+          <Entrada
+            inputMode="numeric"
+            value={diasAbrir}
+            onChange={(e) => setDiasAbrir(e.target.value.replace(/\D/g, ""))}
+            placeholder="—"
+            className="w-28"
+          />
         </Campo>
         <details className="rounded-xl border border-borde px-3.5 py-3">
           <summary className="cursor-pointer text-sm font-medium">Valores nutricionales por 100 g</summary>
@@ -319,7 +373,9 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
                   inputMode="decimal"
                   className="h-9 w-20 text-right"
                   value={nutrientes[clave] ?? ""}
-                  placeholder={ingrediente && ingrediente !== "nuevo" ? (calculados.get(ingrediente.id)?.[clave]?.toString().replace(".", ",") ?? "—") : "—"}
+                  placeholder={
+                    ingrediente && ingrediente !== "nuevo" ? (calculados.get(ingrediente.id)?.[clave]?.toString().replace(".", ",") ?? "—") : "—"
+                  }
                   onChange={(e) => setNutrientes({ ...nutrientes, [clave]: e.target.value })}
                 />
               </label>

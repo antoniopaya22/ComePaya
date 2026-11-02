@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Check, Clock, CookingPot, Download, Hourglass, Pencil, Timer, Users } from "lucide-react";
+import { ArrowLeft, Baby, Check, Clock, CookingPot, Download, Hourglass, Pencil, Timer, Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { BarraApp, BotonBarra, EnlaceBarra } from "@/components/BarraApp";
@@ -9,10 +9,12 @@ import { Estrellas } from "@/components/ui/estrellas";
 import { Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
 import { diasHasta, hoyISO, sumarDias } from "@/dominio/caducidad";
 import { alergenosDeReceta } from "@/dominio/alergenos";
+import { alimentosNuevos, esRecetaDeBebe } from "@/dominio/bebe";
 import { escalar } from "@/dominio/menu";
 import { supabase } from "@/lib/supabase";
 import { useHogar } from "../hogar/HogarProvider";
 import { FichaEsqueleto } from "../productos/ProductoPage";
+import { UnirIngredienteHoja } from "../productos/UnirIngredienteHoja";
 import { formatearCantidad } from "@/dominio/unidades";
 import { cn } from "@/lib/utils";
 import { useAlergenosIngredientes, useIngredientes, useLotes, useRecetas } from "../datos";
@@ -28,6 +30,7 @@ export function RecetaPage() {
   const { data: ingredientes = [] } = useIngredientes();
   const receta = recetas?.find((r) => r.id === id);
   const [raciones, setRaciones] = useState<number | null>(null);
+  const [mirando, setMirando] = useState<{ id: string; necesario: number } | null>(null);
   const { hogar } = useHogar();
   const hoy = hoyISO();
 
@@ -63,6 +66,12 @@ export function RecetaPage() {
   );
   const stock = stockDeLotes(lotes);
   const basicos = new Set(ingredientes.filter((i) => i.siempre_disponible).map((i) => i.id));
+  const nuevosBebe =
+    hogar.bebe_nombre && esRecetaDeBebe(receta)
+      ? alimentosNuevos(receta.ingredientes, new Map(ingredientes.map((i) => [i.id, i.bebe_introducido]))).map(
+          (id) => ingredientes.find((i) => i.id === id)?.nombre.toLowerCase() ?? "",
+        )
+      : [];
 
   const enlaceCocinar = `/recetas/${receta.id}/cocinar?raciones=${racionesVista}`;
 
@@ -157,16 +166,22 @@ export function RecetaPage() {
               const cantidad = escalar(ri.cantidad, receta.raciones, racionesVista);
               const hay = basicos.has(ri.ingrediente_id) || (stock.get(ri.ingrediente_id) ?? 0) >= cantidad;
               return (
-                <div key={ri.id} className="flex min-h-13 items-center gap-3 px-4 py-2.5 text-[16px]">
+                <button
+                  key={ri.id}
+                  type="button"
+                  onClick={() => setMirando({ id: ri.ingrediente_id, necesario: cantidad })}
+                  className="pulsable flex min-h-13 w-full items-center gap-3 px-4 py-2.5 text-left text-[16px]"
+                >
                   <span
                     className={cn(
                       "grid size-5 shrink-0 place-items-center rounded-full",
                       hay ? "bg-primario-suave text-primario" : "border-2 border-borde",
                     )}
-                    title={hay ? "Hay en casa" : "No hay suficiente en casa"}
+                    aria-hidden
                   >
                     {hay && <Check className="size-3" strokeWidth={3} />}
                   </span>
+                  <span className="sr-only">{hay ? "Hay en casa" : "No hay suficiente en casa"}</span>
                   <span className="flex-1">
                     {ri.ingrediente.nombre}
                     {ri.opcional && <span className="text-sm text-suave"> (opcional)</span>}
@@ -174,11 +189,23 @@ export function RecetaPage() {
                   <span className="text-sm font-medium text-suave">
                     {formatearCantidad(Math.round(cantidad * 10) / 10, ri.ingrediente.unidad_base)}
                   </span>
-                </div>
+                </button>
               );
             })}
           </Tarjeta>
+          {receta.ingredientes.some((ri) => !basicos.has(ri.ingrediente_id) && !stock.get(ri.ingrediente_id)) && (
+            <p className="px-1 text-sm text-suave">¿Alguno lo tenéis en casa con otro nombre? Tócalo para unirlo con su producto.</p>
+          )}
         </section>
+
+        {nuevosBebe.length > 0 && (
+          <p className="flex items-start gap-2 rounded-2xl bg-aviso-suave p-3 text-sm font-medium text-aviso">
+            <Baby className="mt-0.5 size-4 shrink-0" />
+            <span>
+              {hogar.bebe_nombre} aún no ha probado: {nuevosBebe.join(", ")}.
+            </span>
+          </p>
+        )}
 
         {(alergenos.contiene.length > 0 || alergenos.opcionales.length > 0) && (
           <section className="flex flex-col gap-2">
@@ -222,6 +249,13 @@ export function RecetaPage() {
         {/* Hueco para la barra inferior con el botón de cocinar. */}
         <div className="h-20 md:hidden" />
       </article>
+
+      <UnirIngredienteHoja
+        ingrediente={(mirando && ingredientes.find((i) => i.id === mirando.id)) || null}
+        necesario={mirando?.necesario}
+        conEnlace
+        onCerrar={() => setMirando(null)}
+      />
 
       {/* Móvil: la acción principal, abajo y a mano. */}
       <div className="pb-seguro fixed inset-x-0 bottom-0 z-30 border-t border-borde/70 bg-fondo/90 backdrop-blur-xl md:hidden">

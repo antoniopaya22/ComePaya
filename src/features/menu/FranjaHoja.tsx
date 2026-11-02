@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, ChefHat, CircleCheck, Search, Sparkles, Trash2 } from "lucide-react";
+import { Baby, Check, ChefHat, CircleCheck, Search, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -7,13 +7,15 @@ import { Boton } from "@/components/ui/boton";
 import { Campo, Contador, Entrada, Interruptor, Opciones } from "@/components/ui/campos";
 import { Estrellas } from "@/components/ui/estrellas";
 import { Hoja } from "@/components/ui/hoja";
+import { alimentosNuevos, recetasPara, type ParaFranja } from "@/dominio/bebe";
 import { hoyISO, type FechaISO } from "@/dominio/caducidad";
 import { DIAS_SEMANA, racionesACocinar, type TipoFranja } from "@/dominio/menu";
 import { normalizar } from "@/dominio/texto";
 import { supabase } from "@/lib/supabase";
 import type { FranjaMenu } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
-import { claves, consultarLotes, useIngredientes, useRecetas } from "../datos";
+import { claves, consultarLotes, useAlergenosIngredientes, useIngredientes, useRecetas } from "../datos";
+import { ChipsAlergenos } from "../salud/Alergenos";
 import { useHogar } from "../hogar/HogarProvider";
 import { cocinarFranja } from "./cocinar";
 import { claveRechazos, useSugerencias } from "./useSugerencias";
@@ -29,7 +31,7 @@ export function FranjaHoja({
   franjasSemana,
   onCerrar,
 }: {
-  hueco: { fecha: FechaISO; tipo: TipoFranja } | null;
+  hueco: { fecha: FechaISO; tipo: TipoFranja; para: ParaFranja } | null;
   franja: FranjaMenu | undefined;
   franjasSemana: FranjaMenu[];
   onCerrar: () => void;
@@ -38,10 +40,13 @@ export function FranjaHoja({
   const queryClient = useQueryClient();
   const { data: recetas = [] } = useRecetas();
   const { data: ingredientes = [] } = useIngredientes();
+  const alergenosIngrediente = useAlergenosIngredientes();
+  // El bebé come una ración; la casa, los comensales.
+  const racionesPorDefecto = (para?: ParaFranja) => (para === "bebe" ? 1 : (hogar.comensales ?? 2));
 
   const [modo, setModo] = useState<Modo>("receta");
   const [recetaId, setRecetaId] = useState<string | null>(null);
-  const [raciones, setRaciones] = useState(hogar.comensales ?? 2);
+  const [raciones, setRaciones] = useState(racionesPorDefecto(hueco?.para));
   const [sobraDe, setSobraDe] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [descontar, setDescontar] = useState(true);
@@ -54,20 +59,24 @@ export function FranjaHoja({
     setActual(hueco);
     setModo(franja?.fuera_de_casa ? "fuera" : franja?.es_sobra_de ? "sobras" : "receta");
     setRecetaId(franja?.receta_id ?? null);
-    setRaciones(franja?.raciones ?? hogar.comensales ?? 2);
+    setRaciones(franja?.raciones ?? racionesPorDefecto(hueco.para));
     setSobraDe(franja?.es_sobra_de ?? null);
     setBusqueda("");
     setDescontar(true);
     setCongelar(0);
     // Solo al abrir otra franja: los cambios en tiempo real no deben pisar lo que se está editando.
-  }, [hueco?.fecha, hueco?.tipo]);
+  }, [hueco?.fecha, hueco?.tipo, hueco?.para]);
 
+  const para = actual?.para ?? hueco?.para ?? "casa";
   const candidatas = useMemo(() => {
     const texto = normalizar(busqueda);
-    return recetas.filter((r) => !texto || normalizar(`${r.nombre} ${r.etiquetas.join(" ")}`).includes(texto));
-  }, [recetas, busqueda]);
+    // Primero las recetas de su tipo (de bebé o de la casa); buscando salen también las demás.
+    const propias = recetasPara(para, recetas);
+    const ordenadas = texto ? [...propias, ...recetas.filter((r) => !propias.includes(r))] : propias;
+    return ordenadas.filter((r) => !texto || normalizar(`${r.nombre} ${r.etiquetas.join(" ")}`).includes(texto));
+  }, [recetas, busqueda, para]);
 
-  const sugerencias = useSugerencias(actual?.fecha ?? hueco?.fecha ?? "2000-01-01", raciones, franja?.id, franjasSemana);
+  const sugerencias = useSugerencias(actual?.fecha ?? hueco?.fecha ?? "2000-01-01", raciones, franja?.id, franjasSemana, para);
 
   async function rechazar(id: string) {
     const { error } = await supabase.from("rechazo_sugerencia").insert({ hogar_id: hogar.id, receta_id: id, fecha: hoyISO() });
@@ -79,6 +88,20 @@ export function FranjaHoja({
   const { fecha, tipo } = actual;
   const origenes = franjasSemana.filter((f) => f.receta_id && !f.es_sobra_de && !f.fuera_de_casa && anterior(f, fecha, tipo));
   const receta = recetas.find((r) => r.id === recetaId);
+  const bebe = hogar.bebe_nombre ?? "el bebé";
+  // Lo que el bebé aún no ha probado del plato elegido (o del de las sobras).
+  const platoBebe =
+    para === "bebe"
+      ? modo === "sobras"
+        ? recetas.find((r) => r.id === origenes.find((f) => f.id === sobraDe)?.receta_id)
+        : modo === "receta"
+          ? receta
+          : undefined
+      : undefined;
+  const introducidos = new Map(ingredientes.map((i) => [i.id, i.bebe_introducido]));
+  const nuevos = platoBebe ? alimentosNuevos(platoBebe.ingredientes, introducidos) : [];
+  const nombreDe = (id: string) => ingredientes.find((i) => i.id === id)?.nombre.toLowerCase() ?? "";
+  const alergenosNuevos = [...new Set(nuevos.flatMap((id) => alergenosIngrediente.get(id) ?? []))];
   const refrescar = () => queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
 
   async function guardar() {
@@ -87,6 +110,7 @@ export function FranjaHoja({
       hogar_id: hogar.id,
       fecha,
       tipo,
+      para,
       receta_id: modo === "receta" ? recetaId : modo === "sobras" ? (origen?.receta_id ?? null) : null,
       raciones,
       fuera_de_casa: modo === "fuera",
@@ -95,7 +119,7 @@ export function FranjaHoja({
       ...(franja?.cocinado && (modo !== "receta" || franja.receta_id !== recetaId) ? { cocinado: false } : {}),
     };
     setOcupado(true);
-    const { error } = await supabase.from("franja_menu").upsert(fila, { onConflict: "hogar_id,fecha,tipo" });
+    const { error } = await supabase.from("franja_menu").upsert(fila, { onConflict: "hogar_id,fecha,tipo,para" });
     setOcupado(false);
     if (error) return toast.error(mensajeError(error));
     refrescar();
@@ -137,6 +161,13 @@ export function FranjaHoja({
         });
         queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
         queryClient.invalidateQueries({ queryKey: claves.raciones(hogar.id) });
+        if (para === "bebe" && nuevos.length) {
+          // Lo que ha comido por primera vez queda apuntado como probado.
+          const { error } = await supabase.from("ingrediente").update({ bebe_introducido: fecha }).in("id", nuevos).is("bebe_introducido", null);
+          if (error) throw error;
+          queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
+          toast.success(`Primera vez para ${bebe}: ${nuevos.map(nombreDe).join(", ")}`, { description: "Apuntado como probado." });
+        }
         if (descontar) {
           if (faltaba.length) toast.info("Descontado de la despensa", { description: `No había: ${faltaba.join(", ")}.` });
           else toast.success("Descontado de la despensa");
@@ -158,7 +189,7 @@ export function FranjaHoja({
     <Hoja
       abierta={hueco !== null}
       onAbiertaChange={(v) => !v && onCerrar()}
-      titulo={`${diaDe(fecha)} · ${tipo === "comida" ? "Comida" : "Cena"}`}
+      titulo={`${diaDe(fecha)} · ${tipo === "comida" ? "Comida" : "Cena"}${para === "bebe" ? ` de ${bebe}` : ""}`}
       pie={
         <div className="grid grid-cols-[auto_1fr] gap-2">
           <Boton variante="peligro" tamano="icono" onClick={vaciar} aria-label="Vaciar franja" disabled={ocupado}>
@@ -205,6 +236,18 @@ export function FranjaHoja({
           <Campo etiqueta="Raciones" ayuda={modo === "sobras" ? "Se suman a las que se cocinan en la franja de origen." : undefined}>
             <Contador valor={raciones} onChange={(v) => setRaciones(Math.max(1, Math.round(v)))} min={1} />
           </Campo>
+        )}
+
+        {nuevos.length > 0 && (
+          <div className="flex flex-col gap-2 rounded-2xl bg-aviso-suave p-3 text-aviso">
+            <p className="flex items-start gap-2 text-sm font-medium">
+              <Baby className="mt-0.5 size-4 shrink-0" />
+              <span>
+                Primera vez para {bebe}: {nuevos.map(nombreDe).join(", ")}.
+              </span>
+            </p>
+            {alergenosNuevos.length > 0 && <ChipsAlergenos alergenos={alergenosNuevos} />}
+          </div>
         )}
 
         {modo === "receta" && !busqueda && sugerencias.length > 0 && (
@@ -270,6 +313,7 @@ export function FranjaHoja({
                     <span className="font-medium">{recetas.find((r) => r.id === f.receta_id)?.nombre}</span>
                     <span className="text-xs text-suave">
                       {diaDe(f.fecha)} · {f.tipo}
+                      {f.para === "bebe" ? ` de ${bebe}` : ""}
                     </span>
                   </button>
                 </li>

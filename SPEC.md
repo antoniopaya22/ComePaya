@@ -89,6 +89,7 @@ Los módulos se alimentan entre sí:
 - **Notas** libres por receta ("la próxima vez menos sal").
 - Valoración del usuario.
 - Exportar/importar recetas en **Markdown con frontmatter** (legible y versionable en Git).
+- En la receta, cada ingrediente se marca si hay suficiente en casa (o si es básico). Al tocarlo se ve cuánto hay, se puede marcar como básico ("siempre hay en casa") y **unir con un producto** de la despensa, de ahora o comprado antes, cuando es lo mismo con otro nombre ("Gnochi" de la receta y "Ñoquis" de la despensa). Unir dos ingredientes pasa recetas, productos con sus lotes y lista al ingrediente del producto, convirtiendo cantidades (g y ml se toman iguales; entre unidades y peso se pregunta cuánto es una unidad), y borra el otro. También desde la ficha del ingrediente.
 
 ### 4.4 Menú semanal
 - Vista semanal con 14 franjas (comida y cena de lunes a domingo).
@@ -98,6 +99,7 @@ Los módulos se alimentan entre sí:
 - Sugerencias de recetas (ver §9).
 - Vista de **equilibrio semanal** (ver §8.3).
 - Opcional: publicar el menú como feed iCal.
+- **Menú de bebé** (Ajustes → Bebé, con su nombre): cada día tiene además la comida y la cena del bebé (1 ración por defecto). Para él se proponen las recetas con la etiqueta «bebé» (si no hay ninguna, todas) y las de bebé no se proponen para la casa; la planificación automática y el equilibrio semanal son solo de la casa. Sus platos cuentan para la lista y se descuentan de la despensa como el resto. Se lleva qué alimentos ha probado ya (`ingrediente.bebe_introducido`): al elegir un plato se avisa de lo que sería la primera vez (con sus alérgenos) y al marcarlo cocinado queda apuntado; también se marca a mano en Ajustes → Lo que ha probado o en la ficha del ingrediente. Hoy y el feed iCal muestran también sus comidas.
 
 ### 4.5 Modo cocina
 - Pantalla que no se apaga (Wake Lock API).
@@ -140,6 +142,7 @@ Los módulos se alimentan entre sí:
 ### Unidades
 - Cada ingrediente tiene una **unidad base**: gramos, mililitros o unidades.
 - Cada producto declara cuánto contiene en esa unidad base (p. ej., lata = 400 g).
+- Lo que en casa se cuenta por piezas (patata, cebolla, tomate, zanahoria, pimientos, calabacín, berenjena, brócoli, coliflor, melón, y la fruta que ya lo estaba) va **por unidades**, con su peso medio para la nutrición; lo suelto o en bandeja (espinacas, judías verdes, champiñones, fresas…) sigue en peso. Si un hogar los tiene en gramos, Despensa y Ajustes → Ingredientes ofrecen pasarlos a unidades de una vez. La unidad de un ingrediente en uso se puede cambiar desde su ficha: se convierten recetas, lotes, envases, lista, stock mínimo y medidas caseras (entre unidades y peso, con el peso de una pieza).
 - Todas las cantidades internas se guardan en unidad base. No implementar conversiones "mágicas" (cucharadas, tazas) en las primeras fases.
 
 ### Hogar (multi-cuenta)
@@ -153,10 +156,10 @@ Los módulos se alimentan entre sí:
 
 | Entidad | Campos principales |
 |---|---|
-| `Hogar` | id, nombre, codigo_invitacion (único), comensales (raciones por defecto de cada franja), aditivos_vigilados, ical_token, creado_por, fecha_alta |
+| `Hogar` | id, nombre, codigo_invitacion (único), comensales (raciones por defecto de cada franja), aditivos_vigilados, ical_token, bebe_nombre (menú de bebé; null si no hay), creado_por, fecha_alta |
 | `Miembro` | hogar_id, user_id (Supabase Auth), nombre, email, rol (admin / miembro), fecha_alta |
 | `CatalogoEan` (global) | ean, nombre, marca, cantidad_texto, foto_url, nutrientes_100, nutriscore, nova, niveles_nutrientes, aditivos, completitud_datos, fuente, actualizado |
-| `Ingrediente` | id, hogar_id, nombre, unidad_base, seccion_super, grupo_alimento (legumbre, pescado, carne_roja, carne_blanca, verdura, fruta, cereal, lacteo, ultraprocesado…), siempre_disponible (bool), stock_minimo (opcional), emoji, peso_unidad_g (para nutrientes de lo que va por unidades), nutrientes_100 (de BEDCA o media de sus productos), caducidad_defecto_dias (opcional) |
+| `Ingrediente` | id, hogar_id, nombre, unidad_base, seccion_super, grupo_alimento (legumbre, pescado, carne_roja, carne_blanca, verdura, fruta, cereal, lacteo, ultraprocesado…), siempre_disponible (bool), stock_minimo (opcional), emoji, peso_unidad_g (para nutrientes de lo que va por unidades), nutrientes_100 (de BEDCA o media de sus productos), caducidad_defecto_dias (opcional), bebe_introducido (fecha en que el bebé lo probó) |
 | `Producto` | id, hogar_id, ean (único por hogar, nullable), nombre, marca, cantidad_envase (en unidad base), ingrediente_id, nutrientes_100, nutriscore, nova, niveles_nutrientes, aditivos, completitud_datos, fuente (openfoodfacts / mercadona / manual), foto, caducidad_habitual_dias (aprendida) |
 | `LoteDespensa` | id, producto_id, cantidad, ubicacion (nevera / congelador / despensa), fecha_caducidad (nullable), fecha_alta |
 | `RacionCongelada` | id, receta_id (nullable), descripcion, raciones, fecha_congelacion |
@@ -166,7 +169,7 @@ Los módulos se alimentan entre sí:
 | `Receta` | id, nombre, raciones, tiempo_prep_min, tiempo_coccion_min, preparacion_previa, preparacion_previa_horas, etiquetas, valoracion, notas, foto_url, fuente_url |
 | `RecetaIngrediente` | receta_id, ingrediente_id, cantidad (unidad base), opcional (bool), orden |
 | `PasoReceta` | receta_id, orden, texto, temporizador_seg (nullable), temporizador_nombre |
-| `FranjaMenu` | id, fecha, tipo (comida / cena), receta_id (nullable), raciones, fuera_de_casa (bool), es_sobra_de (franja_id, nullable), cocinado (bool) |
+| `FranjaMenu` | id, fecha, tipo (comida / cena), para (casa / bebe; única por fecha, tipo y para), receta_id (nullable), raciones, fuera_de_casa (bool), es_sobra_de (franja_id, nullable), cocinado (bool) |
 | `ItemLista` | id, ingrediente_id (nullable), texto, cantidad (texto para mostrar, p. ej. "2 kg"), cantidad_base (numérica, solo en los automáticos), seccion_super, marcado, origen (manual / menu / stock_minimo) |
 | `ReglaSemanal` | id, grupo_alimento, minimo_semana, maximo_semana (sin filas, se usan las de referencia AESAN) |
 | `Tienda` | id, nombre, orden_secciones |

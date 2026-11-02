@@ -19,23 +19,31 @@ export interface IngredienteBase {
   dias_tras_abrir: number | null;
 }
 
-type Fila = [nombre: string, unidad: UnidadBase, grupo: GrupoAlimento | null, caducidad: number | null, emoji: string, peso?: number, basico?: boolean];
+type Fila = [
+  nombre: string,
+  unidad: UnidadBase,
+  grupo: GrupoAlimento | null,
+  caducidad: number | null,
+  emoji: string,
+  peso?: number,
+  basico?: boolean,
+];
 
 const POR_SECCION: Record<string, Fila[]> = {
   "Fruta y verdura": [
-    ["Tomate", "g", "verdura", 7, "🍅"],
-    ["Cebolla", "g", "verdura", 30, "🧅"],
+    ["Tomate", "ud", "verdura", 7, "🍅", 150],
+    ["Cebolla", "ud", "verdura", 30, "🧅", 150],
     ["Ajo", "ud", null, 60, "🧄", 5, true],
-    ["Patata", "g", null, 30, "🥔"],
-    ["Zanahoria", "g", "verdura", 21, "🥕"],
-    ["Pimiento rojo", "g", "verdura", 10, "🫑"],
-    ["Pimiento verde", "g", "verdura", 10, "🫑"],
-    ["Calabacín", "g", "verdura", 10, "🥒"],
-    ["Berenjena", "g", "verdura", 7, "🍆"],
+    ["Patata", "ud", null, 30, "🥔", 200],
+    ["Zanahoria", "ud", "verdura", 21, "🥕", 80],
+    ["Pimiento rojo", "ud", "verdura", 10, "🫑", 200],
+    ["Pimiento verde", "ud", "verdura", 10, "🫑", 150],
+    ["Calabacín", "ud", "verdura", 10, "🥒", 250],
+    ["Berenjena", "ud", "verdura", 7, "🍆", 300],
     ["Lechuga", "ud", "verdura", 7, "🥬", 400],
     ["Espinacas", "g", "verdura", 5, "🥬"],
-    ["Brócoli", "g", "verdura", 7, "🥦"],
-    ["Coliflor", "g", "verdura", 7, "🥦"],
+    ["Brócoli", "ud", "verdura", 7, "🥦", 400],
+    ["Coliflor", "ud", "verdura", 7, "🥦", 800],
     ["Judías verdes", "g", "verdura", 5, "🫛"],
     ["Champiñones", "g", "verdura", 5, "🍄"],
     ["Puerro", "ud", "verdura", 14, "🥬", 150],
@@ -52,7 +60,7 @@ const POR_SECCION: Record<string, Fila[]> = {
     ["Fresas", "g", "fruta", 4, "🍓"],
     ["Uvas", "g", "fruta", 7, "🍇"],
     ["Melocotón", "ud", "fruta", 5, "🍑", 150],
-    ["Melón", "g", "fruta", 7, "🍈"],
+    ["Melón", "ud", "fruta", 7, "🍈", 1500],
   ],
   Panadería: [
     ["Pan", "g", "cereal", 3, "🥖"],
@@ -167,8 +175,35 @@ const POR_SECCION: Record<string, Fila[]> = {
 
 // Alérgenos habituales de cada ingrediente base (los productos concretos pueden traer más).
 const ALERGENOS_BASE: Record<string, string[]> = {
-  "en:gluten": ["Pan", "Pan de molde", "Pan rallado", "Pasta", "Espaguetis", "Harina", "Copos de avena", "Cuscús", "Galletas", "Cereales de desayuno", "Cerveza", "Croquetas congeladas", "Pizza congelada"],
-  "en:milk": ["Leche", "Yogur natural", "Mantequilla", "Nata para cocinar", "Queso curado", "Queso fresco", "Queso rallado", "Mozzarella", "Helado", "Chocolate", "Pizza congelada", "Croquetas congeladas"],
+  "en:gluten": [
+    "Pan",
+    "Pan de molde",
+    "Pan rallado",
+    "Pasta",
+    "Espaguetis",
+    "Harina",
+    "Copos de avena",
+    "Cuscús",
+    "Galletas",
+    "Cereales de desayuno",
+    "Cerveza",
+    "Croquetas congeladas",
+    "Pizza congelada",
+  ],
+  "en:milk": [
+    "Leche",
+    "Yogur natural",
+    "Mantequilla",
+    "Nata para cocinar",
+    "Queso curado",
+    "Queso fresco",
+    "Queso rallado",
+    "Mozzarella",
+    "Helado",
+    "Chocolate",
+    "Pizza congelada",
+    "Croquetas congeladas",
+  ],
   "en:eggs": ["Huevo", "Mayonesa"],
   "en:fish": ["Merluza", "Salmón", "Bacalao", "Dorada", "Lubina", "Sardinas", "Atún en lata"],
   "en:crustaceans": ["Gambas"],
@@ -252,4 +287,18 @@ export function emojiPara(nombre: string, seccion: string | null, propio?: strin
   if (propio) return propio;
   const base = INGREDIENTES_BASE.find((b) => mismoNombre(b.nombre, nombre));
   return base?.emoji ?? (seccion ? EMOJI_SECCION[seccion] : undefined) ?? "🛒";
+}
+
+/**
+ * Ingredientes del hogar en peso que normalmente se cuentan por piezas (patatas, cebollas, calabacines…),
+ * con lo que pesa una, para pasarlos a unidades: en casa no se pesa lo que hay.
+ */
+export function pendientesDePasarAUnidades<T extends { nombre: string; unidad_base: UnidadBase; peso_unidad_g: number | null }>(
+  ingredientes: T[],
+): { ingrediente: T; peso: number }[] {
+  return ingredientes.flatMap((i) => {
+    if (i.unidad_base === "ud") return [];
+    const base = INGREDIENTES_BASE.find((b) => mismoNombre(b.nombre, i.nombre));
+    return base?.unidad_base === "ud" && base.peso_unidad_g ? [{ ingrediente: i, peso: base.peso_unidad_g }] : [];
+  });
 }

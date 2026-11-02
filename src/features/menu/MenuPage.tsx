@@ -1,10 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, CircleCheck, Copy, ListChecks, Plane, Plus, Repeat, Sparkles } from "lucide-react";
+import { Baby, ChevronLeft, ChevronRight, CircleCheck, Copy, ListChecks, Plane, Plus, Repeat, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { Tarjeta } from "@/components/ui/varios";
+import { paraDe, type ParaFranja } from "@/dominio/bebe";
 import { hoyISO, sumarDias, type FechaISO } from "@/dominio/caducidad";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { DIAS_SEMANA, diasDeSemana, lunesDe, type TipoFranja } from "@/dominio/menu";
@@ -36,12 +37,14 @@ export function MenuPage() {
   const { data: recetas = [] } = useRecetas();
   const { data: ingredientes = [] } = useIngredientes();
   const { data: lotes = [] } = useLotes();
-  const [abierta, setAbierta] = useState<{ fecha: FechaISO; tipo: TipoFranja } | null>(null);
+  const [abierta, setAbierta] = useState<{ fecha: FechaISO; tipo: TipoFranja; para: ParaFranja } | null>(null);
   const [generando, setGenerando] = useState(false);
 
-  const buscar = (fecha: FechaISO, tipo: TipoFranja) => franjas.find((f) => f.fecha === fecha && f.tipo === tipo);
+  const buscar = (fecha: FechaISO, tipo: TipoFranja, para: ParaFranja = "casa") =>
+    franjas.find((f) => f.fecha === fecha && f.tipo === tipo && paraDe(f) === para);
+  const deCasa = franjas.filter((f) => paraDe(f) === "casa");
   const nombreReceta = (id: string | null) => recetas.find((r) => r.id === id)?.nombre ?? "Receta borrada";
-  const planificadas = franjas.filter((f) => f.receta_id || f.fuera_de_casa).length;
+  const planificadas = deCasa.filter((f) => f.receta_id || f.fuera_de_casa).length;
   const [copiando, setCopiando] = useState(false);
   const [planificando, setPlanificando] = useState(false);
 
@@ -71,11 +74,12 @@ export function MenuPage() {
           hogar_id: hogar.id,
           fecha: sumarDias(f.fecha, 7),
           tipo: f.tipo,
+          para: paraDe(f),
           receta_id: f.receta_id,
           raciones: f.raciones,
           fuera_de_casa: f.fuera_de_casa,
         })),
-        { onConflict: "hogar_id,fecha,tipo", ignoreDuplicates: true },
+        { onConflict: "hogar_id,fecha,tipo,para", ignoreDuplicates: true },
       );
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
@@ -196,22 +200,41 @@ export function MenuPage() {
                       nombreReceta={nombreReceta}
                       miniatura={miniatura}
                       origen={(id) => franjas.find((f) => f.id === id)}
-                      onClick={() => setAbierta({ fecha, tipo })}
+                      onClick={() => setAbierta({ fecha, tipo, para: "casa" })}
                     />
                   ))}
+                  {hogar.bebe_nombre && (
+                    <div className="border-t border-borde bg-superficie-2/40">
+                      <p className="flex items-center gap-1.5 px-4 pt-2 text-xs font-semibold text-suave">
+                        <Baby className="size-3.5" /> {hogar.bebe_nombre}
+                      </p>
+                      {(["comida", "cena"] as const).map((tipo) => (
+                        <Franja
+                          key={tipo}
+                          tipo={tipo}
+                          franja={buscar(fecha, tipo, "bebe")}
+                          nombreReceta={nombreReceta}
+                          miniatura={miniatura}
+                          origen={(id) => franjas.find((f) => f.id === id)}
+                          onClick={() => setAbierta({ fecha, tipo, para: "bebe" })}
+                          etiqueta={`${tipo} de ${hogar.bebe_nombre}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </Tarjeta>
               </li>
             );
           })}
         </ul>
 
-        <EquilibrioSemana franjas={franjas} />
+        <EquilibrioSemana franjas={deCasa} />
       </div>
 
       <PlanificarHoja abierta={planificando} lunes={lunes} franjas={franjas} onCerrar={() => setPlanificando(false)} />
       <FranjaHoja
         hueco={abierta}
-        franja={abierta ? buscar(abierta.fecha, abierta.tipo) : undefined}
+        franja={abierta ? buscar(abierta.fecha, abierta.tipo, abierta.para) : undefined}
         franjasSemana={franjas}
         onCerrar={() => setAbierta(null)}
       />
@@ -226,6 +249,7 @@ function Franja({
   miniatura,
   origen,
   onClick,
+  etiqueta,
 }: {
   tipo: TipoFranja;
   franja: FranjaMenu | undefined;
@@ -233,6 +257,8 @@ function Franja({
   miniatura: (recetaId: string | null) => { foto: string | null; emoji: string };
   origen: (id: string) => FranjaMenu | undefined;
   onClick: () => void;
+  /** Nombre accesible de la fila (la del bebé dice de quién es). */
+  etiqueta?: string;
 }) {
   let contenido;
   if (!franja || (!franja.receta_id && !franja.fuera_de_casa)) {
@@ -269,7 +295,7 @@ function Franja({
           <span className="block truncate text-xs text-suave">
             {franja.es_sobra_de
               ? `Sobras${deOtra ? ` del ${DIAS_SEMANA[(new Date(deOtra.fecha).getUTCDay() + 6) % 7].toLowerCase()}` : ""}`
-              : `${franja.raciones} raciones`}
+              : `${franja.raciones} ${franja.raciones === 1 ? "ración" : "raciones"}`}
           </span>
         </span>
         {franja.cocinado && <CircleCheck className="ml-auto size-4 shrink-0 text-primario" />}
@@ -278,7 +304,7 @@ function Franja({
   }
 
   return (
-    <button onClick={onClick} className="flex min-h-14 w-full items-center gap-3 border-t border-borde px-4 py-2 text-left transition-colors first-of-type:border-t-0 active:bg-superficie-2">
+    <button onClick={onClick} aria-label={etiqueta} className="flex min-h-14 w-full items-center gap-3 border-t border-borde px-4 py-2 text-left transition-colors first-of-type:border-t-0 active:bg-superficie-2">
       <span className="w-14 shrink-0 text-xs font-semibold tracking-wide text-suave uppercase">{tipo}</span>
       <span className="min-w-0 flex-1">{contenido}</span>
     </button>
