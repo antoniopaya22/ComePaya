@@ -17,6 +17,10 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Falta el secreto SUPABASE_DB_URL (Settings → Secrets and variables → Actions). Ver README, sección 5."
+            exit 1
+          fi
           supabase db dump --db-url "$SUPABASE_DB_URL" -f esquema.sql
           supabase db dump --db-url "$SUPABASE_DB_URL" --data-only -f datos.sql
       - uses: actions/upload-artifact@v4
