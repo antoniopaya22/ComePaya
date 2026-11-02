@@ -74,9 +74,18 @@ export async function obtenerOCrearIngrediente(
 export async function crearProducto(hogarId: string, datos: DatosProductoNuevo, ingredientes: Ingrediente[]): Promise<ProductoConIngrediente> {
   const ingredienteId = await obtenerOCrearIngrediente(hogarId, datos.ingrediente, { unidad_base: datos.unidad, seccion_super: datos.seccion }, ingredientes);
   if (datos.ean) {
-    // Si el producto con ese código ya existe (reintento u otro miembro), se usa.
-    const { data: existente } = await supabase.from("producto").select(SELECT_PRODUCTO).eq("hogar_id", hogarId).eq("ean", datos.ean).maybeSingle();
-    if (existente) return existente as ProductoConIngrediente;
+    // Si el producto con ese código ya existe (reintento, un alta anterior u otro miembro), se usa,
+    // pero con el nombre y la marca que se acaban de escribir: es lo que la persona quiere ver.
+    const { data } = await supabase.from("producto").select(SELECT_PRODUCTO).eq("hogar_id", hogarId).eq("ean", datos.ean).maybeSingle();
+    const existente = data as ProductoConIngrediente | null;
+    if (existente) {
+      const nombre = datos.nombre.trim() || existente.nombre;
+      const marca = datos.marca?.trim() || existente.marca;
+      if (nombre === existente.nombre && marca === existente.marca) return existente;
+      const { data: actualizado, error } = await supabase.from("producto").update({ nombre, marca }).eq("id", existente.id).select(SELECT_PRODUCTO).single();
+      if (error) throw error;
+      return actualizado as ProductoConIngrediente;
+    }
   }
   const externo = datos.externo;
   const { data, error } = await supabase
