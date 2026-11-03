@@ -1,4 +1,5 @@
 # Cada lunes: copia de seguridad de Supabase y, de paso, actividad para que el plan gratuito no pause el proyecto.
+# El repositorio es público y sus artifacts se pueden descargar: la copia solo se sube cifrada (secreto BACKUP_PASSPHRASE).
 name: Mantenimiento semanal
 
 on:
@@ -21,10 +22,25 @@ jobs:
             echo "::error::Falta el secreto SUPABASE_DB_URL (Settings → Secrets and variables → Actions). Ver README, sección 1."
             exit 1
           fi
-          supabase db dump --db-url "$SUPABASE_DB_URL" -f esquema.sql
-          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only -f datos.sql
+          mkdir copia
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f copia/esquema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only -f copia/datos.sql
+      - name: Cifrar
+        id: cifrar
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::warning::Sin el secreto BACKUP_PASSPHRASE la copia no se sube (el repositorio es público). Ver README, sección 5."
+            rm -rf copia
+            exit 0
+          fi
+          tar czf - copia | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 -o copia.tar.gz.gpg 3<<<"$BACKUP_PASSPHRASE"
+          rm -rf copia
+          echo "subir=si" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
+        if: steps.cifrar.outputs.subir == 'si'
         with:
-          name: copia-${{ github.run_number }}
-          path: "*.sql"
+          name: copia-cifrada-${{ github.run_number }}
+          path: copia.tar.gz.gpg
           retention-days: 90

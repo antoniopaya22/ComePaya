@@ -283,6 +283,8 @@ function ejecutarRpc(db: Tablas, nombre: string, args: Record<string, unknown>):
     case "crear_hogar":
     case "unirse_hogar":
       return [db.hogar[0]];
+    case "regenerar_token_ical":
+      return [(db.hogar[0].ical_token = "nuevotokenical")];
     case "regenerar_codigo_invitacion":
       return [(db.hogar[0].codigo_invitacion = "NUEVO234")];
     case "guardar_receta": {

@@ -207,6 +207,25 @@ export function AjustesPage() {
                 }}
               />
             )}
+            {hogar.ical_token && (
+              <Fila
+                icono={<RefreshCw />}
+                titulo="Cambiar el enlace del calendario"
+                detalle="El anterior deja de funcionar: tendréis que volver a añadirlo"
+                onClick={async () => {
+                  const ok = await confirmar({
+                    titulo: "¿Cambiar el enlace del calendario?",
+                    mensaje: "Quien tenga el enlace actual dejará de ver vuestro menú, también vosotros hasta que añadáis el nuevo.",
+                    aceptar: "Cambiar",
+                  });
+                  if (!ok) return;
+                  const { error } = await supabase.rpc("regenerar_token_ical", { p_hogar_id: hogar.id });
+                  if (error) return toast.error(mensajeError(error));
+                  await queryClient.invalidateQueries({ queryKey: ["hogares", usuario.id] });
+                  toast.success("Enlace del calendario cambiado", { description: "Cópialo de nuevo para añadirlo a tu calendario." });
+                }}
+              />
+            )}
           </Tarjeta>
         </Bloque>
 

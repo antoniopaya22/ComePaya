@@ -75,9 +75,12 @@ Cada miembro activa los avisos en su móvil desde *Ajustes → Avisos en este di
 
 ### 5. Copia de seguridad semanal
 
-El workflow [.github/workflows/mantenimiento.yml](.github/workflows/mantenimiento.yml) vuelca la base de datos cada lunes y la guarda como artefacto 90 días; esa actividad además evita que Supabase pause el proyecto gratuito.
+El workflow [.github/workflows/mantenimiento.yml](.github/workflows/mantenimiento.yml) vuelca la base de datos cada lunes y la guarda **cifrada** como artefacto 90 días; esa actividad además evita que Supabase pause el proyecto gratuito.
 
 - Usa el mismo secreto `SUPABASE_DB_URL` que las migraciones (paso 1.2).
+- El repositorio es público y cualquiera con cuenta de GitHub puede descargar sus artefactos: la copia solo se sube si existe el secreto `BACKUP_PASSPHRASE` (una contraseña larga que guardas tú), con la que se cifra (AES-256, gpg). Sin él, se vuelca pero no se sube.
+- Para restaurarla: descarga el artefacto `copia-cifrada-N`, descomprime el zip y ejecuta
+  `gpg -d copia.tar.gz.gpg | tar xz` (pide la contraseña); salen `copia/esquema.sql` y `copia/datos.sql`.
 - GitHub desactiva los workflows programados de repositorios públicos sin actividad en 60 días.
 
 ## Usarla en el móvil
