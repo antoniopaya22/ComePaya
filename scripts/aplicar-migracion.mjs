@@ -21,7 +21,7 @@ const APLICADAS_A_MANO_HASTA = "20261110000000_menu_bebe.sql";
 const pedidas = process.argv.slice(2);
 for (const a of pedidas) if (!existsSync(a)) salir(`No existe ${a}`);
 
-const url = process.env.SUPABASE_DB_URL || urlDirecta();
+const url = process.env.SUPABASE_DB_URL ? comprobarUrl(process.env.SUPABASE_DB_URL) : urlDirecta();
 const sql = postgres(url, { ssl: "require", max: 1, connect_timeout: 15, onnotice: () => {} });
 
 try {
@@ -98,6 +98,25 @@ function salirSinConexion(error) {
     `No se pudo conectar (${error.message}).` +
       (process.env.SUPABASE_DB_URL ? "" : " Si tu red no tiene IPv6, prueba con SUPABASE_DB_URL y la cadena del Session pooler."),
   );
+}
+
+/** Explica qué le pasa a SUPABASE_DB_URL sin mostrarla (lleva la contraseña). */
+function comprobarUrl(valor) {
+  const url = valor.trim();
+  const fallos = [];
+  if (/^["']|["']$/.test(url)) fallos.push("está entre comillas: quítalas");
+  if (!/^postgres(ql)?:\/\//.test(url.replace(/^["']/, ""))) fallos.push("no empieza por postgresql://");
+  if (/\[|\]/.test(url)) fallos.push("lleva corchetes: sustituye [YOUR-PASSWORD] (con los corchetes) por la contraseña");
+  if ((url.match(/@/g) ?? []).length > 1) fallos.push("la contraseña tiene @ sin codificar: escríbelo como %40");
+  if (/\s/.test(url)) fallos.push("tiene espacios o saltos de línea");
+  try {
+    new URL(url);
+  } catch {
+    fallos.push("no es una URL válida: si la contraseña tiene símbolos (# / ? : %), codifícalos o usa una solo con letras y números");
+  }
+  if (fallos.length) salir(`SUPABASE_DB_URL no vale: ${[...new Set(fallos)].join("; ")}.`);
+  if (!url.includes("pooler.supabase.com")) console.warn("Aviso: no parece la cadena del Session pooler; desde GitHub la conexión directa suele fallar.");
+  return url;
 }
 
 function urlDirecta() {
