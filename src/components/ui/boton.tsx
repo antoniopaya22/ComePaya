@@ -19,7 +19,8 @@ const variantes = cva(
         md: "h-11 px-4 text-[15px]",
         lg: "h-13 px-5 text-base",
         icono: "size-11",
-        "icono-sm": "size-9",
+        // 44 px de zona táctil en el móvil; más compacto con ratón.
+        "icono-sm": "size-11 md:size-9",
       },
     },
     defaultVariants: { variante: "primario", tamano: "md" },

@@ -50,7 +50,8 @@ describe("describirCaducidad", () => {
     [HOY, "Caduca hoy"],
     ["2026-11-02", "Caduca mañana"],
     ["2026-11-20", "Caduca en 19 días"],
-    ["2027-03-12", "Caduca el 12/03/2027"],
+    ["2027-03-12", "Caduca el 12 mar"],
+    ["2028-01-02", "Caduca el 2 ene 2028"],
   ] as const)("%s → %s", (fecha, texto) => {
     expect(describirCaducidad(fecha, HOY)).toBe(texto);
   });
@@ -63,7 +64,8 @@ describe("etiquetaCaducidad", () => {
     [HOY, "Hoy"],
     ["2026-11-02", "Mañana"],
     ["2026-11-20", "19 días"],
-    ["2027-03-12", "12/03/27"],
+    ["2027-03-12", "12 mar"],
+    ["2028-01-02", "2 ene 2028"],
   ] as const)("%s → %s", (fecha, texto) => {
     expect(etiquetaCaducidad(fecha, HOY)).toBe(texto);
   });

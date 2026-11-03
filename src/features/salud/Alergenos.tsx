@@ -14,7 +14,7 @@ export function ChipsAlergenos({ alergenos, opcionales = [], vacio }: { alergeno
       key={a}
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium",
-        delHogar.includes(a) ? "bg-peligro text-white" : "bg-superficie-2 text-texto",
+        delHogar.includes(a) ? "bg-peligro text-sobre-color" : "bg-superficie-2 text-texto",
         opcional && "border border-dashed border-borde",
       )}
     >

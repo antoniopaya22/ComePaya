@@ -101,7 +101,7 @@ export function FichaProducto({ producto, compacta = false }: { producto: Produc
               )}
             </div>
             <div className="rounded-xl bg-superficie-2 p-3">
-              <p className="text-xs font-medium text-suave">Procesamiento (NOVA)</p>
+              <p className="text-xs font-medium text-suave">Grado de procesado (NOVA)</p>
               {producto.nova ? (
                 <div className="mt-1.5 flex items-center gap-2">
                   <span className="grid size-8 shrink-0 place-items-center rounded-lg font-bold text-white" style={{ background: COLOR_NOVA[producto.nova] }}>

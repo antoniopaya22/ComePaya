@@ -34,7 +34,10 @@ export function Contador({
   min = 0,
   paso = 1,
   sufijo,
+  etiqueta,
 }: {
+  /** Qué se cuenta, para los lectores de pantalla ("Menos raciones"); dentro de un Campo ya lo da la etiqueta. */
+  etiqueta?: string;
   valor: number;
   onChange: (valor: number) => void;
   min?: number;
@@ -45,7 +48,7 @@ export function Contador({
     <div className="flex h-12 items-center gap-1 rounded-xl border border-borde bg-superficie p-0.5">
       <button
         type="button"
-        aria-label="Menos"
+        aria-label={etiqueta ? `Menos ${etiqueta}` : "Menos"}
         className="grid size-11 place-items-center rounded-lg bg-superficie-2 active:scale-95 disabled:opacity-40"
         disabled={valor - paso < min}
         onClick={() => onChange(Math.max(min, +(valor - paso).toFixed(2)))}
@@ -56,6 +59,7 @@ export function Contador({
         <input
           type="number"
           inputMode="decimal"
+          aria-label={etiqueta}
           className="w-14 bg-transparent text-center text-lg font-semibold outline-none"
           value={Number.isFinite(valor) ? valor : ""}
           onChange={(e) => onChange(Number(e.target.value.replace(",", ".")))}
@@ -64,7 +68,7 @@ export function Contador({
       </div>
       <button
         type="button"
-        aria-label="Más"
+        aria-label={etiqueta ? `Más ${etiqueta}` : "Más"}
         className="grid size-11 place-items-center rounded-lg bg-superficie-2 active:scale-95"
         onClick={() => onChange(+(valor + paso).toFixed(2))}
       >

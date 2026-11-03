@@ -47,7 +47,7 @@ export function Avisos() {
         <BotonIcono etiqueta={urgentes.length ? `${urgentes.length} avisos de caducidad` : "Avisos"} data-recorrido="avisos">
           <Bell />
           {urgentes.length > 0 && (
-            <span className="absolute top-1.5 right-1.5 grid min-w-4 place-items-center rounded-full bg-aviso px-1 text-[10px] leading-4 font-bold text-white ring-2 ring-fondo">
+            <span className="absolute top-1.5 right-1.5 grid min-w-4 place-items-center rounded-full bg-aviso px-1 text-[10px] leading-4 font-bold text-sobre-color ring-2 ring-fondo">
               {urgentes.length > 9 ? "9+" : urgentes.length}
             </span>
           )}
@@ -91,7 +91,7 @@ export function MenuUsuario() {
   const nombre: string = usuario.user_metadata.full_name ?? usuario.user_metadata.name ?? usuario.email ?? "";
   return (
     <Menu>
-      <MenuDisparador data-recorrido="hogar" className="mr-1.5 ml-1 rounded-full md:mr-0 ring-offset-2 ring-offset-fondo outline-none focus-visible:ring-2 focus-visible:ring-primario" aria-label="Tu cuenta">
+      <MenuDisparador data-recorrido="hogar" className="mr-0.5 grid size-11 place-items-center rounded-full md:mr-0 ring-offset-2 ring-offset-fondo outline-none focus-visible:ring-2 focus-visible:ring-primario" aria-label="Tu cuenta">
         <Avatar url={usuario.user_metadata.avatar_url} nombre={nombre} />
       </MenuDisparador>
       <MenuContenido className="w-64">

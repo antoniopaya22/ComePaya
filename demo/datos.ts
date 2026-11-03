@@ -222,7 +222,7 @@ export function datosIniciales(hoy: FechaISO): Tablas {
     ],
     item_lista: [
       { id: "i1", hogar_id: HOGAR_ID, texto: "Pan", cantidad: null, cantidad_base: null, ingrediente_id: id("Pan"), seccion_super: "Panadería", marcado: false, origen: "manual", creado_en: hace(1) },
-      { id: "i2", hogar_id: HOGAR_ID, texto: "Plátano", cantidad: "x6", cantidad_base: null, ingrediente_id: id("Plátano"), seccion_super: "Fruta y verdura", marcado: false, origen: "manual", creado_en: hace(1) },
+      { id: "i2", hogar_id: HOGAR_ID, texto: "Plátano", cantidad: "x6", cantidad_base: 6, ingrediente_id: id("Plátano"), seccion_super: "Fruta y verdura", marcado: false, origen: "manual", creado_en: hace(1) },
       { id: "i3", hogar_id: HOGAR_ID, texto: "Papel de cocina", cantidad: null, cantidad_base: null, ingrediente_id: null, seccion_super: "Droguería", marcado: false, origen: "manual", creado_en: hace(1) },
     ],
     receta: recetas.map((r) => r.receta),

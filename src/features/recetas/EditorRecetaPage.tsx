@@ -428,7 +428,7 @@ export function EditorRecetaPage() {
             <Campo etiqueta="Prep. (min)">
               <Entrada inputMode="numeric" value={prep} onChange={(e) => setPrep(e.target.value)} placeholder="15" className="h-12" />
             </Campo>
-            <Campo etiqueta="Cocción (min)">
+            <Campo etiqueta="Cocc. (min)">
               <Entrada inputMode="numeric" value={coccion} onChange={(e) => setCoccion(e.target.value)} placeholder="40" className="h-12" />
             </Campo>
           </div>
@@ -498,6 +498,7 @@ export function EditorRecetaPage() {
                   <Boton
                     variante="fantasma"
                     tamano="icono"
+                    className="shrink-0"
                     aria-label="Quitar ingrediente"
                     onClick={() => setFilas(filas.length > 1 ? filas.filter((x) => x.clave !== f.clave) : [filaIngredienteVacia()])}
                   >
@@ -585,7 +586,7 @@ export function EditorRecetaPage() {
                 <Entrada
                   value={p.nombreTemporizador}
                   onChange={(e) => cambiarPaso(p.clave, { nombreTemporizador: e.target.value })}
-                  placeholder="Nombre del temporizador (opcional)"
+                  placeholder="Nombre (opcional)"
                   className="h-9"
                 />
               </div>
@@ -597,7 +598,7 @@ export function EditorRecetaPage() {
         </section>
 
         <Tarjeta className="flex flex-col gap-4 p-4">
-          <Campo etiqueta="Preparación previa" ayuda="Lo que hay que hacer con antelación. Se usará para avisaros (fase 5).">
+          <Campo etiqueta="Preparación previa" ayuda="Lo que hay que hacer con antelación (descongelar, poner en remojo…). Os llegará un aviso a tiempo.">
             <Entrada value={previa} onChange={(e) => setPrevia(e.target.value)} placeholder="Poner los garbanzos en remojo" />
           </Campo>
           {previa.trim() && (

@@ -43,7 +43,7 @@ export function SelectorCaducidad({ valor, onChange, hoy }: { valor: FechaISO | 
                 "h-9 rounded-full border px-3.5 text-sm font-medium transition-colors active:scale-95",
                 activo
                   ? atajo.etiqueta === "Ya caducado"
-                    ? "border-peligro bg-peligro text-white"
+                    ? "border-peligro bg-peligro text-sobre-color"
                     : "border-primario bg-primario text-primario-texto"
                   : atajo.etiqueta === "Ya caducado"
                     ? "border-peligro/40 bg-superficie text-peligro"

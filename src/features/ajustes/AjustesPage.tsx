@@ -43,11 +43,19 @@ export function AjustesPage() {
     }
   }
 
-  async function cambiarComensales(comensales: number) {
-    const { error } = await supabase.from("hogar").update({ comensales }).eq("id", hogar.id);
-    if (error) return toast.error(mensajeError(error));
-    queryClient.invalidateQueries({ queryKey: ["hogares", usuario.id] });
-  }
+  // Comensales: se ve al momento y se guarda cuando se deja de tocar (no en cada pulsación ni con el campo vacío).
+  const [comensales, setComensales] = useState<number | null>(null);
+  useEffect(() => {
+    if (comensales === null || comensales === hogar.comensales || !(comensales >= 1)) return;
+    const t = setTimeout(async () => {
+      const { error } = await supabase.from("hogar").update({ comensales }).eq("id", hogar.id);
+      if (error) return toast.error(mensajeError(error));
+      await queryClient.invalidateQueries({ queryKey: ["hogares", usuario.id] });
+      toast.success(`Guardado: ${comensales} ${comensales === 1 ? "comensal" : "comensales"}`);
+      setComensales(null);
+    }, 800);
+    return () => clearTimeout(t);
+  }, [comensales]);
 
   const confirmar = useConfirmar();
 
@@ -99,7 +107,12 @@ export function AjustesPage() {
               </div>
               {rol === "admin" ? (
                 <div className="w-36 shrink-0">
-                  <Contador valor={hogar.comensales ?? 2} onChange={(v) => cambiarComensales(Math.min(20, Math.max(1, Math.round(v))))} min={1} />
+                  <Contador
+                    etiqueta="comensales"
+                    valor={comensales ?? hogar.comensales ?? 2}
+                    onChange={(v) => setComensales(Number.isFinite(v) && v > 0 ? Math.min(20, Math.round(v)) : NaN)}
+                    min={1}
+                  />
                 </div>
               ) : (
                 <span className="text-lg font-semibold">{hogar.comensales ?? 2}</span>
@@ -152,7 +165,7 @@ export function AjustesPage() {
                       </span>
                       <span className="block truncate text-xs text-suave">{m.email}</span>
                     </span>
-                    {m.rol === "admin" && <Etiqueta>Admin</Etiqueta>}
+                    {m.rol === "admin" && <Etiqueta>Administra</Etiqueta>}
                   </li>
                 ))}
               </ul>
@@ -235,7 +248,7 @@ export function AjustesPage() {
               <Fila
                 icono={<Bug />}
                 titulo="Reportar un problema o una idea"
-                detalle={`Abre un aviso en GitHub con los datos del móvil · versión ${VERSION}`}
+                detalle={`Nos llega con los datos del móvil para poder arreglarlo · versión ${VERSION}`}
               />
             </a>
           </Tarjeta>
@@ -317,7 +330,7 @@ function Fila({ icono, titulo, detalle, onClick }: { icono: ReactNode; titulo: s
       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-superficie-2 text-suave [&_svg]:size-5">{icono}</span>
       <span className="min-w-0 flex-1 text-left">
         <span className="block text-[16px]">{titulo}</span>
-        {detalle && <span className="block truncate text-[13.5px] text-suave">{detalle}</span>}
+        {detalle && <span className="line-clamp-2 block text-[13.5px] text-suave">{detalle}</span>}
       </span>
       <ChevronRight className="size-4 text-suave" />
     </>

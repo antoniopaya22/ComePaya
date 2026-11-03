@@ -66,7 +66,7 @@ test("Receta: escalar raciones y abrir el modo cocina", async ({ page }) => {
 test("Despensa agrupada y ficha de producto", async ({ page }) => {
   await page.goto("/despensa");
   await page.getByText("Leche semidesnatada").first().click();
-  await expect(page.getByText("2 lotes")).toBeVisible();
+  await expect(page.getByText("2 tandas")).toBeVisible();
   await page.getByRole("link", { name: /Ver ficha/ }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Leche semidesnatada");
   await expect(page.getByText("Historial")).toBeVisible();
@@ -466,7 +466,7 @@ test("Menú: comidas propias del bebé y alimentos que aún no ha probado", asyn
   await hoja.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByRole("button", { name: "comida de Lucía" }).first()).toContainText("Puré de verduras");
   // La casa sigue con sus 14 franjas.
-  await expect(page.getByText(/de 14 franjas planificadas/).first()).toBeVisible();
+  await expect(page.getByText(/de 14 comidas y cenas planificadas/).first()).toBeVisible();
 
   await page.goto("/ajustes/bebe");
   await expect(page.getByRole("button", { name: /Zanahoria/ })).toContainText(/\d/);

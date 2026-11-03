@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alimentosNuevos, esRecetaDeBebe, limpiarNombreBebe, paraDe, recetasPara } from "./bebe.js";
+import { alimentosNuevos, esAlimentoParaBebe, esRecetaDeBebe, limpiarNombreBebe, paraDe, recetasPara } from "./bebe.js";
 
 describe("recetas de bebé", () => {
   const pure = { nombre: "Puré de verduras", etiquetas: ["Bebé"] };
@@ -48,5 +48,20 @@ describe("varios", () => {
   it("limpia el nombre del bebé", () => {
     expect(limpiarNombreBebe("  Lucía  ")).toBe("Lucía");
     expect(limpiarNombreBebe("   ")).toBeNull();
+  });
+});
+
+describe("esAlimentoParaBebe", () => {
+  it.each([
+    ["Patata", "Fruta y verdura", true],
+    ["Agua", "Bebidas", true],
+    ["Cerveza", "Bebidas", false],
+    ["Vino tinto", "Bebidas", false],
+    ["Detergente", "Droguería", false],
+    ["Gel de ducha", "Higiene", false],
+    ["Macarrones", "Despensa", true],
+    ["Vinagre", "Despensa", true],
+  ])("%s (%s) → %s", (nombre, seccion_super, esperado) => {
+    expect(esAlimentoParaBebe({ nombre, seccion_super })).toBe(esperado);
   });
 });

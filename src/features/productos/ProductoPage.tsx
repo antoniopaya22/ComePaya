@@ -69,7 +69,7 @@ export function ProductoPage() {
   async function borrar() {
     const ok = await confirmar({
       titulo: `¿Borrar «${producto!.nombre}»?`,
-      mensaje: suyos.length ? `Se borrarán también sus ${suyos.length} lotes de la despensa y su historial.` : "Se borrará también su historial.",
+      mensaje: suyos.length ? `Se borrará también lo que hay en la despensa (${suyos.length} ${suyos.length === 1 ? "tanda" : "tandas"}) y su historial.` : "Se borrará también su historial.",
       aceptar: "Borrar",
       peligro: true,
     });

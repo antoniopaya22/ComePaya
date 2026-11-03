@@ -320,7 +320,7 @@ function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProduct
           <Etiqueta tono={tono(estado)}>{etiquetaCaducidad(grupo.proxima, hoy)}</Etiqueta>
           {varios && (
             <span className="flex items-center gap-0.5 text-xs text-suave">
-              {grupo.lotes.length} lotes <ChevronDown className={cn("size-3.5 transition-transform", abierto && "rotate-180")} />
+              {grupo.lotes.length} tandas <ChevronDown className={cn("size-3.5 transition-transform", abierto && "rotate-180")} />
             </span>
           )}
         </span>

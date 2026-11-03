@@ -286,7 +286,7 @@ function NavegacionInferior({ contadores }: { contadores: Record<string, { n: nu
                     {!!contador?.n && (
                       <span
                         className={cn(
-                          "absolute -top-1.5 -right-2.5 min-w-4 rounded-full px-1 text-center text-[10px] leading-4 font-bold text-white ring-2 ring-superficie",
+                          "absolute -top-1.5 -right-2.5 min-w-4 rounded-full px-1 text-center text-[10px] leading-4 font-bold text-sobre-color ring-2 ring-superficie",
                           contador.aviso ? "bg-aviso" : "bg-primario",
                         )}
                       >

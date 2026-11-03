@@ -40,13 +40,14 @@ export function EquilibrioSemana({ franjas }: { franjas: FranjaMenu[] }) {
           const n = cuenta.get(r.grupo_alimento) ?? 0;
           const mal = (r.minimo_semana !== null && n < r.minimo_semana) || (r.maximo_semana !== null && n > r.maximo_semana);
           const etiqueta = GRUPOS_ALIMENTO.find((g) => g.valor === r.grupo_alimento)?.etiqueta ?? r.grupo_alimento;
-          const objetivo = r.minimo_semana !== null ? `${r.minimo_semana}+` : `≤${r.maximo_semana}`;
+          // "Legumbre: 1 de 3" (mínimo) o "Huevo: 1, máx. 4".
+          const texto = r.minimo_semana !== null ? `${etiqueta}: ${n} de ${r.minimo_semana}` : `${etiqueta}: ${n}, máx. ${r.maximo_semana}`;
           return (
             <span
               key={r.grupo_alimento}
               className={cn("rounded-full px-2.5 py-1 text-xs font-medium", mal ? "bg-aviso-suave text-aviso" : "bg-primario-suave text-primario")}
             >
-              {etiqueta} {n}/{objetivo}
+              {texto}
             </span>
           );
         })}

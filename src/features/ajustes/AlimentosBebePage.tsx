@@ -3,6 +3,7 @@ import { Check, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { BarraApp } from "@/components/BarraApp";
+import { esAlimentoParaBebe } from "@/dominio/bebe";
 import { Entrada } from "@/components/ui/campos";
 import { FilaBoton, Grupo } from "@/components/ui/lista";
 import { hoyISO } from "@/dominio/caducidad";
@@ -31,7 +32,8 @@ export function AlimentosBebePage() {
 
   const { probados, pendientes } = useMemo(() => {
     const q = busqueda.trim();
-    const visibles = q ? ingredientes.filter((i) => puntuarBusqueda(i.nombre, q) > 0) : ingredientes;
+    const alimentos = ingredientes.filter(esAlimentoParaBebe);
+    const visibles = q ? alimentos.filter((i) => puntuarBusqueda(i.nombre, q) > 0) : alimentos;
     return {
       probados: visibles.filter((i) => i.bebe_introducido).sort((a, b) => b.bebe_introducido!.localeCompare(a.bebe_introducido!)),
       pendientes: visibles.filter((i) => !i.bebe_introducido).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),

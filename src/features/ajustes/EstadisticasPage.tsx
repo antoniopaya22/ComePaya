@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { consultarFranjas, useIngredientes, useRecetas, useReglas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
+import { MESES_CORTOS } from "@/dominio/caducidad";
 
 const DIAS = 90;
 
@@ -69,7 +70,7 @@ export function EstadisticasPage() {
           <div className="grid grid-cols-2 gap-3">
             <Tarjeta className="p-4">
               <p className="text-3xl font-bold">{datos.retirados ? Math.round((datos.tirados / datos.retirados) * 100) : 0}%</p>
-              <p className="text-sm text-suave">de lo retirado se tiró</p>
+              <p className="text-sm text-suave">de lo que salió de la despensa se tiró</p>
             </Tarjeta>
             <Tarjeta className="p-4">
               <p className="text-3xl font-bold">{datos.masCocinadas.reduce((t, c) => t + c.veces, 0)}</p>
@@ -92,11 +93,11 @@ export function EstadisticasPage() {
                     >
                       {s.cumple ? "✓" : s.avisos}
                     </span>
-                    <span className="text-[10px] text-suave">{`${Number(s.lunes.slice(8))}/${Number(s.lunes.slice(5, 7))}`}</span>
+                    <span className="text-[10px] text-suave">{`${Number(s.lunes.slice(8))} ${MESES_CORTOS[Number(s.lunes.slice(5, 7)) - 1]}`}</span>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-suave">Semanas que cumplieron todas las reglas (✓) o cuántos avisos tuvieron.</p>
+              <p className="text-xs text-suave">Por semana (desde el lunes): ✓ si cumplió todas las reglas o el número de avisos que tuvo («poco pescado», «demasiados precocinados»…).</p>
             </Tarjeta>
           )}
         </div>

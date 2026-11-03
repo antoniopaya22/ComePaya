@@ -155,6 +155,7 @@ export function RecetaPage() {
             <h2 className="text-[19px] font-semibold">Ingredientes</h2>
             <div className="w-44">
               <Contador
+                etiqueta="raciones"
                 valor={racionesVista}
                 onChange={(v) => setRaciones(Math.max(1, Math.round(v)))}
                 min={1}

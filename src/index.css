@@ -7,16 +7,18 @@
   --superficie-2: #efede6;
   --borde: #e2dfd5;
   --texto: #1d2420;
-  --texto-suave: #6a716c;
+  --texto-suave: #5f6661;
   --primario: #2f6b4f;
   --primario-hover: #275a42;
   --primario-suave: #e1eee6;
   --primario-texto: #ffffff;
-  --aviso: #b25e09;
+  --aviso: #9a5006;
   --aviso-suave: #fcefdc;
   --peligro: #b3261e;
   --peligro-suave: #fbe3e1;
   --exito: #2f7d32;
+  /* Texto sobre los colores de aviso, peligro y primario (contadores, chips activos). */
+  --sobre-color: #ffffff;
   color-scheme: light;
 }
 
@@ -37,6 +39,7 @@
     --peligro: #f2867d;
     --peligro-suave: #3d1d1b;
     --exito: #7fcf83;
+    --sobre-color: #111613;
     color-scheme: dark;
   }
 }
@@ -57,6 +60,7 @@
   --color-peligro: var(--peligro);
   --color-peligro-suave: var(--peligro-suave);
   --color-exito: var(--exito);
+  --color-sobre-color: var(--sobre-color);
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   /* Títulos con algo de carácter: una serif suave, de recetario. */
   --font-titulo: "Fraunces Variable", ui-serif, Georgia, serif;

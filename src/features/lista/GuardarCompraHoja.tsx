@@ -188,7 +188,7 @@ export function GuardarCompraHoja({ items: marcados, abierta, onCerrar }: { item
                           {[p.nombre, p.marca, p.cantidad_envase && formatearCantidad(p.cantidad_envase, l.ingrediente.unidad_base)].filter(Boolean).join(" · ")}
                         </option>
                       ))}
-                      {puedeCrearGenerico(l.item, l.ingrediente) && <option value={NUEVO}>Nuevo: {l.ingrediente.nombre} (genérico)</option>}
+                      {puedeCrearGenerico(l.item, l.ingrediente) && <option value={NUEVO}>Producto nuevo: {l.ingrediente.nombre} (sin marca)</option>}
                     </Selector>
                     <div className="grid grid-cols-2 gap-2">
                       <Contador valor={l.envases} onChange={(v) => cambiar(l.item.id, { envases: Math.max(0.5, v) })} min={0.5} />

@@ -98,7 +98,7 @@ export function ModoCocinaPage() {
             return (
               <div
                 key={t.id}
-                className={cn("flex shrink-0 items-center gap-2 rounded-2xl px-3 py-2", t.sonando ? "animate-pulse bg-peligro text-white" : "bg-primario-suave text-primario")}
+                className={cn("flex shrink-0 items-center gap-2 rounded-2xl px-3 py-2", t.sonando ? "animate-pulse bg-peligro text-sobre-color" : "bg-primario-suave text-primario")}
               >
                 <Timer className="size-4" />
                 <span className="text-sm font-medium">{t.nombre}</span>

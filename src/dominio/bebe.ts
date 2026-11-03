@@ -33,6 +33,15 @@ export function alimentosNuevos(ingredientes: { ingrediente_id: string; opcional
   return [...nuevos];
 }
 
+const SECCIONES_QUE_NO_SE_COMEN = new Set(["droguería", "drogueria", "higiene", "limpieza", "mascotas"]);
+// Palabras enteras: "ron" no debe pillar "macarrones" (ni "vino" el vinagre).
+const ALCOHOL = /(^|[^a-záéíóúñ])(cervezas?|vinos?|cava|sidra|licor|ron|ginebra|whisky|vodka|vermut|tequila|brandy|co[nñ]ac)($|[^a-záéíóúñ])/i;
+
+/** Si tiene sentido apuntar que el bebé lo ha probado: ni droguería ni higiene ni bebidas alcohólicas. */
+export function esAlimentoParaBebe(ingrediente: { nombre: string; seccion_super: string }): boolean {
+  return !SECCIONES_QUE_NO_SE_COMEN.has(ingrediente.seccion_super.toLowerCase()) && !ALCOHOL.test(ingrediente.nombre);
+}
+
 /** "Lucía" → "Lucía"; vacío o solo espacios → null (sin menú de bebé). */
 export function limpiarNombreBebe(nombre: string): string | null {
   const limpio = nombre.trim().replace(/\s+/g, " ").slice(0, 40);

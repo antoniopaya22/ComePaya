@@ -51,7 +51,7 @@ export function RacionesCongeladas() {
           <Snowflake className="size-3.5" /> Raciones congeladas
         </h2>
         <Boton variante="fantasma" tamano="sm" className="h-8" onClick={() => setNueva(true)}>
-          <Plus /> Añadir
+          <Plus /> Añadir ración
         </Boton>
       </div>
       {raciones.length === 0 ? (

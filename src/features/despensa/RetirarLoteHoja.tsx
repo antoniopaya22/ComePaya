@@ -203,7 +203,7 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
         <Campo etiqueta="Cuántos hay" ayuda={hay !== total ? "Guarda para que se vea igual en todos los móviles de casa." : undefined}>
           <div className="flex gap-2">
             <div className="flex-1">
-              <Contador valor={hay} onChange={(v) => setHay(Math.max(0, v))} min={0} paso={paso} sufijo={sufijo} />
+              <Contador etiqueta="(cuántos hay)" valor={hay} onChange={(v) => setHay(Math.max(0, v))} min={0} paso={paso} sufijo={sufijo} />
             </div>
             {hay !== total && (
               <Boton tamano="lg" onClick={guardarCantidad} disabled={guardando || desaparecido}>
@@ -213,7 +213,7 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
           </div>
         </Campo>
         <Campo etiqueta="Cuántos gastar, tirar o mover">
-          <Contador valor={envases} onChange={(v) => setEnvases(Math.min(v, total))} min={0} paso={paso} sufijo={sufijo} />
+          <Contador etiqueta="(gastar, tirar o mover)" valor={envases} onChange={(v) => setEnvases(Math.min(v, total))} min={0} paso={paso} sufijo={sufijo} />
         </Campo>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium text-suave">

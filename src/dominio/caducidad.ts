@@ -61,8 +61,7 @@ export function describirCaducidad(fecha: FechaISO | null, hoy: FechaISO): strin
   if (dias === 0) return "Caduca hoy";
   if (dias === 1) return "Caduca mañana";
   if (dias <= 30) return `Caduca en ${dias} días`;
-  const [anio, mes, dia] = fecha.split("-");
-  return `Caduca el ${dia}/${mes}/${anio}`;
+  return `Caduca el ${fechaCorta(fecha, hoy)}`;
 }
 
 /** Versión corta para etiquetas de lista: "Caducado", "Hoy", "Mañana", "5 días", "12/03/27", "Sin fecha". */
@@ -73,8 +72,17 @@ export function etiquetaCaducidad(fecha: FechaISO | null, hoy: FechaISO): string
   if (dias === 0) return "Hoy";
   if (dias === 1) return "Mañana";
   if (dias <= 30) return `${dias} días`;
-  const [anio, mes, dia] = fecha.split("-");
-  return `${dia}/${mes}/${anio.slice(2)}`;
+  return fechaCorta(fecha, hoy);
+}
+
+export const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+/** "2 ene", con el año solo si no es dentro de los próximos 12 meses ("2 ene 2028"). */
+export function fechaCorta(fecha: FechaISO, hoy: FechaISO): string {
+  const [anio, mes, dia] = fecha.split("-").map(Number);
+  const texto = `${dia} ${MESES_CORTOS[mes - 1]}`;
+  const dias = diasHasta(fecha, hoy);
+  return dias >= 0 && dias < 365 ? texto : `${texto} ${anio}`;
 }
 
 /**

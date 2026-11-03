@@ -35,6 +35,8 @@ export function MenuPage() {
   const hoy = hoyISO();
   const [lunes, setLunes] = useState(() => lunesDe(hoy));
   const { data: franjas = [] } = useFranjas(lunes);
+  // Solo se ofrece copiar la semana anterior si tiene algo que copiar.
+  const { data: anteriores = [] } = useFranjas(sumarDias(lunes, -7));
   const { data: recetas = [] } = useRecetas();
   const { data: ingredientes = [] } = useIngredientes();
   const { data: lotes = [] } = useLotes();
@@ -118,7 +120,7 @@ export function MenuPage() {
     <>
       <BarraApp
         titulo="Menú"
-        subtitulo={`${planificadas} de 14 franjas planificadas`}
+        subtitulo={`${planificadas} de 14 comidas y cenas planificadas`}
         acciones={
           <>
             <BotonBarra etiqueta="Rellenar la semana" onClick={() => setPlanificando(true)}>
@@ -178,7 +180,7 @@ export function MenuPage() {
           ))}
         </div>
 
-        {planificadas === 0 && (
+        {planificadas === 0 && anteriores.some((f) => f.receta_id || f.fuera_de_casa) && (
           <Tarjeta className="flex items-center gap-3 p-3.5">
             <Copy className="size-5 shrink-0 text-primario" />
             <p className="flex-1 text-sm">¿Repetís lo de la semana anterior?</p>
