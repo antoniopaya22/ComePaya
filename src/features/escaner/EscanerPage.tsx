@@ -99,7 +99,7 @@ export function EscanerPage() {
 
   async function anadirDirecto(ean: string, producto: Guardado["producto"]) {
     try {
-      const loteId = await anadirLote(hogar.id, producto, envasesABase(1, producto.cantidad_envase), ubicacion, null, "Escaneo");
+      const { loteId } = await anadirLote(hogar.id, producto, envasesABase(1, producto.cantidad_envase), ubicacion, null, "Escaneo");
       alGuardar({ ean, loteId, producto, envases: 1 }, true);
     } catch (error) {
       toast.error(mensajeError(error));

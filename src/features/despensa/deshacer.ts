@@ -21,12 +21,14 @@ export interface Instantanea {
 /**
  * Aplica `cambios` (en una transacción) y devuelve cómo deshacerlo. `lotes`: los lotes actuales del hogar
  * (de la caché vale: si otro miembro los ha cambiado, deshacer vuelve a lo que veía quien hizo el cambio).
+ * Sin `lotes`, se consultan los de los productos afectados.
  */
-export async function aplicarConDeshacer(hogarId: string, cambios: CambiosDespensa, lotes: FotoLote[]): Promise<Instantanea> {
-  const productos = productosAfectados(cambios, lotes);
+export async function aplicarConDeshacer(hogarId: string, cambios: CambiosDespensa, lotes?: FotoLote[]): Promise<Instantanea> {
+  const productos = productosAfectados(cambios, lotes ?? []);
+  const antes = lotes ? lotes.filter((l) => productos.includes(l.producto_id)).map(foto) : await lotesDe(productos);
   const instantanea: Instantanea = {
     productos,
-    lotes: lotes.filter((l) => productos.includes(l.producto_id)).map(foto),
+    lotes: antes,
     despues: [],
     movimientos: cambios.movimientos ?? [],
     franjaCocinada: cambios.franja_cocinada ?? null,

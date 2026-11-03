@@ -15,6 +15,16 @@ export function mensajeError(error: unknown): string {
   return traducido;
 }
 
+/**
+ * Solo los campos de `nuevos` que difieren de `original`. Al guardar un formulario se envía esto, no la fila entera:
+ * así no se pisa lo que otro móvil haya cambiado en otros campos mientras tanto.
+ */
+export function camposCambiados<T extends object>(original: T, nuevos: Partial<T>): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(nuevos).filter(([clave, valor]) => JSON.stringify(valor) !== JSON.stringify((original as Record<string, unknown>)[clave] ?? null)),
+  ) as Partial<T>;
+}
+
 /** Fallo de red o de tiempo (no de datos): vale la pena reintentar. */
 export function esErrorDeRed(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;

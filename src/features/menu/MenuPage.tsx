@@ -15,7 +15,7 @@ import type { FranjaMenu } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
 import { claves, consultarFranjas, useFranjas, useIngredientes, useLotes, useRecetas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
-import { describirGeneracion, generarListaDesdeMenu } from "../lista/generar";
+import { avisarGeneracion, generarListaDesdeMenu } from "../lista/generar";
 import { EquilibrioSemana } from "../salud/EquilibrioSemana";
 import { FranjaHoja } from "./FranjaHoja";
 import { PlanificarHoja } from "./PlanificarHoja";
@@ -107,8 +107,9 @@ export function MenuPage() {
     setGenerando(true);
     try {
       const resultado = await generarListaDesdeMenu({ hogarId: hogar.id, dias: 7, ingredientes, recetas, lotes });
-      await queryClient.invalidateQueries({ queryKey: claves.lista(hogar.id) });
-      toast.success(describirGeneracion(resultado), { description: "Con el menú de los próximos 7 días y lo que hay en casa." });
+      const refrescar = () => queryClient.invalidateQueries({ queryKey: claves.lista(hogar.id) });
+      await refrescar();
+      avisarGeneracion(resultado, refrescar);
     } catch (error) {
       toast.error(mensajeError(error));
     } finally {

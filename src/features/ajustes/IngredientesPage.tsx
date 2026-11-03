@@ -14,7 +14,7 @@ import { normalizar } from "@/dominio/texto";
 import { formatearCantidad, UNIDADES_BASE, type UnidadBase } from "@/dominio/unidades";
 import { supabase } from "@/lib/supabase";
 import type { Ingrediente } from "@/lib/tipos";
-import { mensajeError } from "@/lib/utils";
+import { camposCambiados, mensajeError } from "@/lib/utils";
 import { CLAVES_NUTRIENTES, GRUPOS_ALIMENTO, type GrupoAlimento } from "@/dominio/nutricion";
 import type { Nutrientes100 } from "@/dominio/producto-externo";
 import { claves, useIngredientes, useNutrientesIngredientes, useProductos, useRecetas, useTiendas } from "../datos";
@@ -232,14 +232,26 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
       dias_tras_abrir: diasAbrir ? Math.round(Number(diasAbrir)) || null : null,
       ...(cambiaUnidad ? {} : { equivalencias: equivalenciasDe(eqCucharada, eqVaso) }),
     };
-    const { error } =
-      ingrediente === "nuevo"
-        ? await supabase.from("ingrediente").insert({ ...datos, hogar_id: hogar.id })
-        : await supabase
-            .from("ingrediente")
-            .update(datos)
-            .eq("id", (ingrediente as Ingrediente).id);
-    if (error) return toast.error(mensajeError(error));
+    if (ingrediente === "nuevo") {
+      const { error } = await supabase.from("ingrediente").insert({ ...datos, hogar_id: hogar.id });
+      if (error) return toast.error(mensajeError(error));
+    } else {
+      // Solo lo que se ha tocado: si otro móvil ha cambiado otros datos mientras tanto, se conservan.
+      const cambios = camposCambiados(ingrediente as Ingrediente, datos as Partial<Ingrediente>);
+      if (Object.keys(cambios).length) {
+        const { data, error } = await supabase
+          .from("ingrediente")
+          .update(cambios)
+          .eq("id", (ingrediente as Ingrediente).id)
+          .select("id");
+        if (error) return toast.error(mensajeError(error));
+        if (!data?.length) {
+          toast.error("Este ingrediente ya no existe: lo han borrado desde otro móvil");
+          refrescar();
+          return onCerrar();
+        }
+      }
+    }
     refrescar();
     onCerrar();
   }

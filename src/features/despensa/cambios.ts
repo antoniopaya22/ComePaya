@@ -4,7 +4,8 @@ import type { Ubicacion } from "@/lib/tipos";
 
 /** Cambios de despensa que se aplican juntos en una transacción (función SQL aplicar_cambios_despensa). */
 export interface CambiosDespensa {
-  lotes_crear?: { producto_id: string; cantidad: number; ubicacion: Ubicacion; fecha_caducidad: FechaISO | null; abierto_en?: FechaISO | null }[];
+  /** `id` opcional: generado en el móvil para saber exactamente qué lote se ha creado. */
+  lotes_crear?: { id?: string; producto_id: string; cantidad: number; ubicacion: Ubicacion; fecha_caducidad: FechaISO | null; abierto_en?: FechaISO | null }[];
   lotes_actualizar?: { id: string; cantidad?: number; ubicacion?: Ubicacion; fecha_caducidad?: FechaISO | null; abierto_en?: FechaISO | null }[];
   /** Suma o resta sobre lo que haya en ese momento (si queda en 0 o menos, el lote se borra). */
   lotes_delta?: { id: string; delta: number }[];

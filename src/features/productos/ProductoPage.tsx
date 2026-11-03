@@ -17,7 +17,7 @@ import { buscarIngrediente } from "@/dominio/lista";
 import { formatearCantidad, formatearLote } from "@/dominio/unidades";
 import { supabase } from "@/lib/supabase";
 import { UBICACIONES, type LoteConProducto, type ProductoConIngrediente } from "@/lib/tipos";
-import { mensajeError } from "@/lib/utils";
+import { camposCambiados, mensajeError } from "@/lib/utils";
 import { claves, useIngredientes, useLotes, useProductos } from "../datos";
 import { NuevoLoteHoja } from "../despensa/NuevoLoteHoja";
 import { RetirarLoteHoja } from "../despensa/RetirarLoteHoja";
@@ -218,16 +218,18 @@ function EditarProductoHoja({ producto, onCerrar }: { producto: ProductoConIngre
 
   async function guardar() {
     if (!producto || !destino) return;
-    const { error } = await supabase
-      .from("producto")
-      .update({
-        nombre: nombre.trim(),
-        marca: marca.trim() || null,
-        cantidad_envase: Number(envase.replace(",", ".")) || null,
-        ingrediente_id: destino.id,
-      })
-      .eq("id", producto.id);
-    if (error) return toast.error(mensajeError(error));
+    // Solo lo que se ha tocado, para no pisar lo que otro móvil haya cambiado en otros datos.
+    const cambios = camposCambiados(producto, {
+      nombre: nombre.trim(),
+      marca: marca.trim() || null,
+      cantidad_envase: Number(envase.replace(",", ".")) || null,
+      ingrediente_id: destino.id,
+    });
+    if (Object.keys(cambios).length) {
+      const { data, error } = await supabase.from("producto").update(cambios).eq("id", producto.id).select("id");
+      if (error) return toast.error(mensajeError(error));
+      if (!data?.length) return toast.error("Este producto ya no existe: lo han borrado desde otro móvil");
+    }
     queryClient.invalidateQueries({ queryKey: claves.productos(hogar.id) });
     queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
     setAbierto(null);

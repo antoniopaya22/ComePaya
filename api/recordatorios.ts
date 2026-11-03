@@ -1,7 +1,7 @@
 import webpush from "web-push";
 import { sumarDias } from "../src/dominio/caducidad.js";
 import { avisosCaducidad, avisosPreparacion, horaLocal, type Aviso, type FranjaAviso, type LoteAviso } from "../src/dominio/recordatorios.js";
-import { json, rest, servidorConfigurado } from "./_lib/supabase-servidor.js";
+import { json, rest, restTodas, servidorConfigurado } from "./_lib/supabase-servidor.js";
 
 interface Suscripcion {
   id: string;
@@ -25,12 +25,12 @@ export async function POST(request: Request): Promise<Response> {
   const ahora = new Date();
   const hoy = horaLocal(ahora).fecha;
   const [franjas, lotes] = await Promise.all([
-    rest<FranjaAviso[]>(
+    restTodas<FranjaAviso>(
       `franja_menu?select=id,hogar_id,fecha,tipo,fuera_de_casa,es_sobra_de,cocinado,receta:receta(id,nombre,preparacion_previa,preparacion_previa_horas)` +
-        `&fecha=gte.${hoy}&fecha=lte.${sumarDias(hoy, 3)}&receta_id=not.is.null`,
+        `&fecha=gte.${hoy}&fecha=lte.${sumarDias(hoy, 3)}&receta_id=not.is.null&order=id`,
     ),
-    rest<{ hogar_id: string; fecha_caducidad: string; producto: { nombre: string } }[]>(
-      `lote_despensa?select=hogar_id,fecha_caducidad,producto:producto(nombre)&fecha_caducidad=gte.${hoy}&fecha_caducidad=lte.${sumarDias(hoy, 2)}`,
+    restTodas<{ hogar_id: string; fecha_caducidad: string; producto: { nombre: string } }>(
+      `lote_despensa?select=hogar_id,fecha_caducidad,producto:producto(nombre)&fecha_caducidad=gte.${hoy}&fecha_caducidad=lte.${sumarDias(hoy, 2)}&order=id`,
     ),
   ]);
   const avisos: Aviso[] = [

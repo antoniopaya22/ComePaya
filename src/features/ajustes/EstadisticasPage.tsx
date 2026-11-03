@@ -8,7 +8,7 @@ import { cumplimientoSemanal, masCocinadas, masTirados } from "@/dominio/estadis
 import { gruposDeReceta, type GrupoAlimento } from "@/dominio/nutricion";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { consultarFranjas, useIngredientes, useRecetas, useReglas } from "../datos";
+import { consultarFranjas, useIngredientes, useRecetas, useReglas, todasLasFilas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
 import { MESES_CORTOS } from "@/dominio/caducidad";
 
@@ -25,16 +25,17 @@ export function EstadisticasPage() {
 
   const { data: movimientos, isPending } = useQuery({
     queryKey: ["movimientos", hogar.id, desde],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("movimiento_despensa")
-        .select("tipo, motivo, producto:producto(nombre)")
-        .eq("hogar_id", hogar.id)
-        .in("tipo", ["consumo", "tirado"])
-        .gte("creado_en", desde);
-      if (error) throw error;
-      return (data ?? []) as unknown as { tipo: "consumo" | "tirado"; motivo: string | null; producto: { nombre: string } | null }[];
-    },
+    queryFn: () =>
+      todasLasFilas<{ tipo: "consumo" | "tirado"; motivo: string | null; producto: { nombre: string } | null }>((inicio, fin) =>
+        supabase
+          .from("movimiento_despensa")
+          .select("tipo, motivo, producto:producto(nombre)")
+          .eq("hogar_id", hogar.id)
+          .in("tipo", ["consumo", "tirado"])
+          .gte("creado_en", desde)
+          .order("id")
+          .range(inicio, fin),
+      ),
   });
   const { data: franjas = [] } = useQuery({
     queryKey: ["franjas", hogar.id, "estadisticas", desde],

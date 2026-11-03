@@ -23,3 +23,14 @@ export async function subirFoto(hogarId: string, archivo: File): Promise<string>
   if (error) throw error;
   return supabase.storage.from("fotos").getPublicUrl(ruta).data.publicUrl;
 }
+
+/**
+ * Borra una foto subida por la app (las de Open Food Facts, Mercadona o una web no se tocan). El Storage gratuito
+ * es de 1 GB: las fotos que se cambian o de recetas borradas no deben quedarse. Si falla, no pasa nada grave.
+ */
+export async function borrarFoto(url: string | null | undefined): Promise<void> {
+  const ruta = url && /\/storage\/v1\/object\/public\/fotos\/(.+)$/.exec(url.split("?")[0])?.[1];
+  if (!ruta) return;
+  const { error } = await supabase.storage.from("fotos").remove([decodeURIComponent(ruta)]);
+  if (error) console.warn("No se ha podido borrar la foto", error);
+}

@@ -329,6 +329,20 @@ function ejecutarRpc(db: Tablas, nombre: string, args: Record<string, unknown>):
       return [null];
     case "registrar_suscripcion_push":
       return [null];
+    case "aplicar_cambios_lista": {
+      const borrar = new Set(args.p_borrar as string[]);
+      db.item_lista = db.item_lista.filter((i) => !borrar.has(i.id as string));
+      for (const a of args.p_actualizar as Fila[]) {
+        const { id, ...cambios } = a;
+        Object.assign(db.item_lista.find((i) => i.id === id) ?? {}, cambios);
+      }
+      for (const c of args.p_crear as Fila[]) {
+        const repetido = c.origen !== "manual" && db.item_lista.some((i) => i.ingrediente_id === c.ingrediente_id && i.origen !== "manual" && !i.marcado);
+        if (repetido || db.item_lista.some((i) => i.id === c.id)) continue;
+        db.item_lista.push(nuevaFila("item_lista", { marcado: false, ...c, hogar_id: HOGAR_ID }));
+      }
+      return [null];
+    }
     case "unir_ingredientes": {
       const origen = db.ingrediente.find((i) => i.id === args.p_origen);
       const destino = db.ingrediente.find((i) => i.id === args.p_destino);

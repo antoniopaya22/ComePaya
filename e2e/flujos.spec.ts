@@ -360,6 +360,35 @@ test("Sin conexión: se avisa y la lista sigue funcionando hasta que vuelve la r
     .toBe(true);
 });
 
+test("Lista: completar desde el menú y deshacerlo", async ({ page }) => {
+  await page.goto("/lista");
+  await page.getByRole("button", { name: "Completar desde el menú" }).click();
+  await expect(page.getByText(/Lista actualizada: \d+ añadidos/)).toBeVisible();
+  const automaticos = () => page.evaluate(async () => (await (await fetch("/demo-supabase/rest/v1/item_lista?select=id&origen=neq.manual")).json()).length);
+  await expect.poll(automaticos).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Deshacer" }).click();
+  await expect(page.getByText("Deshecho")).toBeVisible();
+  // Vuelve a estar como antes: solo lo apuntado a mano.
+  await expect.poll(automaticos).toBe(0);
+});
+
+test("Despensa: alta rápida de frescos se puede deshacer", async ({ page }) => {
+  await page.goto("/despensa");
+  await page.getByRole("button", { name: "Añadir", exact: true }).last().click();
+  const hoja = page.getByRole("dialog");
+  await hoja.getByRole("button", { name: /Plátano/ }).click();
+  await hoja.getByRole("button", { name: "6 ud", exact: true }).click();
+  await hoja.getByRole("button", { name: "Añadir 6 ud" }).click();
+  await expect(page.getByText("6 ud de plátano")).toBeVisible();
+  // La hoja sigue abierta para seguir añadiendo: se cierra para llegar al aviso.
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Deshacer" }).click();
+  await expect(page.getByText("Deshecho")).toBeVisible();
+  await expect
+    .poll(async () => page.evaluate(async () => (await (await fetch("/demo-supabase/rest/v1/movimiento_despensa?select=id&tipo=eq.alta")).json()).length))
+    .toBe(1);
+});
+
 test("Producto: cambiar el nombre desde su ficha", async ({ page }) => {
   await page.goto("/productos/p-tomate");
   await page.getByRole("button", { name: "Editar producto" }).click();

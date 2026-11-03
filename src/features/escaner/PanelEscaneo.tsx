@@ -138,7 +138,7 @@ export function PanelEscaneo({
           body: JSON.stringify({ ean: escaneado.ean, mercadona_id: mercadona.mercadona_id }),
         }).catch(() => {});
       }
-      const loteId = await anadirLote(hogar.id, producto, envasesABase(envases, producto.cantidad_envase), ubicacion, caducidad, "Escaneo");
+      const { loteId } = await anadirLote(hogar.id, producto, envasesABase(envases, producto.cantidad_envase), ubicacion, caducidad, "Escaneo");
       onGuardado({ ean: escaneado.ean, loteId, producto, envases });
     } catch (error) {
       toast.error(mensajeError(error));

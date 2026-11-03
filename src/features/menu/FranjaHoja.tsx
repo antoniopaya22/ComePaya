@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Contador, Entrada, Interruptor, Opciones } from "@/components/ui/campos";
 import { Estrellas } from "@/components/ui/estrellas";
+import { useConfirmar } from "@/components/ui/confirmar";
 import { Hoja, useCambiosSinGuardar } from "@/components/ui/hoja";
 import { alimentosNuevos, recetasPara, type ParaFranja } from "@/dominio/bebe";
 import { hoyISO, type FechaISO } from "@/dominio/caducidad";
@@ -54,11 +55,15 @@ export function FranjaHoja({
   const [congelar, setCongelar] = useState(0);
   const [ocupado, setOcupado] = useState(false);
   const [actual, setActual] = useState(hueco);
+  // Cómo estaba la comida al abrir, para avisar si otro móvil la cambia mientras tanto.
+  const [alAbrir, setAlAbrir] = useState<string | null>(null);
+  const confirmar = useConfirmar();
   const sucio = useCambiosSinGuardar(hueco !== null, [modo, recetaId, raciones, sobraDe]);
 
   useEffect(() => {
     if (!hueco) return;
     setActual(hueco);
+    setAlAbrir(resumenFranja(franja));
     setModo(franja?.fuera_de_casa ? "fuera" : franja?.es_sobra_de ? "sobras" : "receta");
     setRecetaId(franja?.receta_id ?? null);
     setRaciones(franja?.raciones ?? racionesPorDefecto(hueco.para));
@@ -107,6 +112,15 @@ export function FranjaHoja({
   const refrescar = () => queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
 
   async function guardar() {
+    if (alAbrir !== null && resumenFranja(franja) !== alAbrir) {
+      const ahora = franja?.fuera_de_casa ? "fuera de casa" : franja?.receta_id ? `«${recetas.find((r) => r.id === franja.receta_id)?.nombre ?? "otra receta"}»` : "vacía";
+      const seguir = await confirmar({
+        titulo: "La han cambiado desde otro móvil",
+        mensaje: `Mientras la tenías abierta, esta comida ha pasado a estar ${ahora}. ¿Guardar la tuya igualmente?`,
+        aceptar: "Guardar la mía",
+      });
+      if (!seguir) return onCerrar();
+    }
     const origen = origenes.find((f) => f.id === sobraDe);
     const fila = {
       hogar_id: hogar.id,
@@ -345,4 +359,9 @@ export function FranjaHoja({
       </div>
     </Hoja>
   );
+}
+
+/** Lo que importa de una franja para saber si otro la ha cambiado. */
+function resumenFranja(f: FranjaMenu | undefined): string {
+  return JSON.stringify(f ? [f.receta_id, f.fuera_de_casa, f.es_sobra_de, f.raciones] : null);
 }

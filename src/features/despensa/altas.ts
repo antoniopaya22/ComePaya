@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import type { Ingrediente, ProductoConIngrediente, Ubicacion } from "@/lib/tipos";
 import { datosBaseDe, ingredientesBaseQueFaltan } from "@/dominio/ingredientes-base";
 import { buscarIngrediente } from "@/dominio/lista";
+import { aplicarConDeshacer, type Instantanea } from "./deshacer";
 
 /** Añade al hogar los ingredientes habituales que aún no tiene. Devuelve cuántos ha creado. */
 export async function cargarIngredientesBase(hogarId: string, existentes: { nombre: string }[]): Promise<number> {
@@ -114,7 +115,10 @@ export async function crearProducto(hogarId: string, datos: DatosProductoNuevo, 
   return data as ProductoConIngrediente;
 }
 
-/** Añade un lote, registra el movimiento y aprende la caducidad habitual del producto. Devuelve el id del lote. */
+/**
+ * Añade un lote y su movimiento en una transacción y aprende la caducidad habitual del producto.
+ * Devuelve el id del lote y cómo deshacerlo (deshacerDespensa).
+ */
 export async function anadirLote(
   hogarId: string,
   producto: ProductoConIngrediente,
@@ -122,17 +126,17 @@ export async function anadirLote(
   ubicacion: Ubicacion,
   caducidad: FechaISO | null,
   motivo?: string,
-): Promise<string> {
-  const { data, error } = await supabase
-    .from("lote_despensa")
-    .insert({ hogar_id: hogarId, producto_id: producto.id, cantidad, ubicacion, fecha_caducidad: caducidad })
-    .select("id")
-    .single();
-  if (error) throw error;
-  await supabase.from("movimiento_despensa").insert({ hogar_id: hogarId, producto_id: producto.id, cantidad, tipo: "alta", motivo: motivo ?? null });
+): Promise<{ loteId: string; antes: Instantanea }> {
+  const loteId = crypto.randomUUID();
+  const antes = await aplicarConDeshacer(hogarId, {
+    lotes_crear: [{ id: loteId, producto_id: producto.id, cantidad, ubicacion, fecha_caducidad: caducidad }],
+    movimientos: [{ producto_id: producto.id, cantidad, tipo: "alta", motivo: motivo ?? null }],
+  });
   const dias = caducidad ? diasHasta(caducidad, hoyISO()) : null;
   if (dias && dias > 0 && dias !== producto.caducidad_habitual_dias) {
-    await supabase.from("producto").update({ caducidad_habitual_dias: dias }).eq("id", producto.id);
+    // Solo sirve para proponer la caducidad la próxima vez: si falla, el alta ya está hecha.
+    const { error } = await supabase.from("producto").update({ caducidad_habitual_dias: dias }).eq("id", producto.id);
+    if (error) console.warn("No se ha guardado la caducidad habitual", error);
   }
-  return data.id as string;
+  return { loteId, antes };
 }

@@ -11,13 +11,13 @@ import { cantidadesRapidas, SECCIONES_FRESCOS, ubicacionHabitual } from "@/domin
 import { datosBaseDe, emojiPara } from "@/dominio/ingredientes-base";
 import { mismoNombre, puntuarBusqueda } from "@/dominio/texto";
 import { formatearCantidad } from "@/dominio/unidades";
-import { supabase } from "@/lib/supabase";
 import { UBICACIONES, type Ingrediente, type ProductoConIngrediente, type Ubicacion } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
 import { claves, useIngredientes, useProductos } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
 import { anadirLote, crearProducto } from "./altas";
 import { SelectorCaducidad } from "./SelectorCaducidad";
+import { avisarConDeshacer, deshacerDespensa } from "./deshacer";
 
 /**
  * Alta rápida de lo que no tiene código de barras (fruta, verdura, carne, pescado, pan…):
@@ -105,17 +105,9 @@ export function FrescosHoja({
     setGuardando(true);
     try {
       const producto = await productoGenerico(elegido);
-      const loteId = await anadirLote(hogar.id, producto, cantidad, ubicacion, caducidad);
+      const { antes } = await anadirLote(hogar.id, producto, cantidad, ubicacion, caducidad);
       for (const clave of [claves.lotes, claves.productos, claves.ingredientes]) queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
-      toast.success(`${formatearCantidad(cantidad, unidad)} de ${elegido.nombre.toLowerCase()}`, {
-        action: {
-          label: "Deshacer",
-          onClick: async () => {
-            await supabase.from("lote_despensa").delete().eq("id", loteId);
-            queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
-          },
-        },
-      });
+      avisarConDeshacer(queryClient, hogar.id, `${formatearCantidad(cantidad, unidad)} de ${elegido.nombre.toLowerCase()}`, () => deshacerDespensa(hogar.id, antes));
       navigator.vibrate?.(15);
       // De vuelta a la cuadrícula para seguir con lo siguiente de la compra.
       setElegido(null);

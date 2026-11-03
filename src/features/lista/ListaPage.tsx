@@ -15,7 +15,7 @@ import { cn, mensajeError } from "@/lib/utils";
 import { claves, guardarTiendaActiva, leerTiendaActiva, useIngredientes, useLista, useLotes, useRecetas, useTiendas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
 import { EditarItemHoja } from "./EditarItemHoja";
-import { describirGeneracion, generarListaDesdeMenu } from "./generar";
+import { avisarGeneracion, generarListaDesdeMenu } from "./generar";
 import { GuardarCompraHoja } from "./GuardarCompraHoja";
 import { Habituales } from "./Habituales";
 import { useDictado } from "./useDictado";
@@ -118,8 +118,9 @@ export function ListaPage() {
     setGenerando(true);
     try {
       const resultado = await generarListaDesdeMenu({ hogarId: hogar.id, dias: 7, ingredientes, recetas, lotes });
-      await queryClient.invalidateQueries({ queryKey: clave });
-      toast.success(describirGeneracion(resultado), { description: "Con el menú de los próximos 7 días y lo que hay en casa." });
+      const refrescar = () => queryClient.invalidateQueries({ queryKey: clave });
+      await refrescar();
+      avisarGeneracion(resultado, refrescar);
     } catch (error) {
       toast.error(mensajeError(error));
     } finally {

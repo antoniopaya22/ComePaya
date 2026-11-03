@@ -130,6 +130,22 @@ export function useFranjas(lunes: FechaISO) {
   });
 }
 
+/**
+ * Todas las filas de una consulta, en páginas de 1000: Supabase (PostgREST) corta ahí sin avisar.
+ * `pagina(desde, hasta)` construye la consulta con `.range(desde, hasta)` y un orden estable.
+ */
+export async function todasLasFilas<T>(pagina: (desde: number, hasta: number) => PromiseLike<{ data: unknown; error: unknown }>): Promise<T[]> {
+  const TAMANO = 1000;
+  const resultado: T[] = [];
+  for (let desde = 0; ; desde += TAMANO) {
+    const { data, error } = await pagina(desde, desde + TAMANO - 1);
+    if (error) throw error;
+    const trozo = (data ?? []) as T[];
+    resultado.push(...trozo);
+    if (trozo.length < TAMANO) return resultado;
+  }
+}
+
 async function filas<T>(consulta: PromiseLike<{ data: unknown; error: unknown }>): Promise<T[]> {
   const { data, error } = await consulta;
   if (error) throw error;

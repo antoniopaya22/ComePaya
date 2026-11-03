@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, ImagePlus, LoaderCircle, Plus, Timer, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { BarraApp, BotonBarra } from "@/components/BarraApp";
@@ -11,7 +11,7 @@ import { AreaTexto, Campo, Contador, Entrada, Opciones } from "@/components/ui/c
 import { Estrellas } from "@/components/ui/estrellas";
 import { Cargando, Tarjeta } from "@/components/ui/varios";
 import { parsearLineaIngrediente } from "@/dominio/importar";
-import { subirFoto } from "@/lib/fotos";
+import { borrarFoto, subirFoto } from "@/lib/fotos";
 import { buscarIngrediente } from "@/dominio/lista";
 import { normalizar } from "@/dominio/texto";
 import { formatearCantidad, MEDIDAS_CASERAS, medidaABase, type MedidaCasera, type UnidadBase } from "@/dominio/unidades";
@@ -114,6 +114,8 @@ export function EditorRecetaPage() {
   const [subiendo, setSubiendo] = useState(false);
   const [cargada, setCargada] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  // Fotos subidas en esta edición: las que no acaben en la receta se borran al guardar.
+  const subidas = useRef(new Set<string>());
   const importada = (useLocation().state as RecetaImportada | null) ?? null;
 
   useEffect(() => {
@@ -159,7 +161,9 @@ export function EditorRecetaPage() {
     if (!archivo) return;
     setSubiendo(true);
     try {
-      setFotoUrl(await subirFoto(hogar.id, archivo));
+      const nueva = await subirFoto(hogar.id, archivo);
+      subidas.current.add(nueva);
+      setFotoUrl(nueva);
     } catch (error) {
       toast.error(mensajeError(error));
     } finally {
@@ -319,6 +323,8 @@ export function EditorRecetaPage() {
         queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) }),
       ]);
       escribirBorrador(claveBorrador, null);
+      // La foto anterior y las que se probaron y descartaron ya no las usa nadie.
+      for (const url of [original?.foto_url, ...subidas.current]) if (url && url !== fotoUrl) void borrarFoto(url);
       toast.success("Receta guardada");
       navigate(`/recetas/${recetaId}`, { replace: true });
     } catch (error) {
@@ -340,6 +346,7 @@ export function EditorRecetaPage() {
     const { error } = await supabase.from("receta").delete().eq("id", original.id);
     if (error) return toast.error(mensajeError(error));
     escribirBorrador(claveBorrador, null);
+    void borrarFoto(original.foto_url);
     await queryClient.invalidateQueries({ queryKey: claves.recetas(hogar.id) });
     queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
     navigate("/recetas", { replace: true });

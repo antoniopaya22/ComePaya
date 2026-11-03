@@ -9,13 +9,13 @@ import { hoyISO, sumarDias, type FechaISO } from "@/dominio/caducidad";
 import { buscarIngrediente, seccionesDisponibles } from "@/dominio/lista";
 import { normalizar } from "@/dominio/texto";
 import { envasesABase, formatearCantidad, UNIDADES_BASE, type UnidadBase } from "@/dominio/unidades";
-import { supabase } from "@/lib/supabase";
 import { UBICACIONES, type ProductoConIngrediente, type Ubicacion } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { claves, useIngredientes, useProductos, useTiendas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
 import { anadirLote, crearProducto } from "./altas";
 import { SelectorCaducidad } from "./SelectorCaducidad";
+import { avisarConDeshacer, deshacerDespensa } from "./deshacer";
 
 interface ProductoNuevo {
   nombre: string;
@@ -114,20 +114,12 @@ export function NuevoLoteHoja({
             ingredientes,
           )));
       if (!elegido) return;
-      const loteId = await anadirLote(hogar.id, elegido, envasesABase(envases, elegido.cantidad_envase), ubicacion, caducidad);
+      const { antes } = await anadirLote(hogar.id, elegido, envasesABase(envases, elegido.cantidad_envase), ubicacion, caducidad);
 
       for (const clave of [claves.lotes, claves.productos, claves.ingredientes]) {
         queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
       }
-      toast.success(`${elegido.nombre} añadido`, {
-        action: {
-          label: "Deshacer",
-          onClick: async () => {
-            await supabase.from("lote_despensa").delete().eq("id", loteId);
-            queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
-          },
-        },
-      });
+      avisarConDeshacer(queryClient, hogar.id, `${elegido.nombre} añadido`, () => deshacerDespensa(hogar.id, antes));
       reiniciar();
       onAbiertaChange(false);
     } catch (error) {

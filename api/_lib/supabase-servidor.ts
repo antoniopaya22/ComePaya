@@ -25,6 +25,17 @@ export async function rest<T = unknown>(ruta: string, opciones: { method?: strin
   return (texto ? JSON.parse(texto) : null) as T;
 }
 
+/** Todas las filas de una consulta GET, en páginas de 1000 (PostgREST corta ahí sin avisar). `ruta` debe llevar un orden estable. */
+export async function restTodas<T>(ruta: string): Promise<T[]> {
+  const TAMANO = 1000;
+  const resultado: T[] = [];
+  for (let desde = 0; ; desde += TAMANO) {
+    const trozo = await rest<T[]>(`${ruta}${ruta.includes("?") ? "&" : "?"}limit=${TAMANO}&offset=${desde}`);
+    resultado.push(...trozo);
+    if (trozo.length < TAMANO) return resultado;
+  }
+}
+
 /** Comprueba el token de sesión de un usuario y devuelve su id. */
 export async function usuarioDeToken(token: string | null): Promise<string | null> {
   if (!token || !URL_SUPABASE || !CLAVE) return null;

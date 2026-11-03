@@ -2,8 +2,10 @@ import { hoyISO, sumarDias } from "@/dominio/caducidad";
 import { calcularFaltantes, sincronizarAutomaticos, type OrigenAutomatico } from "@/dominio/compra";
 import { necesidadesDelMenu, type RecetaPlan } from "@/dominio/menu";
 import { formatearCantidad } from "@/dominio/unidades";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { Ingrediente, ItemLista, LoteConProducto, RecetaCompleta } from "@/lib/tipos";
+import { mensajeError } from "@/lib/utils";
 import { consultarFranjas } from "../datos";
 import { stockDeLotes } from "../despensa/stock";
 
@@ -11,6 +13,8 @@ export interface ResultadoGeneracion {
   anadidos: number;
   actualizados: number;
   quitados: number;
+  nombresQuitados: string[];
+  deshacer: () => Promise<void>;
 }
 
 /**
@@ -53,36 +57,71 @@ export async function generarListaDesdeMenu(datos: {
   const porId = new Map(ingredientes.map((i) => [i.id, i]));
   const texto = (ingredienteId: string, cantidad: number) => formatearCantidad(cantidad, porId.get(ingredienteId)?.unidad_base ?? "ud");
 
-  if (cambios.crear.length) {
-    const { error } = await supabase.from("item_lista").insert(
-      cambios.crear.map((f) => ({
-        hogar_id: hogarId,
-        texto: porId.get(f.ingrediente_id)!.nombre,
-        cantidad: texto(f.ingrediente_id, f.cantidad),
-        cantidad_base: f.cantidad,
-        ingrediente_id: f.ingrediente_id,
-        seccion_super: porId.get(f.ingrediente_id)!.seccion_super,
-        origen: f.origen,
-      })),
-    );
-    if (error) throw error;
-  }
-  for (const a of cambios.actualizar) {
+  const crear = cambios.crear.map((f) => ({
+    id: crypto.randomUUID(),
+    texto: porId.get(f.ingrediente_id)!.nombre,
+    cantidad: texto(f.ingrediente_id, f.cantidad),
+    cantidad_base: f.cantidad,
+    ingrediente_id: f.ingrediente_id,
+    seccion_super: porId.get(f.ingrediente_id)!.seccion_super,
+    origen: f.origen,
+  }));
+  const actualizar = cambios.actualizar.map((a) => {
     const item = automaticos.find((i) => i.id === a.id)!;
-    const { error } = await supabase
-      .from("item_lista")
-      .update({ cantidad: texto(item.ingrediente_id!, a.cantidad), cantidad_base: a.cantidad, origen: a.origen })
-      .eq("id", a.id);
-    if (error) throw error;
-  }
-  if (cambios.borrar.length) {
-    const { error } = await supabase.from("item_lista").delete().in("id", cambios.borrar);
-    if (error) throw error;
-  }
-  return { anadidos: cambios.crear.length, actualizados: cambios.actualizar.length, quitados: cambios.borrar.length };
+    return { id: a.id, cantidad: texto(item.ingrediente_id!, a.cantidad), cantidad_base: a.cantidad, origen: a.origen };
+  });
+  // Todo en una transacción y de uno en uno por hogar: dos móviles a la vez no duplican la lista.
+  await aplicarCambiosLista(hogarId, { crear, actualizar, borrar: cambios.borrar });
+
+  // Para deshacer: se borran las creadas, las cambiadas vuelven a lo de antes y las quitadas vuelven.
+  const anteriores = actualizar.map((a) => automaticos.find((i) => i.id === a.id)!);
+  const quitados = items.filter((i) => cambios.borrar.includes(i.id));
+  return {
+    anadidos: crear.length,
+    actualizados: actualizar.length,
+    quitados: quitados.length,
+    nombresQuitados: quitados.map((i) => i.texto),
+    deshacer: () =>
+      aplicarCambiosLista(hogarId, {
+        crear: quitados,
+        actualizar: anteriores.map((i) => ({ id: i.id, cantidad: i.cantidad, cantidad_base: i.cantidad_base, origen: i.origen })),
+        borrar: crear.map((c) => c.id),
+      }),
+  };
 }
 
-export function describirGeneracion({ anadidos, actualizados, quitados }: ResultadoGeneracion): string {
+async function aplicarCambiosLista(hogarId: string, c: { crear: object[]; actualizar: object[]; borrar: string[] }) {
+  if (!c.crear.length && !c.actualizar.length && !c.borrar.length) return;
+  const { error } = await supabase.rpc("aplicar_cambios_lista", { p_hogar_id: hogarId, p_crear: c.crear, p_actualizar: c.actualizar, p_borrar: c.borrar });
+  if (error) throw error;
+}
+
+/** Aviso del resultado, con lo que se ha quitado y "Deshacer" si ha cambiado algo. */
+export function avisarGeneracion(resultado: ResultadoGeneracion, refrescar: () => void) {
+  const cambio = resultado.anadidos + resultado.actualizados + resultado.quitados > 0;
+  const quitados = resultado.nombresQuitados.length ? ` Quitado (ya no hace falta): ${resultado.nombresQuitados.join(", ").toLowerCase()}.` : "";
+  toast.success(describirGeneracion(resultado), {
+    description: `Con el menú de los próximos 7 días y lo que hay en casa.${quitados}`,
+    duration: cambio ? 8000 : undefined,
+    action: cambio
+      ? {
+          label: "Deshacer",
+          onClick: async () => {
+            try {
+              await resultado.deshacer();
+              toast.success("Deshecho");
+            } catch (error) {
+              toast.error(`No se ha podido deshacer: ${mensajeError(error)}`);
+            } finally {
+              refrescar();
+            }
+          },
+        }
+      : undefined,
+  });
+}
+
+export function describirGeneracion({ anadidos, actualizados, quitados }: Pick<ResultadoGeneracion, "anadidos" | "actualizados" | "quitados">): string {
   const partes = [
     anadidos && `${anadidos} añadidos`,
     actualizados && `${actualizados} actualizados`,

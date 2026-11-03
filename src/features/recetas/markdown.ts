@@ -1,4 +1,6 @@
 import { dividirRecetas, markdownAReceta, recetaAMarkdown, SEPARADOR_RECETAS, type RecetaMarkdown } from "@/dominio/markdown";
+import { convertir, factorFusion } from "@/dominio/fusion";
+import { buscarIngrediente } from "@/dominio/lista";
 import { normalizar } from "@/dominio/texto";
 import { supabase } from "@/lib/supabase";
 import type { Ingrediente, RecetaCompleta } from "@/lib/tipos";
@@ -65,9 +67,19 @@ export async function importar(
     try {
       const lineas = [];
       for (const ing of receta.ingredientes) {
+        // Si el ingrediente ya existe con otra unidad ("200 g" de patata, que va por unidades), se convierte.
+        const existente = buscarIngrediente(ing.nombre, conocidos);
+        let cantidad = ing.cantidad;
+        if (existente?.unidad_base && existente.unidad_base !== ing.unidad) {
+          const factor = factorFusion(ing.unidad, existente.unidad_base, existente.peso_unidad_g ?? null);
+          if (factor === null) {
+            throw new Error(`«${ing.nombre}» viene en ${ing.unidad} y en casa va en ${existente.unidad_base}: indica cuánto pesa una unidad en Ajustes → Ingredientes`);
+          }
+          cantidad = convertir(ing.cantidad, factor);
+        }
         const id = await obtenerOCrearIngrediente(hogarId, ing.nombre, { unidad_base: ing.unidad }, conocidos);
-        if (!conocidos.some((c) => c.id === id)) conocidos.push({ id, nombre: ing.nombre } as Ingrediente);
-        lineas.push({ ingrediente_id: id, cantidad: ing.cantidad, opcional: ing.opcional });
+        if (!conocidos.some((c) => c.id === id)) conocidos.push({ id, nombre: ing.nombre, unidad_base: ing.unidad, peso_unidad_g: null } as Ingrediente);
+        lineas.push({ ingrediente_id: id, cantidad, opcional: ing.opcional });
       }
       const { error } = await supabase.rpc("guardar_receta", {
         p_receta: {
