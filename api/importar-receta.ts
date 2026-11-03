@@ -1,6 +1,6 @@
 import { extraerRecetaJsonLd } from "../src/dominio/importar.js";
 import { leerUrlPublica, urlPublica } from "./_lib/red.js";
-import { json, servidorConfigurado, tokenDe, usuarioDeToken } from "./_lib/supabase-servidor.js";
+import { comprobarAcceso, json } from "./_lib/supabase-servidor.js";
 
 const TAMANO_MAXIMO = 3 * 1024 * 1024;
 
@@ -9,8 +9,9 @@ const TAMANO_MAXIMO = 3 * 1024 * 1024;
  * 200 → RecetaWeb · 422 → la página no publica una receta · 400 → URL no válida · 502 → la web no responde.
  */
 export async function GET(request: Request): Promise<Response> {
-  // En producción solo para usuarios con sesión (evita que se use como proxy abierto).
-  if (servidorConfigurado && !(await usuarioDeToken(tokenDe(request)))) return json({ error: "Sin sesión" }, 401);
+  // Solo con sesión y con límite por hora: que no se use como proxy abierto.
+  const denegado = await comprobarAcceso(request, "importar");
+  if (denegado) return denegado;
 
   const url = await urlPublica(new URL(request.url).searchParams.get("url") ?? "");
   if (!url) return json({ error: "Escribe una dirección web pública y completa (https://…)" }, 400);

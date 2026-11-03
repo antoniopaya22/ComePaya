@@ -63,7 +63,8 @@ export default defineConfig({
       srcDir: "src",
       filename: "sw.ts",
       injectManifest: {
-        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2,wasm}"],
+        // El motor del escáner (.wasm, ~1 MB) no se precarga: solo lo usan los iPhone y se guarda la primera vez (src/sw.ts).
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
         // De las fuentes solo hace falta precargar el alfabeto latino.
         globIgnores: ["**/*-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese}-*.woff2"],
       },

@@ -89,27 +89,27 @@ interface DetalleMercadona extends HitMercadona {
   photos?: { regular?: string; thumbnail?: string }[];
 }
 
-/** Ficha de un producto de Mercadona por su id, con su código de barras. Prueba en cada almacén; null si no está en ninguno. */
+/**
+ * Ficha de un producto de Mercadona por su id, con su código de barras. Pregunta a todos los almacenes a la vez
+ * (en serie podían ser 15 s) y se queda con el primero de la lista que la tenga; null si no está en ninguno.
+ */
 export async function obtenerProductoMercadona(id: string, fetchFn: typeof fetch = fetch): Promise<(ResultadoMercadona & { ean: string | null }) | null> {
   if (!/^\d+(\.\d+)?$/.test(id)) return null;
-  let fallo: unknown = null;
-  for (const almacen of ALMACENES) {
-    let respuesta: Response;
-    try {
-      respuesta = await fetchFn(`https://tienda.mercadona.es/api/products/${id}/?wh=${almacen}`, {
+  const respuestas = await Promise.allSettled(
+    ALMACENES.map(async (almacen) => {
+      const respuesta = await fetchFn(`https://tienda.mercadona.es/api/products/${id}/?wh=${almacen}`, {
         headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 (compatible; ComePaya/0.1)" },
         signal: AbortSignal.timeout(5000),
       });
-    } catch (error) {
-      fallo = error;
-      continue;
-    }
-    if (respuesta.status === 404) continue;
-    if (!respuesta.ok) {
-      fallo = new Error(`Mercadona respondió ${respuesta.status}`);
-      continue;
-    }
-    return normalizarDetalleMercadona((await respuesta.json()) as DetalleMercadona);
+      if (respuesta.status === 404) return null;
+      if (!respuesta.ok) throw new Error(`Mercadona respondió ${respuesta.status}`);
+      return (await respuesta.json()) as DetalleMercadona;
+    }),
+  );
+  let fallo: unknown = null;
+  for (const r of respuestas) {
+    if (r.status === "fulfilled" && r.value) return normalizarDetalleMercadona(r.value);
+    if (r.status === "rejected") fallo = r.reason;
   }
   if (fallo) throw fallo;
   return null;
@@ -128,11 +128,8 @@ export function idMercadonaDesdeEan(ean: string): string | null {
  */
 export async function buscarEnMercadonaPorEan(ean: string, fetchFn: typeof fetch = fetch): Promise<(ResultadoMercadona & { ean: string | null }) | null> {
   const candidatos = [...new Set([idMercadonaDesdeEan(ean), CODIGOS_CONOCIDOS[ean]].filter((id): id is string => Boolean(id)))];
-  for (const id of candidatos) {
-    const producto = await obtenerProductoMercadona(id, fetchFn).catch(() => null);
-    if (producto?.ean === ean) return producto;
-  }
-  return null;
+  const productos = await Promise.all(candidatos.map((id) => obtenerProductoMercadona(id, fetchFn).catch(() => null)));
+  return productos.find((p) => p?.ean === ean) ?? null;
 }
 
 /** Ficha de Mercadona en el formato común de producto externo (sin datos de salud: Mercadona no los da en números). */

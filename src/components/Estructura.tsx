@@ -2,6 +2,7 @@ import { BarChart3, BookOpen, CalendarDays, Check, ChevronsUpDown, House, ListCh
 import { m as motion } from "motion/react";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigationType } from "react-router";
+import { useEnLinea } from "@/features/lista/sin-conexion";
 import { Avisos, iniciales, MenuUsuario, useUrgentes } from "@/components/Cuenta";
 import { FalloPantalla } from "@/components/FalloPantalla";
 import { Logo } from "@/components/Logo";
@@ -73,6 +74,7 @@ function useDesplazamientoComoApp() {
 export function Estructura() {
   // Al cambiar de pantalla se reinicia el aviso de fallo.
   const location = useLocation();
+  const enLinea = useEnLinea();
   const tipo = useNavigationType();
   const { hogar } = useHogar();
   useSincronizacionHogar(hogar.id);
@@ -106,6 +108,12 @@ export function Estructura() {
               raiz ? "pb-[calc(env(safe-area-inset-bottom)+6.5rem)]" : "pb-[calc(env(safe-area-inset-bottom)+2rem)]",
             )}
           >
+            {!enLinea && location.pathname !== "/lista" && (
+              <p role="status" className="mx-4 mb-3 rounded-2xl bg-superficie-2 px-3.5 py-2.5 text-sm text-suave md:mx-0">
+                <span className="font-semibold text-texto">Sin conexión.</span> Ves lo guardado en este móvil; lo que cambies fuera de la
+                lista se podrá guardar al volver la red.
+              </p>
+            )}
             <FalloPantalla key={location.pathname}>
               <motion.div initial={entrada} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}>
                 <Suspense fallback={<Cargando className="min-h-[60dvh]" />}>

@@ -6,5 +6,6 @@ export async function llamarApi(ruta: string, init: RequestInit = {}): Promise<R
   const cabeceras = new Headers(init.headers);
   if (data.session) cabeceras.set("Authorization", `Bearer ${data.session.access_token}`);
   if (init.body && !cabeceras.has("Content-Type")) cabeceras.set("Content-Type", "application/json");
-  return fetch(ruta, { ...init, headers: cabeceras });
+  // Con un tiempo límite: si la fuente externa va lenta, mejor avisar que dejar el escáner esperando.
+  return fetch(ruta, { ...init, headers: cabeceras, signal: init.signal ?? AbortSignal.timeout(20_000) });
 }

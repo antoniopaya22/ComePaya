@@ -24,7 +24,12 @@ export async function crearDetector(): Promise<{ detector: Detector; motor: Moto
       // Algunos Chrome de escritorio exponen la API sin implementación: se cae a WebAssembly.
     }
   }
-  const { BarcodeDetector } = await import("barcode-detector/ponyfill");
+  const [{ BarcodeDetector, prepareZXingModule }, { default: wasm }] = await Promise.all([
+    import("barcode-detector/ponyfill"),
+    import("zxing-wasm/reader/zxing_reader.wasm?url"),
+  ]);
+  // El motor se sirve desde la propia app (y queda en la caché sin conexión), no desde el CDN que usa por defecto.
+  prepareZXingModule({ overrides: { locateFile: (ruta: string, prefijo: string) => (ruta.endsWith(".wasm") ? wasm : prefijo + ruta) } });
   return { detector: new BarcodeDetector({ formats: [...FORMATOS] }), motor: "webassembly" };
 }
 

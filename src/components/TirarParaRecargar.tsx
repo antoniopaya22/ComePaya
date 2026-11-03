@@ -1,4 +1,5 @@
 import { RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { useEffect, useRef, useState } from "react";
 import { recargar } from "@/lib/actualizacion";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,8 @@ export function TirarParaRecargar() {
       navigator.vibrate?.(10);
       try {
         await recargar();
+      } catch (error) {
+        toast.info(error instanceof Error ? error.message : "No se ha podido recargar");
       } finally {
         setRecargando(false);
         setDistancia(0);

@@ -15,6 +15,18 @@ export function mensajeError(error: unknown): string {
   return traducido;
 }
 
+/** Fallo de red o de tiempo (no de datos): vale la pena reintentar. */
+export function esErrorDeRed(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const nombre = "name" in error ? String(error.name) : "";
+  const mensaje = "message" in error ? String(error.message).toLowerCase() : "";
+  return (
+    nombre === "AbortError" ||
+    nombre === "TimeoutError" ||
+    ["failed to fetch", "networkerror", "load failed", "network request failed", "timed out", "timeout", "aborted"].some((t) => mensaje.includes(t))
+  );
+}
+
 function traducirError(mensaje: string, codigo: string): string {
   const m = mensaje.toLowerCase();
   if (m.includes("violates foreign key constraint") || codigo === "23503") return "Está en uso y no se puede borrar";

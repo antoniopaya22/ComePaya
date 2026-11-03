@@ -1,8 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext, useState, type ReactNode } from "react";
+import { Boton } from "@/components/ui/boton";
 import { Cargando } from "@/components/ui/varios";
 import { supabase } from "@/lib/supabase";
 import type { Hogar, Miembro } from "@/lib/tipos";
+import { mensajeError } from "@/lib/utils";
 import { useUsuario } from "@/features/sesion/SesionProvider";
 import { PantallaBienvenida } from "./PantallaBienvenida";
 
@@ -29,7 +31,7 @@ export function HogarProvider({ children }: { children: ReactNode }) {
   const [activoId, setActivoId] = useState<string | null>(() => leerActivo());
   const [anadiendo, setAnadiendo] = useState(false);
 
-  const { data: hogares, isPending, error } = useQuery({
+  const { data: hogares, isPending, error, refetch } = useQuery({
     queryKey: ["hogares", usuario.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -48,7 +50,17 @@ export function HogarProvider({ children }: { children: ReactNode }) {
   }
 
   if (isPending) return <Cargando texto="Cargando tu hogar…" className="min-h-dvh" />;
-  if (error) return <p className="p-6 text-peligro">No se ha podido cargar tu hogar: {error.message}</p>;
+  if (error) {
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-6">
+        <p className="text-[17px] font-semibold">No se ha podido cargar tu hogar</p>
+        <p className="text-suave">{mensajeError(error)}</p>
+        <Boton className="self-start" onClick={() => refetch()}>
+          Reintentar
+        </Boton>
+      </main>
+    );
+  }
 
   if (!hogares.length || anadiendo) {
     return (

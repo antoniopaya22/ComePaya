@@ -1,11 +1,12 @@
 import { EAN_VALIDO } from "../src/dominio/producto-externo.js";
 import { guardarCatalogo } from "./_lib/catalogo.js";
 import { aProductoExterno, buscarEnMercadona, obtenerProductoMercadona } from "./_lib/mercadona.js";
-import { json, servidorConfigurado, tokenDe, usuarioDeToken } from "./_lib/supabase-servidor.js";
+import { comprobarAcceso, json, servidorConfigurado } from "./_lib/supabase-servidor.js";
 
 /** GET /api/mercadona?q=tomate triturado → ResultadoMercadona[] (vacío si Mercadona falla: es un complemento). */
 export async function GET(request: Request): Promise<Response> {
-  if (servidorConfigurado && !(await usuarioDeToken(tokenDe(request)))) return json({ error: "Sin sesión" }, 401);
+  const denegado = await comprobarAcceso(request, "mercadona");
+  if (denegado) return denegado;
   const texto = new URL(request.url).searchParams.get("q")?.trim() ?? "";
   if (texto.length < 2) return json([]);
   try {
@@ -23,7 +24,9 @@ export async function GET(request: Request): Promise<Response> {
  * (no se fía del cliente) y nunca sobrescribe una ficha que ya exista. Requiere sesión.
  */
 export async function POST(request: Request): Promise<Response> {
-  if (!(await usuarioDeToken(tokenDe(request)))) return json({ error: "Sin sesión" }, 401);
+  if (!servidorConfigurado) return json({ error: "El servidor no está configurado" }, 503);
+  const denegado = await comprobarAcceso(request, "mercadona");
+  if (denegado) return denegado;
   const { ean, mercadona_id } = (await request.json().catch(() => ({}))) as { ean?: string; mercadona_id?: string };
   if (!ean || !EAN_VALIDO.test(ean) || !mercadona_id) return json({ error: "Datos no válidos" }, 400);
 

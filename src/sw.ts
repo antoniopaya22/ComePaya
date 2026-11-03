@@ -15,6 +15,16 @@ cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html"), { denylist: [/^\/api\//] }));
 
+// Motor del escáner en WebAssembly (iPhone): se guarda la primera vez que se usa, para escanear después sin red.
+// El nombre lleva un hash, así que una versión nueva es otra entrada y la antigua caduca sola.
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && url.pathname.endsWith(".wasm"),
+  new CacheFirst({
+    cacheName: "escaner",
+    plugins: [new CacheableResponsePlugin({ statuses: [200] }), new ExpirationPlugin({ maxEntries: 2 })],
+  }),
+);
+
 // Fotos de productos y recetas (Open Food Facts, Mercadona, Supabase Storage) y avatares: se guardan
 // al verlas para que la despensa y el recetario se vean igual sin conexión y no se descarguen otra vez.
 // Se piden con CORS para guardar la respuesta real: una opaca ocupa megas de cuota aunque la foto pese poco.

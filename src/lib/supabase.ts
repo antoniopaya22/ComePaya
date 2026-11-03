@@ -30,10 +30,22 @@ if (modoDemo && url) {
   }
 }
 
+/**
+ * Ninguna petición se queda colgada: con mala cobertura falla a los 15 s (60 s si sube una foto) y la app puede
+ * reintentarla o avisar, en vez de dejar el spinner para siempre.
+ */
+function fetchConTiempoLimite(entrada: RequestInfo | URL, opciones?: RequestInit): Promise<Response> {
+  const ruta = typeof entrada === "string" ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
+  const limite = AbortSignal.timeout(ruta.includes("/storage/") ? 60_000 : 15_000);
+  const senal = opciones?.signal ? (AbortSignal.any ? AbortSignal.any([opciones.signal, limite]) : opciones.signal) : limite;
+  return fetch(entrada, { ...opciones, signal: senal });
+}
+
 // Sin configuración la app muestra una pantalla de ayuda (App.tsx) y nunca llega a usar el cliente.
 export const supabase: SupabaseClient = supabaseConfigurado
   ? createClient(url!, clave!, {
       auth: { flowType: "pkce", persistSession: true, autoRefreshToken: !modoDemo, detectSessionInUrl: true },
       realtime: modoDemo ? { params: { eventsPerSecond: 1 } } : undefined,
+      global: { fetch: fetchConTiempoLimite },
     })
   : (null as unknown as SupabaseClient);

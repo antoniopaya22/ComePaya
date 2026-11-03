@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { Estructura } from "@/components/Estructura";
+import { FalloPantalla } from "@/components/FalloPantalla";
 import { Cargando } from "@/components/ui/varios";
 import { supabaseConfigurado } from "@/lib/supabase";
 import { HogarProvider } from "@/features/hogar/HogarProvider";
@@ -45,13 +46,23 @@ export function App() {
   if (!supabaseConfigurado) return <FaltaConfiguracion />;
   return (
     <BrowserRouter>
-      <SesionProvider>
-        <Routes>
-          {/* La landing se puede ver también con sesión iniciada. */}
-          <Route path="bienvenida" element={<Diferida><LandingPage /></Diferida>} />
-          <Route path="*" element={<ConSesion />} />
-        </Routes>
-      </SesionProvider>
+      {/* Último recurso: si falla algo fuera de las pantallas (barras, buscador, hogar), aviso en vez de pantalla en blanco. */}
+      <FalloPantalla>
+        <SesionProvider>
+          <Routes>
+            {/* La landing se puede ver también con sesión iniciada. */}
+            <Route
+              path="bienvenida"
+              element={
+                <Diferida>
+                  <LandingPage />
+                </Diferida>
+              }
+            />
+            <Route path="*" element={<ConSesion />} />
+          </Routes>
+        </SesionProvider>
+      </FalloPantalla>
     </BrowserRouter>
   );
 }
@@ -81,9 +92,11 @@ function ConHogar() {
         <Route
           path="recetas/:id/cocinar"
           element={
-            <Suspense fallback={<Cargando className="min-h-dvh" />}>
-              <ModoCocinaPage />
-            </Suspense>
+            <FalloPantalla>
+              <Suspense fallback={<Cargando className="min-h-dvh" />}>
+                <ModoCocinaPage />
+              </Suspense>
+            </FalloPantalla>
           }
         />
         <Route element={<Estructura />}>

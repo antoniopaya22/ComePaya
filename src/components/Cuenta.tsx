@@ -110,7 +110,7 @@ export function MenuUsuario() {
         <MenuOpcion onSelect={() => navigate("/ajustes/estadisticas")}>
           <BarChart3 /> Estadísticas
         </MenuOpcion>
-        <MenuOpcion onSelect={() => toast.promise(recargar(), { loading: "Actualizando…", success: "Todo al día", error: "No se ha podido actualizar" })}>
+        <MenuOpcion onSelect={() => toast.promise(recargar(), { loading: "Actualizando…", success: "Todo al día", error: (e: unknown) => (e instanceof Error ? e.message : "No se ha podido actualizar") })}>
           <RefreshCw /> Actualizar
         </MenuOpcion>
         <MenuOpcion onSelect={iniciarRecorrido}>

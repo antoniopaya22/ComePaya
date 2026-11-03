@@ -70,6 +70,8 @@ async function buscarVersionNueva() {
 
 /** Recarga: la versión nueva si la hay; si no, vuelve a pedir los datos de la pantalla. */
 export async function recargar() {
+  // Sin red no hay nada que pedir: se avisa enseguida en vez de dejar la rueda girando hasta que vuelva.
+  if (!navigator.onLine) throw new Error("Sin conexión: ves lo guardado en este móvil");
   await buscarVersionNueva();
   if (versionNueva) {
     location.reload();

@@ -2,7 +2,7 @@ import { EAN_VALIDO, type ProductoExterno } from "../src/dominio/producto-extern
 import { guardarCatalogo, leerCatalogo } from "./_lib/catalogo.js";
 import { aProductoExterno, buscarEnMercadonaPorEan } from "./_lib/mercadona.js";
 import { buscarEnOpenFoodFacts } from "./_lib/openfoodfacts.js";
-import { json, servidorConfigurado, tokenDe, usuarioDeToken } from "./_lib/supabase-servidor.js";
+import { comprobarAcceso, json } from "./_lib/supabase-servidor.js";
 
 /**
  * GET /api/producto?ean=8410188012092
@@ -11,7 +11,8 @@ import { json, servidorConfigurado, tokenDe, usuarioDeToken } from "./_lib/supab
  * 200 → ProductoExterno · 404 → no encontrado · 400 → EAN no válido · 502 → la fuente externa ha fallado.
  */
 export async function GET(request: Request): Promise<Response> {
-  if (servidorConfigurado && !(await usuarioDeToken(tokenDe(request)))) return json({ error: "Sin sesión" }, 401);
+  const denegado = await comprobarAcceso(request, "producto");
+  if (denegado) return denegado;
   const ean = new URL(request.url).searchParams.get("ean")?.trim() ?? "";
   if (!EAN_VALIDO.test(ean)) return json({ error: "EAN no válido" }, 400);
 

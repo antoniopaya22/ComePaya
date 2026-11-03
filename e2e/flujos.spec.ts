@@ -344,6 +344,22 @@ test("Receta: lo escrito sin guardar queda como borrador y se recupera", async (
   await expect(page.getByPlaceholder(/Lentejas|Nombre/).first()).toHaveValue("Crema de calabaza");
 });
 
+test("Sin conexión: se avisa y la lista sigue funcionando hasta que vuelve la red", async ({ page, context }) => {
+  await page.goto("/lista");
+  await page.getByRole("link", { name: /Despensa$/ }).click();
+  await expect(page.getByText("Huevos L")).toBeVisible();
+  await context.setOffline(true);
+  await expect(page.getByText("Sin conexión.")).toBeVisible();
+  await page.getByRole("link", { name: /Lista$/ }).click();
+  await page.getByRole("button", { name: /^Pan/ }).click();
+  await expect(page.getByRole("button", { name: /^Pan/ })).toHaveAttribute("aria-pressed", "true");
+  await context.setOffline(false);
+  // Al volver la red se envía lo marcado.
+  await expect
+    .poll(async () => page.evaluate(async () => (await (await fetch("/demo-supabase/rest/v1/item_lista?select=marcado&id=eq.i1")).json())[0]?.marcado))
+    .toBe(true);
+});
+
 test("Producto: cambiar el nombre desde su ficha", async ({ page }) => {
   await page.goto("/productos/p-tomate");
   await page.getByRole("button", { name: "Editar producto" }).click();

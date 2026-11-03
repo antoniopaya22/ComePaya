@@ -11,12 +11,38 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   const [sesion, setSesion] = useState<Session | null | undefined>(undefined);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSesion(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_evento, nueva) => setSesion(nueva));
-    return () => data.subscription.unsubscribe();
+    const comprobar = () =>
+      supabase.auth.getSession().then(({ data, error }) => {
+        if (data.session) return setSesion(data.session);
+        // Sin red, un token caducado (dura una hora) no se puede renovar y Supabase no da sesión. Se sigue con la
+        // guardada para abrir la app con lo que hay en el móvil (la lista del súper); se renueva sola al volver la red.
+        setSesion(error || !navigator.onLine ? sesionGuardada() : null);
+      });
+    comprobar();
+    const { data } = supabase.auth.onAuthStateChange((evento, nueva) => {
+      // La sesión inicial ya la decide comprobar(), también cuando no hay red.
+      if (evento === "INITIAL_SESSION" && !nueva) return;
+      setSesion(nueva);
+    });
+    window.addEventListener("online", comprobar);
+    return () => {
+      data.subscription.unsubscribe();
+      window.removeEventListener("online", comprobar);
+    };
   }, []);
 
   return <SesionContext.Provider value={sesion}>{children}</SesionContext.Provider>;
+}
+
+/** La sesión que Supabase guarda en el móvil (sb-<proyecto>-auth-token), aunque su token haya caducado. */
+function sesionGuardada(): Session | null {
+  try {
+    const clave = Object.keys(localStorage).find((k) => /^sb-.+-auth-token$/.test(k));
+    const guardada = clave ? (JSON.parse(localStorage.getItem(clave) ?? "null") as Session | null) : null;
+    return guardada?.access_token && guardada.user ? guardada : null;
+  } catch {
+    return null;
+  }
 }
 
 export function useSesion() {
