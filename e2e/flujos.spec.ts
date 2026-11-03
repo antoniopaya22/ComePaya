@@ -389,6 +389,37 @@ test("Despensa: alta rápida de frescos se puede deshacer", async ({ page }) => 
     .toBe(1);
 });
 
+test("Despensa: añadir a la lista desde el panel de un producto", async ({ page }) => {
+  await page.goto("/productos/p-tomate");
+  await page.getByRole("button", { name: /2 × 400 g/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Añadir a la lista" }).click();
+  await expect(page.getByText("Tomate triturado añadido a la lista")).toBeVisible();
+  await page.getByRole("button", { name: "Ver lista" }).click();
+  await expect(page.getByRole("button", { name: /^Tomate triturado/ })).toBeVisible();
+});
+
+test("Lista: cada cosa con su súper y la lista filtrada por súper", async ({ page }) => {
+  await page.goto("/lista");
+  const supers = page.getByRole("radiogroup", { name: "Súper" });
+  await supers.getByRole("radio", { name: /Carrefour/ }).click();
+  await page.getByPlaceholder(/Añadir/).fill("leche");
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await expect(page.getByRole("button", { name: /^Leche/ })).toBeVisible();
+  // En Mercadona no sale lo de Carrefour, pero sí lo que vale en cualquiera.
+  await supers.getByRole("radio", { name: /Mercadona/ }).click();
+  await expect(page.getByRole("button", { name: /^Leche/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Pan/ })).toBeVisible();
+  // En Todos sale todo, con la etiqueta del súper.
+  await supers.getByRole("radio", { name: /Todos/ }).click();
+  await expect(page.getByRole("button", { name: /^Leche.*CARREFOUR/ })).toBeVisible();
+  // Se puede cambiar de súper desde su edición.
+  await page.getByRole("button", { name: "Editar Leche" }).click();
+  await page.getByRole("dialog").getByRole("radio", { name: "Cualquiera" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Guardar" }).click();
+  await supers.getByRole("radio", { name: /Mercadona/ }).click();
+  await expect(page.getByRole("button", { name: /^Leche/ })).toBeVisible();
+});
+
 test("Producto: cambiar el nombre desde su ficha", async ({ page }) => {
   await page.goto("/productos/p-tomate");
   await page.getByRole("button", { name: "Editar producto" }).click();

@@ -21,7 +21,7 @@ const RELACIONES: Record<string, Record<string, [string, string, string, boolean
 };
 
 const DEFECTOS: Record<string, Fila> = {
-  item_lista: { marcado: false, origen: "manual", cantidad: null, cantidad_base: null, ingrediente_id: null, seccion_super: "Otros" },
+  item_lista: { marcado: false, origen: "manual", cantidad: null, cantidad_base: null, ingrediente_id: null, seccion_super: "Otros", tienda_id: null },
   franja_menu: { para: "casa", receta_id: null, raciones: 2, fuera_de_casa: false, es_sobra_de: null, cocinado: false },
   ingrediente: { unidad_base: "g", seccion_super: "Otros", grupo_alimento: null, siempre_disponible: false, stock_minimo: null, caducidad_defecto_dias: null, emoji: null, peso_unidad_g: null, nutrientes_100: null, alergenos: [], dias_tras_abrir: null, equivalencias: null, bebe_introducido: null },
   producto: { ean: null, marca: null, fuente: "manual", foto_url: null, nutrientes_100: null, nutriscore: null, nova: null, niveles_nutrientes: null, aditivos: null, alergenos: null, completitud_datos: null, mercadona_id: null, caducidad_habitual_dias: null },

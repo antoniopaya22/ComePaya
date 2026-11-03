@@ -3,28 +3,41 @@ import { Check, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
-import { Campo, Entrada, Selector } from "@/components/ui/campos";
+import { Campo, Entrada, Opciones, Selector } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
 import { cantidadEnBase, seccionesDisponibles } from "@/dominio/lista";
 import { supabase } from "@/lib/supabase";
-import type { ItemLista } from "@/lib/tipos";
+import type { ItemLista, Tienda } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { claves, useIngredientes } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
 
-export function EditarItemHoja({ item, onCerrar, ordenSecciones }: { item: ItemLista | null; onCerrar: () => void; ordenSecciones: string[] }) {
+export function EditarItemHoja({
+  item,
+  onCerrar,
+  ordenSecciones,
+  tiendas = [],
+}: {
+  item: ItemLista | null;
+  onCerrar: () => void;
+  ordenSecciones: string[];
+  tiendas?: Tienda[];
+}) {
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
   const { data: ingredientes = [] } = useIngredientes();
   const [texto, setTexto] = useState("");
   const [cantidad, setCantidad] = useState("");
   const [seccion, setSeccion] = useState("");
+  // Súper donde se compra ("" = en cualquiera).
+  const [tiendaId, setTiendaId] = useState("");
 
   useEffect(() => {
     if (item) {
       setTexto(item.texto);
       setCantidad(item.cantidad ?? "");
       setSeccion(item.seccion_super);
+      setTiendaId(item.tienda_id ?? "");
     }
   }, [item]);
 
@@ -41,6 +54,7 @@ export function EditarItemHoja({ item, onCerrar, ordenSecciones }: { item: ItemL
         texto: texto.trim(),
         cantidad: nuevaCantidad,
         seccion_super: seccion,
+        tienda_id: tiendaId || null,
         // Si se cambia la cantidad, cuenta la escrita (también al guardar la compra) y el elemento pasa a ser
         // manual: "Completar desde el menú" ya no lo toca.
         ...(nuevaCantidad !== item.cantidad
@@ -114,6 +128,11 @@ export function EditarItemHoja({ item, onCerrar, ordenSecciones }: { item: ItemL
             ))}
           </Selector>
         </Campo>
+        {tiendas.length > 0 && (
+          <Campo etiqueta="Súper" ayuda="En la lista, al elegir un súper se ve lo suyo y lo que vale en cualquiera.">
+            <Opciones opciones={[{ valor: "", etiqueta: "Cualquiera" }, ...tiendas.map((t) => ({ valor: t.id, etiqueta: t.nombre }))]} valor={tiendaId} onChange={setTiendaId} />
+          </Campo>
+        )}
       </div>
     </Hoja>
   );

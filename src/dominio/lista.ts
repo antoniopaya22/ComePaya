@@ -175,3 +175,8 @@ export function cantidadEnBase(cantidad: string | null, unidad: "g" | "ml" | "ud
   if (unidad !== "ud") return Math.round(n * 1000) / 1000;
   return pesoUnidad ? Math.max(1, Math.round(n / pesoUnidad)) : null;
 }
+
+/** Con un súper elegido se ve lo suyo y lo que vale en cualquiera; sin elegir (null), todo. */
+export function deLaTienda<T extends { tienda_id: string | null }>(items: T[], tiendaId: string | null): T[] {
+  return tiendaId ? items.filter((i) => i.tienda_id === null || i.tienda_id === tiendaId) : items;
+}

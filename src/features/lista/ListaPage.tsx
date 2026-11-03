@@ -2,13 +2,14 @@ import { useMutation, useMutationState, useQueryClient } from "@tanstack/react-q
 import { CalendarDays, Check, CloudOff, ListChecks, Mic, Pencil, Plus, Refrigerator, Share2, Store } from "lucide-react";
 import { AnimatePresence, m as motion } from "motion/react";
 import { useMemo, useRef, useState, type FormEvent } from "react";
+import { Link } from "react-router";
 import { toast } from "sonner";
 import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
-import { Entrada, Selector } from "@/components/ui/campos";
+import { Entrada } from "@/components/ui/campos";
 import { ListaEsqueleto, Vacio } from "@/components/ui/varios";
 import { emojiPara } from "@/dominio/ingredientes-base";
-import { agruparPorSeccion, dividirDictado, textoParaCompartir } from "@/dominio/lista";
+import { agruparPorSeccion, deLaTienda, dividirDictado, textoParaCompartir } from "@/dominio/lista";
 import { supabase } from "@/lib/supabase";
 import type { ItemLista } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
@@ -39,11 +40,20 @@ export function ListaPage() {
   const [tiendaId, setTiendaId] = useState(() => leerTiendaActiva(hogar.id));
   const entrada = useRef<HTMLInputElement>(null);
 
-  const tienda = tiendas.find((t) => t.id === tiendaId) ?? tiendas[0];
-  const grupos = useMemo(() => agruparPorSeccion(items ?? [], tienda?.orden_secciones ?? []), [items, tienda]);
+  // Súper elegido: se ve lo suyo y lo de cualquiera, en el orden de sus pasillos. Sin elegir ("Todos"), todo.
+  const elegida = tiendas.find((t) => t.id === tiendaId) ?? null;
+  const visibles = useMemo(() => deLaTienda(items ?? [], elegida?.id ?? null), [items, elegida]);
+  const tienda = elegida ?? tiendas[0];
+  const grupos = useMemo(() => agruparPorSeccion(visibles, tienda?.orden_secciones ?? []), [visibles, tienda]);
+  const nombreTienda = useMemo(() => new Map(tiendas.map((t) => [t.id, t.nombre])), [tiendas]);
   const emojiDe = useMemo(() => new Map(ingredientes.map((i) => [i.id, i.emoji])), [ingredientes]);
-  const marcados = (items ?? []).filter((i) => i.marcado);
-  const pendientes = (items?.length ?? 0) - marcados.length;
+  const marcados = visibles.filter((i) => i.marcado);
+  const pendientes = visibles.length - marcados.length;
+  const pendientesDe = (id: string | null) => deLaTienda(items ?? [], id).filter((i) => !i.marcado).length;
+  function elegirTienda(id: string | null) {
+    setTiendaId(id);
+    guardarTiendaActiva(hogar.id, id ?? "");
+  }
 
   const enLinea = useEnLinea();
   const sinEnviar = useMutationState({ filters: { mutationKey: ["lista"], status: "pending" } }).length;
@@ -72,7 +82,7 @@ export function ListaPage() {
     e.preventDefault();
     // Con el campo vacío, el botón lleva al campo (no se queda gris sin explicar por qué).
     if (!texto.trim()) return entrada.current?.focus();
-    anadirTexto(texto);
+    anadirTexto(texto, elegida?.id ?? null);
     setTexto("");
     entrada.current?.focus();
   }
@@ -80,7 +90,7 @@ export function ListaPage() {
   /** Dictado: "leche, dos kilos de tomates y pan" son tres entradas. */
   const dictado = useDictado((frase) => {
     const partes = dividirDictado(frase);
-    partes.forEach(anadirTexto);
+    partes.forEach((p) => anadirTexto(p, elegida?.id ?? null));
     toast.success(partes.length === 1 ? `Añadido: ${partes[0]}` : `${partes.length} añadidos`);
   });
 
@@ -158,25 +168,32 @@ export function ListaPage() {
       />
 
       <div className="flex flex-col gap-5 px-4 md:px-0">
-        {tiendas.length > 1 && (
-          <label className="-mt-1 flex items-center gap-2 self-start text-suave">
-            <Store className="size-4" />
-            <Selector
-              aria-label="Tienda"
-              className="h-9 w-auto rounded-full border-transparent bg-superficie-2 pr-1 text-sm"
-              value={tienda?.id}
-              onChange={(e) => {
-                setTiendaId(e.target.value);
-                guardarTiendaActiva(hogar.id, e.target.value);
-              }}
-            >
-              {tiendas.map((t) => (
-                <option key={t.id} value={t.id}>
+        {tiendas.length > 0 && (
+          <div className="-mx-4 -mt-1 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0" role="radiogroup" aria-label="Súper">
+            {[{ id: null, nombre: "Todos" }, ...tiendas].map((t) => {
+              const activo = (elegida?.id ?? null) === t.id;
+              return (
+                <button
+                  key={t.id ?? "todos"}
+                  type="button"
+                  role="radio"
+                  aria-checked={activo}
+                  onClick={() => elegirTienda(t.id)}
+                  className={cn(
+                    "flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-[15px] font-medium transition-colors",
+                    activo ? "bg-primario text-primario-texto" : "bg-superficie-2 text-texto",
+                  )}
+                >
+                  {t.id ? <Store className="size-4" /> : null}
                   {t.nombre}
-                </option>
-              ))}
-            </Selector>
-          </label>
+                  <span className={cn("text-sm", activo ? "opacity-80" : "text-suave")}>{pendientesDe(t.id)}</span>
+                </button>
+              );
+            })}
+            <Link to="/ajustes" className="flex h-11 shrink-0 items-center gap-1 rounded-full px-3 text-[15px] font-medium text-primario">
+              <Plus className="size-4" /> Súper
+            </Link>
+          </div>
         )}
         {(!enLinea || sinEnviar > 0) && (
           <p className="flex items-center gap-2 rounded-xl bg-aviso-suave px-3 py-2 text-sm text-aviso">
@@ -217,11 +234,11 @@ export function ListaPage() {
         </form>
         {dictado.error && <p className="text-sm text-peligro">{dictado.error}</p>}
 
-        <Habituales items={items ?? []} onAnadir={anadirTexto} />
+        <Habituales items={items ?? []} onAnadir={(t) => anadirTexto(t, elegida?.id ?? null)} />
 
         {isPending ? (
           <ListaEsqueleto filas={6} />
-        ) : !items?.length ? (
+        ) : !visibles.length ? (
           <Vacio icono={<ListChecks />} titulo="Nada que comprar">
             Escribe lo que falta o complétala desde el menú. Se ordena sola por secciones del súper, en el orden de tu tienda.
           </Vacio>
@@ -272,6 +289,11 @@ export function ListaPage() {
                             </span>
                             <span className={cn("flex-1 transition-colors", item.marcado && "text-suave line-through")}>
                               {item.texto}
+                              {!elegida && item.tienda_id && nombreTienda.get(item.tienda_id) && (
+                                <span className="ml-2 rounded-full bg-superficie-2 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-suave no-underline">
+                                  {nombreTienda.get(item.tienda_id)!.toUpperCase()}
+                                </span>
+                              )}
                               {item.origen !== "manual" && (
                                 <span className="ml-2 rounded-full bg-primario-suave px-1.5 py-0.5 align-middle text-[10px] font-semibold text-primario no-underline">
                                   {item.origen === "menu" ? "MENÚ" : "MÍNIMO"}
@@ -320,7 +342,7 @@ export function ListaPage() {
         <div className="h-16 md:hidden" />
       </div>
 
-      <EditarItemHoja item={editando} onCerrar={() => setEditando(null)} ordenSecciones={tienda?.orden_secciones ?? []} />
+      <EditarItemHoja item={editando} onCerrar={() => setEditando(null)} ordenSecciones={tienda?.orden_secciones ?? []} tiendas={tiendas} />
       <GuardarCompraHoja items={marcados} abierta={guardandoCompra} onCerrar={() => setGuardandoCompra(false)} />
     </>
   );

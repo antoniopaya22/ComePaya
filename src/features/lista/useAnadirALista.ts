@@ -32,7 +32,8 @@ export function useAnadirALista() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: clave }),
   });
 
-  return function anadirTexto(entradaTexto: string): string | null {
+  /** `tiendaId`: el súper elegido en la lista (lo añadido es de ese súper); sin él, vale en cualquiera. */
+  return function anadirTexto(entradaTexto: string, tiendaId: string | null = null): string | null {
     const { texto: nombre, cantidad } = parsearEntrada(entradaTexto);
     if (!nombre) return null;
     const ingrediente = buscarIngrediente(nombre, ingredientes);
@@ -46,11 +47,12 @@ export function useAnadirALista() {
       cantidad_base: ingrediente ? cantidadEnBase(cantidad, ingrediente.unidad_base, ingrediente.peso_unidad_g) : null,
       ingrediente_id: ingrediente?.id ?? null,
       seccion_super: ingrediente?.seccion_super ?? SECCION_OTROS,
+      tienda_id: tiendaId,
       creado_en: new Date().toISOString(),
     };
     // Si ya está pendiente (quizá lo ha apuntado otro), no se duplica salvo que se pida.
     const repetido = (queryClient.getQueryData<ItemLista[]>(clave) ?? []).find(
-      (i) => !i.marcado && (ingrediente ? i.ingrediente_id === ingrediente.id : normalizar(i.texto) === normalizar(texto)),
+      (i) => !i.marcado && (!tiendaId || !i.tienda_id || i.tienda_id === tiendaId) && (ingrediente ? i.ingrediente_id === ingrediente.id : normalizar(i.texto) === normalizar(texto)),
     );
     if (repetido) {
       toast.info(`${texto} ya está en la lista${repetido.cantidad ? ` (${repetido.cantidad})` : ""}`, {

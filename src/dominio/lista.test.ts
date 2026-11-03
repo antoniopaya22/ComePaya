@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agruparPorSeccion, buscarIngrediente, cantidadEnBase, dividirDictado, habituales, parsearEntrada, seccionesDisponibles, textoParaCompartir } from "./lista.js";
+import { agruparPorSeccion, buscarIngrediente, cantidadEnBase, deLaTienda, dividirDictado, habituales, parsearEntrada, seccionesDisponibles, textoParaCompartir } from "./lista.js";
 
 const item = (id: string, seccion: string, marcado = false, creado_en = `2026-11-01T10:00:0${id}Z`) => ({
   id,
@@ -155,4 +155,14 @@ describe("cantidadEnBase", () => {
   ] as const)("%s en %s (pieza %s g) → %s", (texto, unidad, peso, esperado) => {
     expect(cantidadEnBase(texto, unidad, peso)).toBe(esperado);
   });
+});
+
+describe("deLaTienda", () => {
+  const items = [
+    { id: "a", tienda_id: null },
+    { id: "b", tienda_id: "mercadona" },
+    { id: "c", tienda_id: "carrefour" },
+  ];
+  it("con un súper: lo suyo y lo de cualquiera", () => expect(deLaTienda(items, "mercadona").map((i) => i.id)).toEqual(["a", "b"]));
+  it("sin elegir: todo", () => expect(deLaTienda(items, null)).toHaveLength(3));
 });

@@ -124,6 +124,8 @@ export interface ItemLista {
   seccion_super: string;
   marcado: boolean;
   origen: "manual" | "menu" | "stock_minimo";
+  /** Súper donde se compra; null: en cualquiera. */
+  tienda_id: string | null;
   creado_en: string;
 }
 

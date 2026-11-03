@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronRight, PackageOpen, Pencil, Trash2, Utensils } from "lucide-react";
+import { Check, ChevronRight, ListPlus, PackageOpen, Pencil, Trash2, Utensils } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Contador, Opciones } from "@/components/ui/campos";
@@ -14,6 +14,7 @@ import { UBICACIONES, type LoteConProducto, type Ubicacion } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { claves, useLotes } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
+import { useAnadirALista } from "../lista/useAnadirALista";
 import type { CambiosDespensa } from "./cambios";
 import { aplicarConDeshacer, avisarConDeshacer, deshacerDespensa } from "./deshacer";
 import { SelectorCaducidad } from "./SelectorCaducidad";
@@ -26,6 +27,8 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
   const { data: lotes } = useLotes();
+  const anadirTexto = useAnadirALista();
+  const navigate = useNavigate();
   const [hay, setHay] = useState(1);
   const [envases, setEnvases] = useState(1);
   const [guardando, setGuardando] = useState(false);
@@ -64,6 +67,14 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
   const paso = envase || unidad === "ud" ? 1 : total > 10 ? 10 : 1;
   const sufijo = envase ? `× ${formatearCantidad(envase, unidad)}` : unidad;
   const refrescar = () => queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
+
+  /** Apunta el ingrediente en la lista (si ya estaba pendiente, lo avisa en vez de duplicarlo). */
+  function anadirALista() {
+    const texto = anadirTexto(producto.ingrediente.nombre);
+    if (!texto) return;
+    toast.success(`${texto} añadido a la lista`, { action: { label: "Ver lista", onClick: () => navigate("/lista") } });
+    onCerrar();
+  }
 
   /** Aplica el cambio en una transacción y avisa con "Deshacer". Devuelve false si ha fallado. */
   async function hacer(cambios: CambiosDespensa, mensaje: string, descripcion?: string): Promise<boolean> {
@@ -253,6 +264,9 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
           </div>
         </details>
         <div className="flex flex-wrap gap-x-5 gap-y-1">
+          <button type="button" onClick={anadirALista} className="inline-flex h-10 items-center gap-1.5 text-[15px] font-medium text-primario">
+            <ListPlus className="size-4" /> Añadir a la lista
+          </button>
           <Link to={`/productos/${producto.id}?editar=1`} onClick={onCerrar} className="inline-flex h-10 items-center gap-1.5 text-[15px] font-medium text-primario">
             <Pencil className="size-4" /> Cambiar nombre o datos
           </Link>

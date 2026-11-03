@@ -72,6 +72,8 @@ Los módulos se alimentan entre sí:
 ### 4.2 Lista de la compra
 - Entradas automáticas (desde el menú y el stock mínimo) y manuales (texto libre).
 - **Agrupada por secciones del súper**, en el orden de recorrido de la tienda; orden configurable por tienda.
+- **Cada cosa con su súper**: un elemento puede ser de un súper (`item_lista.tienda_id`) o de cualquiera (null). Arriba se elige «Todos» o un súper: con un súper se ve lo suyo y lo de cualquiera, en el orden de sus pasillos, y lo que se añade es de ese súper; en «Todos» se ve todo con la etiqueta del súper. Se cambia en la edición del elemento. Los súper se gestionan en Ajustes → Tiendas; si se borra uno, lo suyo pasa a cualquiera.
+- Desde la despensa, el panel de un producto tiene «Añadir a la lista» (apunta su ingrediente; si ya está pendiente, lo avisa).
 - **Funciona sin conexión** (PWA) y sincroniza después.
 - Compartida en tiempo real entre los miembros del hogar (Supabase Realtime).
 - Lo comprado pasa a la despensa.

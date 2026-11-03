@@ -13,7 +13,7 @@ export const CLAVE_ANADIR = ["lista", "anadir"] as const;
 /** Mismo ámbito para todas: se envían en orden (añadir antes que marcar), también al recuperar la red. */
 export const AMBITO_LISTA = { id: "lista" };
 
-export type FilaNueva = Pick<ItemLista, "id" | "hogar_id" | "texto" | "cantidad" | "cantidad_base" | "ingrediente_id" | "seccion_super" | "creado_en">;
+export type FilaNueva = Pick<ItemLista, "id" | "hogar_id" | "texto" | "cantidad" | "cantidad_base" | "ingrediente_id" | "seccion_super" | "tienda_id" | "creado_en">;
 
 /**
  * Con mala cobertura el móvil cree que hay red y el envío falla o se queda colgado (lo corta el tiempo límite de
