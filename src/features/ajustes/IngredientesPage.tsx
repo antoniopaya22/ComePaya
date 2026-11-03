@@ -246,6 +246,18 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
     const { error } = await supabase.from("ingrediente").delete().eq("id", ingrediente.id);
     if (error) return toast.error(mensajeError(error));
     refrescar();
+    const copia = { ...ingrediente };
+    toast(`${ingrediente.nombre} borrado`, {
+      duration: 8000,
+      action: {
+        label: "Deshacer",
+        onClick: async () => {
+          const { error } = await supabase.from("ingrediente").insert(copia);
+          if (error) toast.error(mensajeError(error));
+          refrescar();
+        },
+      },
+    });
     onCerrar();
   }
 

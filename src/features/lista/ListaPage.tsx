@@ -102,10 +102,12 @@ export function ListaPage() {
     if (error) return toast.error(mensajeError(error));
     queryClient.invalidateQueries({ queryKey: clave });
     toast(`${item.texto} quitado`, {
+      duration: 8000,
       action: {
         label: "Deshacer",
         onClick: async () => {
-          await supabase.from("item_lista").insert(item);
+          const { error } = await supabase.from("item_lista").insert(item);
+          if (error) toast.error(mensajeError(error));
           queryClient.invalidateQueries({ queryKey: clave });
         },
       },

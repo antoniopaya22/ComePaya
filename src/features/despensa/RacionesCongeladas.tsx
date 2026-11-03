@@ -12,6 +12,7 @@ import type { RacionCongelada } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { claves, useRacionesCongeladas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
+import { avisarConDeshacer } from "./deshacer";
 
 /** Raciones de comida ya cocinada en el congelador (§4.1). */
 export function RacionesCongeladas() {
@@ -23,12 +24,19 @@ export function RacionesCongeladas() {
   const refrescar = () => queryClient.invalidateQueries({ queryKey: claves.raciones(hogar.id) });
 
   async function gastar(r: RacionCongelada, tirar: boolean) {
-    const { error } =
-      r.raciones > 1 && !tirar
-        ? await supabase.from("racion_congelada").update({ raciones: r.raciones - 1 }).eq("id", r.id)
-        : await supabase.from("racion_congelada").delete().eq("id", r.id);
+    const queda = r.raciones > 1 && !tirar;
+    const { error } = queda
+      ? await supabase.from("racion_congelada").update({ raciones: r.raciones - 1 }).eq("id", r.id)
+      : await supabase.from("racion_congelada").delete().eq("id", r.id);
     if (error) return toast.error(mensajeError(error));
     refrescar();
+    const copia = { ...r };
+    avisarConDeshacer(queryClient, hogar.id, tirar ? `${r.descripcion}: tirada` : `${r.descripcion}: usada 1 ración`, async () => {
+      const { error } = queda
+        ? await supabase.from("racion_congelada").update({ raciones: copia.raciones }).eq("id", copia.id)
+        : await supabase.from("racion_congelada").insert(copia);
+      if (error) throw error;
+    });
   }
 
   return (

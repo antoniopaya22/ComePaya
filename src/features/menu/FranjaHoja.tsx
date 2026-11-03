@@ -17,6 +17,7 @@ import { cn, mensajeError } from "@/lib/utils";
 import { claves, consultarLotes, useAlergenosIngredientes, useIngredientes, useRecetas } from "../datos";
 import { ChipsAlergenos } from "../salud/Alergenos";
 import { useHogar } from "../hogar/HogarProvider";
+import { avisarConDeshacer, deshacerDespensa } from "../despensa/deshacer";
 import { cocinarFranja } from "./cocinar";
 import { claveRechazos, useSugerencias } from "./useSugerencias";
 
@@ -131,6 +132,11 @@ export function FranjaHoja({
       const { error } = await supabase.from("franja_menu").delete().eq("id", franja.id);
       if (error) return toast.error(mensajeError(error));
       refrescar();
+      const copia = { ...franja };
+      avisarConDeshacer(queryClient, hogar.id, "Franja vaciada", async () => {
+        const { error } = await supabase.from("franja_menu").upsert(copia, { onConflict: "hogar_id,fecha,tipo,para" });
+        if (error) throw error;
+      });
     }
     onCerrar();
   }
@@ -149,7 +155,7 @@ export function FranjaHoja({
         const lotesFrescos = descontar
           ? await queryClient.fetchQuery({ queryKey: claves.lotes(hogar.id), queryFn: () => consultarLotes(hogar.id), staleTime: 0 })
           : [];
-        const faltaba = await cocinarFranja({
+        const { faltaba, antes } = await cocinarFranja({
           hogarId: hogar.id,
           franjaId: franja.id,
           receta,
@@ -161,17 +167,28 @@ export function FranjaHoja({
         });
         queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
         queryClient.invalidateQueries({ queryKey: claves.raciones(hogar.id) });
-        if (para === "bebe" && nuevos.length) {
+        const primeraVez = para === "bebe" ? nuevos : [];
+        if (primeraVez.length) {
           // Lo que ha comido por primera vez queda apuntado como probado.
-          const { error } = await supabase.from("ingrediente").update({ bebe_introducido: fecha }).in("id", nuevos).is("bebe_introducido", null);
+          const { error } = await supabase.from("ingrediente").update({ bebe_introducido: fecha }).in("id", primeraVez).is("bebe_introducido", null);
           if (error) throw error;
           queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
-          toast.success(`Primera vez para ${bebe}: ${nuevos.map(nombreDe).join(", ")}`, { description: "Apuntado como probado." });
         }
-        if (descontar) {
-          if (faltaba.length) toast.info("Descontado de la despensa", { description: `No había: ${faltaba.join(", ")}.` });
-          else toast.success("Descontado de la despensa");
-        }
+        const deshacer = async () => {
+          await deshacerDespensa(hogar.id, antes);
+          if (primeraVez.length) {
+            const { error } = await supabase.from("ingrediente").update({ bebe_introducido: null }).in("id", primeraVez).eq("bebe_introducido", fecha);
+            if (error) throw error;
+          }
+        };
+        const detalles = [
+          descontar ? (faltaba.length ? `Descontado de la despensa; no había: ${faltaba.join(", ")}.` : "Descontado de la despensa.") : null,
+          primeraVez.length ? `Primera vez para ${bebe}: ${primeraVez.map(nombreDe).join(", ")}, apuntado como probado.` : null,
+        ].filter(Boolean);
+        avisarConDeshacer(queryClient, hogar.id, "Marcado como cocinado", deshacer, {
+          descripcion: detalles.join(" ") || undefined,
+          tipo: faltaba.length ? "info" : "success",
+        });
       }
       refrescar();
       onCerrar();

@@ -52,6 +52,18 @@ export function EditarItemHoja({ item, onCerrar, ordenSecciones }: { item: ItemL
     const { error } = await supabase.from("item_lista").delete().eq("id", item.id);
     if (error) return toast.error(mensajeError(error));
     refrescar();
+    const copia = { ...item };
+    toast(`${item.texto} quitado`, {
+      duration: 8000,
+      action: {
+        label: "Deshacer",
+        onClick: async () => {
+          const { error } = await supabase.from("item_lista").insert(copia);
+          if (error) toast.error(mensajeError(error));
+          refrescar();
+        },
+      },
+    });
     onCerrar();
   }
 

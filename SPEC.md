@@ -66,6 +66,8 @@ Los módulos se alimentan entre sí:
 - Caducidades rápidas: +3 días, +1 semana, +15 días, +1 mes, +2 meses, +3 meses, +6 meses, sin caducidad o "ya caducado". La fecha exacta admite año opcional para fechas pasadas.
 - **Empezados**: en un lote se marca cuánto queda (¼, ½, ¾). Si estaba cerrado se abre un envase (separado del resto, con la caducidad tras abrir) y lo gastado cuenta como consumido. La despensa y la ficha muestran "empezado, queda ½".
 - Ordenar la despensa por caducidad, por nombre o por tipo de alimento (sección, en el orden de la tienda) y filtrarla por tipo.
+- **Cambiar cuánto hay**: en el panel de un lote, el contador «Cuántos hay» (en envases, o en unidades si el ingrediente va por unidades) con «Guardar»; queda como ajuste y se ve al momento en los móviles del resto. Con 0, el lote se quita.
+- **Deshacer**: consumir, tirar, guardar la cantidad, mover, abrir, marcar empezado, cambiar la caducidad, cocinar un plato, vaciar una franja, usar o tirar una ración congelada, quitar de la lista y borrar un ingrediente muestran un aviso con «Deshacer» (8 s). En la despensa, deshacer devuelve los lotes de los productos afectados a como estaban (`src/dominio/deshacer.ts`) y borra los movimientos apuntados, para que no cuenten en las estadísticas.
 
 ### 4.2 Lista de la compra
 - Entradas automáticas (desde el menú y el stock mínimo) y manuales (texto libre).

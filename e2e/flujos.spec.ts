@@ -203,11 +203,52 @@ test("Despensa: repartir unidades de un lote entre despensa y nevera", async ({ 
   await page.goto("/productos/p-tomate");
   await page.getByRole("button", { name: /2 × 400 g/ }).click();
   const hoja = page.getByRole("dialog");
-  await hoja.getByRole("button", { name: "Menos" }).click();
+  // El segundo contador: cuántos gastar, tirar o mover (el primero es cuántos hay).
+  await hoja.getByRole("button", { name: "Menos" }).nth(1).click();
   await hoja.getByText("Nevera", { exact: true }).click();
   await expect(page.getByText("400 g a nevera")).toBeVisible();
   await expect(page.getByRole("button", { name: /^400 g\s*Nevera/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^400 g\s*Despensa/ })).toBeVisible();
+});
+
+test("Despensa: cambiar cuántos hay, guardar y deshacer", async ({ page }) => {
+  await page.goto("/productos/p-tomate");
+  await page.getByRole("button", { name: /2 × 400 g/ }).click();
+  const hoja = page.getByRole("dialog");
+  await expect(hoja.getByRole("button", { name: "Guardar" })).toHaveCount(0);
+  await hoja.getByRole("button", { name: "Más" }).first().click();
+  await hoja.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Tomate triturado: ahora hay 3 × 400 g")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^3 × 400 g\s*Despensa/ })).toBeVisible();
+  await page.getByRole("button", { name: "Deshacer" }).click();
+  await expect(page.getByText("Deshecho")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^2 × 400 g\s*Despensa/ })).toBeVisible();
+});
+
+test("Despensa: tirar algo sin querer y deshacerlo", async ({ page }) => {
+  await page.goto("/productos/p-tomate");
+  await page.getByRole("button", { name: /2 × 400 g/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Tirado" }).click();
+  await expect(page.getByText("Tomate triturado: tirado 2 × 400 g")).toBeVisible();
+  await expect(page.getByRole("button", { name: /× 400 g\s*Despensa/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Deshacer" }).click();
+  await expect(page.getByText("Deshecho")).toBeVisible();
+  // Vuelve el lote y lo tirado no queda en el historial (ni en las estadísticas).
+  await expect(page.getByRole("button", { name: /^2 × 400 g\s*Despensa/ })).toBeVisible();
+  await expect(page.getByText(/tirado/i)).toHaveCount(0);
+});
+
+test("Menú: marcar como cocinado sin querer y deshacerlo devuelve la despensa", async ({ page }) => {
+  await page.goto("/menu");
+  await page.getByText("Pollo al horno con patatas").first().click();
+  await page.getByRole("button", { name: "Ya lo he cocinado" }).click();
+  await expect(page.getByText("Marcado como cocinado")).toBeVisible();
+  await expect(page.getByText(/Descontado de la despensa/)).toBeVisible();
+  await page.getByRole("button", { name: "Deshacer" }).click();
+  await expect(page.getByText("Deshecho")).toBeVisible();
+  await page.goto("/productos/p-pollo");
+  await expect(page.getByRole("button", { name: /^2 × 500 g\s*Congelador/ })).toBeVisible();
+  await expect(page.getByText(/Cocinado:/)).toHaveCount(0);
 });
 
 test("Producto: cambiar el nombre desde su ficha", async ({ page }) => {

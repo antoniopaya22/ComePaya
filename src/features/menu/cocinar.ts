@@ -2,12 +2,13 @@ import { planDescuento } from "@/dominio/despensa";
 import { escalar } from "@/dominio/menu";
 import { formatearCantidad, type UnidadBase } from "@/dominio/unidades";
 import type { Ingrediente, LoteConProducto, RecetaCompleta } from "@/lib/tipos";
-import { aplicarCambiosDespensa, type CambiosDespensa } from "../despensa/cambios";
+import type { CambiosDespensa } from "../despensa/cambios";
+import { aplicarConDeshacer, type Instantanea } from "../despensa/deshacer";
 
 /**
  * Marca una franja como cocinada y, si se pide, descuenta de la despensa lo que gasta la receta (§3.5),
  * lote a lote empezando por lo que antes caduca, y guarda las raciones congeladas. Todo en una transacción.
- * Los opcionales y los básicos "siempre disponibles" no se descuentan. Devuelve lo que faltaba, legible.
+ * Los opcionales y los básicos "siempre disponibles" no se descuentan. Devuelve lo que faltaba, legible, y cómo deshacerlo.
  */
 export async function cocinarFranja(datos: {
   hogarId: string;
@@ -19,7 +20,7 @@ export async function cocinarFranja(datos: {
   /** Lotes recién consultados (no de la caché), para no restar sobre cantidades viejas. */
   lotes: LoteConProducto[];
   ingredientes: Ingrediente[];
-}): Promise<string[]> {
+}): Promise<{ faltaba: string[]; antes: Instantanea }> {
   const cambios: CambiosDespensa = { franja_cocinada: datos.franjaId, lotes_delta: [], movimientos: [] };
   const faltaba: string[] = [];
 
@@ -47,6 +48,6 @@ export async function cocinarFranja(datos: {
   }
 
   if (datos.congelar > 0) cambios.racion_congelada = { receta_id: datos.receta.id, descripcion: datos.receta.nombre, raciones: datos.congelar };
-  await aplicarCambiosDespensa(datos.hogarId, cambios);
-  return faltaba;
+  const antes = await aplicarConDeshacer(datos.hogarId, cambios, datos.lotes);
+  return { faltaba, antes };
 }
