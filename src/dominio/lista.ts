@@ -138,3 +138,40 @@ export function seccionesDisponibles(ordenTienda: string[], usadas: string[]): s
   const todas = [...base.filter((s) => s !== SECCION_OTROS), ...new Set(extra)];
   return [...todas.filter((s) => s !== SECCION_OTROS), SECCION_OTROS];
 }
+
+const A_BASE: Record<string, { magnitud: "masa" | "volumen" | "piezas"; factor: number }> = {
+  kg: { magnitud: "masa", factor: 1000 },
+  g: { magnitud: "masa", factor: 1 },
+  gr: { magnitud: "masa", factor: 1 },
+  grs: { magnitud: "masa", factor: 1 },
+  l: { magnitud: "volumen", factor: 1000 },
+  cl: { magnitud: "volumen", factor: 10 },
+  ml: { magnitud: "volumen", factor: 1 },
+  "": { magnitud: "piezas", factor: 1 },
+  ud: { magnitud: "piezas", factor: 1 },
+  uds: { magnitud: "piezas", factor: 1 },
+  unidad: { magnitud: "piezas", factor: 1 },
+  unidades: { magnitud: "piezas", factor: 1 },
+  docena: { magnitud: "piezas", factor: 12 },
+  docenas: { magnitud: "piezas", factor: 12 },
+};
+
+/**
+ * La cantidad escrita en la lista ("2 kg", "x6", "1,5 l") en la unidad base del ingrediente, para que al guardar
+ * la compra entre eso en la despensa. g y ml se toman iguales; entre piezas y peso hace falta lo que pesa una pieza.
+ * Envases ("3 latas") y lo que no se entiende devuelven null.
+ */
+export function cantidadEnBase(cantidad: string | null, unidad: "g" | "ml" | "ud", pesoUnidad: number | null): number | null {
+  const partes = /^x?\s*(\d+(?:[.,]\d+)?)\s*([a-z]*)$/i.exec((cantidad ?? "").trim());
+  if (!partes) return null;
+  const valor = Number(partes[1].replace(",", "."));
+  const medida = A_BASE[partes[2].toLowerCase()];
+  if (!medida || !(valor > 0)) return null;
+  const n = valor * medida.factor;
+  if (medida.magnitud === "piezas") {
+    if (unidad === "ud") return n;
+    return pesoUnidad ? Math.round(n * pesoUnidad) : null;
+  }
+  if (unidad !== "ud") return Math.round(n * 1000) / 1000;
+  return pesoUnidad ? Math.max(1, Math.round(n / pesoUnidad)) : null;
+}

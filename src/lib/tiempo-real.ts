@@ -10,7 +10,17 @@ const AFECTADAS: Record<string, (hogarId: string) => QueryKey[]> = {
   racion_congelada: (h) => [["raciones", h]],
   receta: (h) => [["recetas", h]],
   ingrediente: (h) => [["ingredientes", h], ["productos", h]],
+  producto: (h) => [["productos", h], ["lotes", h]],
+  tienda: (h) => [["tiendas", h]],
+  regla_semanal: (h) => [["reglas", h]],
+  rechazo_sugerencia: (h) => [["rechazos", h]],
+  // Comensales, bebé, alérgenos del hogar y quién es miembro: van en la consulta de hogares del usuario.
+  miembro: (h) => [["miembros", h], ["hogares"]],
+  hogar: () => [["hogares"]],
 };
+
+/** La tabla hogar no tiene hogar_id: se filtra por su id. */
+const COLUMNA_HOGAR: Record<string, string> = { hogar: "id" };
 
 /** Tras este tiempo en segundo plano se vuelve a consultar todo: el móvil puede haber cortado la conexión en tiempo real. */
 const AUSENCIA_LARGA_MS = 60_000;
@@ -27,11 +37,11 @@ export function useSincronizacionHogar(hogarId: string) {
 
   useEffect(() => {
     const refrescarTodo = () =>
-      queryClient.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[1] === hogarId });
-    const filtro = `hogar_id=eq.${hogarId}`;
+      queryClient.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && (q.queryKey[1] === hogarId || q.queryKey[0] === "hogares") });
     // Nombre único por montaje: si se reutilizara uno que aún se está cerrando, se quedaría sin eventos.
     let canal = supabase.channel(`hogar:${hogarId}:${crypto.randomUUID()}`);
     for (const [tabla, claves] of Object.entries(AFECTADAS)) {
+      const filtro = `${COLUMNA_HOGAR[tabla] ?? "hogar_id"}=eq.${hogarId}`;
       const refrescar = () => claves(hogarId).forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       canal = canal
         .on("postgres_changes", { event: "INSERT", schema: "public", table: tabla, filter: filtro }, refrescar)

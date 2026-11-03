@@ -1,5 +1,5 @@
 import { Bell, BookOpen, CalendarDays, Check, ChevronRight, ListChecks, ScanBarcode, Sparkles, Users, X, type LucideIcon } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m as motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Tarjeta } from "@/components/ui/varios";

@@ -1,5 +1,5 @@
 import { BellOff, ChevronLeft, ChevronRight, Plus, Timer, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m as motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Boton } from "@/components/ui/boton";
@@ -29,6 +29,8 @@ export function ModoCocinaPage() {
   const { data: recetas, isPending } = useRecetas();
   const receta = recetas?.find((r) => r.id === id);
   const raciones = Number(params.get("raciones")) || receta?.raciones || 1;
+  // Si se llega desde una comida del menú, al terminar se va a esa comida para apuntarla como cocinada.
+  const franja = params.get("franja");
 
   const [paso, setPaso] = useState(0);
   const [temporizadores, setTemporizadores] = useState<Temporizador[]>([]);
@@ -158,8 +160,8 @@ export function ModoCocinaPage() {
             Siguiente <ChevronRight />
           </Boton>
         ) : (
-          <Boton tamano="lg" onClick={() => navigate(`/recetas/${receta.id}`)}>
-            Terminar
+          <Boton tamano="lg" onClick={() => navigate(franja ? `/menu?franja=${franja}` : `/recetas/${receta.id}`)}>
+            {franja ? "Terminar y apuntar" : "Terminar"}
           </Boton>
         )}
       </footer>

@@ -12,6 +12,7 @@ import type { RacionCongelada } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { claves, useRacionesCongeladas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
+import { aplicarCambiosDespensa } from "./cambios";
 import { avisarConDeshacer } from "./deshacer";
 
 /** Raciones de comida ya cocinada en el congelador (§4.1). */
@@ -23,19 +24,23 @@ export function RacionesCongeladas() {
   const hoy = hoyISO();
   const refrescar = () => queryClient.invalidateQueries({ queryKey: claves.raciones(hogar.id) });
 
+  /** Usar una ración o tirarlas todas. Relativo: si otro miembro acaba de usar una, no se pisa. */
   async function gastar(r: RacionCongelada, tirar: boolean) {
-    const queda = r.raciones > 1 && !tirar;
-    const { error } = queda
-      ? await supabase.from("racion_congelada").update({ raciones: r.raciones - 1 }).eq("id", r.id)
-      : await supabase.from("racion_congelada").delete().eq("id", r.id);
-    if (error) return toast.error(mensajeError(error));
+    const delta = tirar ? -r.raciones : -1;
+    try {
+      await aplicarCambiosDespensa(hogar.id, { raciones_delta: [{ id: r.id, delta }] });
+    } catch (error) {
+      return toast.error(mensajeError(error));
+    }
     refrescar();
     const copia = { ...r };
     avisarConDeshacer(queryClient, hogar.id, tirar ? `${r.descripcion}: tirada` : `${r.descripcion}: usada 1 ración`, async () => {
-      const { error } = queda
-        ? await supabase.from("racion_congelada").update({ raciones: copia.raciones }).eq("id", copia.id)
-        : await supabase.from("racion_congelada").insert(copia);
-      if (error) throw error;
+      const { data } = await supabase.from("racion_congelada").select("id").eq("id", copia.id);
+      if (data?.length) await aplicarCambiosDespensa(hogar.id, { raciones_delta: [{ id: copia.id, delta: -delta }] });
+      else {
+        const { error } = await supabase.from("racion_congelada").insert({ ...copia, raciones: -delta });
+        if (error) throw error;
+      }
     });
   }
 

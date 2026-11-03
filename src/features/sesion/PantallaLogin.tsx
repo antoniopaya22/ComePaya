@@ -1,5 +1,5 @@
 import { ArrowLeft, CalendarDays, ListChecks, LoaderCircle, ScanBarcode } from "lucide-react";
-import { motion } from "motion/react";
+import { m as motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";

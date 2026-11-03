@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Baby, ChevronLeft, ChevronRight, CircleCheck, Copy, ListChecks, Plane, Plus, Repeat, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
@@ -38,6 +39,15 @@ export function MenuPage() {
   const { data: ingredientes = [] } = useIngredientes();
   const { data: lotes = [] } = useLotes();
   const [abierta, setAbierta] = useState<{ fecha: FechaISO; tipo: TipoFranja; para: ParaFranja } | null>(null);
+  // /menu?franja=… (al terminar el modo cocina): abre esa comida para marcarla como cocinada.
+  const [params, setParams] = useSearchParams();
+  const franjaPedida = params.get("franja");
+  useEffect(() => {
+    const f = franjaPedida && franjas.find((x) => x.id === franjaPedida);
+    if (!f) return;
+    setAbierta({ fecha: f.fecha, tipo: f.tipo, para: paraDe(f) });
+    setParams({}, { replace: true });
+  }, [franjaPedida, franjas, setParams]);
   const [generando, setGenerando] = useState(false);
 
   const buscar = (fecha: FechaISO, tipo: TipoFranja, para: ParaFranja = "casa") =>

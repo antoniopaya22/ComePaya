@@ -1,5 +1,5 @@
 import { BarChart3, BookOpen, CalendarDays, Check, ChevronsUpDown, House, ListChecks, Package, Plus, Refrigerator, ScanBarcode, Search, Settings, type LucideIcon } from "lucide-react";
-import { motion } from "motion/react";
+import { m as motion } from "motion/react";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigationType } from "react-router";
 import { Avisos, iniciales, MenuUsuario, useUrgentes } from "@/components/Cuenta";

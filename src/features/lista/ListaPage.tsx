@@ -1,6 +1,6 @@
 import { useMutation, useMutationState, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Check, CloudOff, ListChecks, Mic, Pencil, Plus, Refrigerator, Share2, Store } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m as motion } from "motion/react";
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { BarraApp, BotonBarra } from "@/components/BarraApp";

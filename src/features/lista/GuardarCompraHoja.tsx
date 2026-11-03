@@ -11,8 +11,9 @@ import { envasesABase, formatearCantidad } from "@/dominio/unidades";
 import { supabase } from "@/lib/supabase";
 import { UBICACIONES, type Ingrediente, type ItemLista, type ProductoConIngrediente, type Ubicacion } from "@/lib/tipos";
 import { cn, mensajeError } from "@/lib/utils";
-import { claves, useIngredientes, useProductos } from "../datos";
-import { aplicarCambiosDespensa, type CambiosDespensa } from "../despensa/cambios";
+import { claves, useIngredientes, useLotes, useProductos } from "../datos";
+import type { CambiosDespensa } from "../despensa/cambios";
+import { aplicarConDeshacer, avisarConDeshacer, deshacerDespensa } from "../despensa/deshacer";
 import { SELECT_PRODUCTO } from "../despensa/altas";
 import { useHogar } from "../hogar/HogarProvider";
 
@@ -28,17 +29,22 @@ interface Linea {
   ubicacion: Ubicacion;
 }
 
-/** Lo marcado como comprado pasa a la despensa (§3.4) y sale de la lista. */
-export function GuardarCompraHoja({ items, abierta, onCerrar }: { items: ItemLista[]; abierta: boolean; onCerrar: () => void }) {
+/** Lo marcado como comprado pasa a la despensa (§3.4) y sale de la lista. Se puede deshacer. */
+export function GuardarCompraHoja({ items: marcados, abierta, onCerrar }: { items: ItemLista[]; abierta: boolean; onCerrar: () => void }) {
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
   const { data: productos = [] } = useProductos();
   const { data: ingredientes = [] } = useIngredientes();
+  const { data: lotes = [] } = useLotes();
   const [lineas, setLineas] = useState<Linea[]>([]);
+  // Lo marcado al abrir: si otro móvil marca o desmarca algo mientras tanto, se guarda lo que se ve aquí.
+  const [items, setItems] = useState<ItemLista[]>([]);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     if (!abierta) return;
+    const items = marcados;
+    setItems(items);
     const porId = new Map(ingredientes.map((i) => [i.id, i]));
     setLineas(
       items.flatMap((item) => {
@@ -111,10 +117,21 @@ export function GuardarCompraHoja({ items, abierta, onCerrar }: { items: ItemLis
           cambios.movimientos!.push({ producto_id: producto.id, cantidad, tipo: "alta", motivo: "Compra" });
         }
       }
-      // Lotes, movimientos y quitar de la lista, todo o nada: un reintento no duplica la compra.
-      await aplicarCambiosDespensa(hogar.id, cambios);
+      // Lotes, movimientos y quitar de la lista, todo o nada: un reintento (o el otro móvil) no duplica la compra.
+      const antes = await aplicarConDeshacer(hogar.id, cambios, lotes);
       for (const clave of [claves.lotes, claves.productos, claves.lista]) queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
-      toast.success(conDespensa && aGuardar.length ? `${aGuardar.length} guardados en la despensa` : `${items.length} quitados de la lista`);
+      const quitados = items.map((i) => ({ ...i }));
+      avisarConDeshacer(
+        queryClient,
+        hogar.id,
+        conDespensa && aGuardar.length ? `${aGuardar.length} guardados en la despensa` : `${items.length} quitados de la lista`,
+        async () => {
+          await deshacerDespensa(hogar.id, antes);
+          // Vuelven a la lista tal cual estaban (marcados), salvo los que alguien ya haya vuelto a añadir.
+          const { error } = await supabase.from("item_lista").upsert(quitados, { onConflict: "id", ignoreDuplicates: true });
+          if (error) throw error;
+        },
+      );
       onCerrar();
     } catch (error) {
       toast.error(mensajeError(error));

@@ -13,6 +13,8 @@ export interface CambiosDespensa {
   items_borrar?: string[];
   franja_cocinada?: string | null;
   racion_congelada?: { receta_id: string | null; descripcion: string; raciones: number };
+  /** Suma o resta raciones congeladas sobre lo que haya; en 0 o menos, la ración se quita. */
+  raciones_delta?: { id: string; delta: number }[];
 }
 
 /** Todo o nada: si algo falla, la despensa queda como estaba. */

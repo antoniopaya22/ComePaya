@@ -75,6 +75,7 @@ Los módulos se alimentan entre sí:
 - **Funciona sin conexión** (PWA) y sincroniza después.
 - Compartida en tiempo real entre los miembros del hogar (Supabase Realtime).
 - Lo comprado pasa a la despensa.
+- La cantidad escrita ("2 kg", "x6", "1,5 l") se guarda también como número en la unidad del ingrediente (`cantidadEnBase`), y es lo que entra en la despensa al guardar la compra. Editar la cantidad de un elemento automático lo pasa a manual.
 
 ### 4.2.1 Reglas de la lista generada (implementadas en la fase 2)
 - Se calcula con las franjas desde hoy y los 7 días siguientes, bajo demanda («Completar desde el menú»).
@@ -107,6 +108,7 @@ Los módulos se alimentan entre sí:
 - Pantalla que no se apaga (Wake Lock API).
 - Texto grande, un paso cada vez, avance con un toque.
 - Temporizadores con nombre lanzados desde los pasos; varios simultáneos.
+- Desde una comida de Hoy, «Terminar y apuntar» lleva a esa comida del menú para marcarla como cocinada (y descontar la despensa).
 
 ### 4.6 Recordatorios
 - La noche anterior (o con la antelación indicada en la receta): avisos de preparación previa del menú del día siguiente.
@@ -131,6 +133,8 @@ Los módulos se alimentan entre sí:
 - Los datos del hogar se guardan en el dispositivo (IndexedDB) durante 7 días: la app abre al instante y funciona sin conexión.
 - Una sola suscripción de Supabase Realtime por hogar refresca, en cualquier pantalla, lo que cambia otro miembro (lista, despensa, menú, raciones, recetas e ingredientes). Por eso los datos se consideran frescos 5 minutos; al reconectar o al volver tras más de un minuto en segundo plano se vuelve a pedir todo.
 - El service worker guarda las fotos de productos, recetas y avatares (hasta 400, 60 días) para verlas sin conexión.
+- **Varios móviles a la vez**: también llegan al momento los cambios de hogar (comensales, bebé, alérgenos), miembros, productos, tiendas, reglas y "no me apetece". `aplicar_cambios_despensa` no deja guardar dos veces la misma compra ni cocinar dos veces la misma franja, y falla si un lote o una ración ya no existe (en vez de guardar sobre nada); las raciones congeladas cambian con deltas. El panel de un lote sigue al lote real y avisa si otro móvil lo ha quitado. Los errores se muestran en español (sin conexión, sesión caducada, permisos…).
+- **Arranque**: solo Hoy va en el JavaScript inicial; el resto de pantallas se descarga al abrirla y las pestañas principales se precargan en reposo. Las animaciones (Motion) cargan su motor después (`LazyMotion`).
 
 ---
 

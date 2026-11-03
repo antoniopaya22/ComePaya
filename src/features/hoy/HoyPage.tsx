@@ -1,5 +1,5 @@
 import { Baby, CalendarDays, ChevronRight, CookingPot, Hourglass, ListChecks, Plane, Plus, ScanBarcode, TriangleAlert } from "lucide-react";
-import { motion } from "motion/react";
+import { m as motion } from "motion/react";
 import { Link } from "react-router";
 import { BarraApp, EnlaceBarra } from "@/components/BarraApp";
 import { Avisos } from "@/components/Cuenta";
@@ -262,7 +262,7 @@ function PlatoDeHoy({
         </Link>
         {!franja?.cocinado && !franja?.es_sobra_de && (
           <Boton asChild tamano="sm" className="self-start">
-            <Link to={`/recetas/${receta.id}/cocinar?raciones=${franja?.raciones ?? receta.raciones}`}>
+            <Link to={`/recetas/${receta.id}/cocinar?raciones=${franja?.raciones ?? receta.raciones}${franja ? `&franja=${franja.id}` : ""}`}>
               <CookingPot /> Cocinar
             </Link>
           </Boton>

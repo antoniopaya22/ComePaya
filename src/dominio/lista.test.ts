@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agruparPorSeccion, buscarIngrediente, dividirDictado, habituales, parsearEntrada, seccionesDisponibles, textoParaCompartir } from "./lista.js";
+import { agruparPorSeccion, buscarIngrediente, cantidadEnBase, dividirDictado, habituales, parsearEntrada, seccionesDisponibles, textoParaCompartir } from "./lista.js";
 
 const item = (id: string, seccion: string, marcado = false, creado_en = `2026-11-01T10:00:0${id}Z`) => ({
   id,
@@ -132,5 +132,27 @@ describe("seccionesDisponibles", () => {
     const secciones = seccionesDisponibles([], []);
     expect(secciones[0]).toBe("Fruta y verdura");
     expect(secciones.at(-1)).toBe("Otros");
+  });
+});
+
+describe("cantidadEnBase", () => {
+  it.each([
+    ["2 kg", "g", null, 2000],
+    ["500g", "g", null, 500],
+    ["1,5 l", "ml", null, 1500],
+    ["33 cl", "ml", null, 330],
+    ["x6", "ud", null, 6],
+    ["2 docenas", "ud", null, 24],
+    ["3", "ud", null, 3],
+    ["1 kg", "ud", 200, 5],
+    ["100 g", "ud", 200, 1],
+    ["4", "g", 150, 600],
+    ["4", "g", null, null],
+    ["1 kg", "ud", null, null],
+    ["3 latas", "g", null, null],
+    ["un poco", "g", null, null],
+    [null, "g", null, null],
+  ] as const)("%s en %s (pieza %s g) → %s", (texto, unidad, peso, esperado) => {
+    expect(cantidadEnBase(texto, unidad, peso)).toBe(esperado);
   });
 });

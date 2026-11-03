@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Entrada, Selector } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
-import { seccionesDisponibles } from "@/dominio/lista";
+import { cantidadEnBase, seccionesDisponibles } from "@/dominio/lista";
 import { supabase } from "@/lib/supabase";
 import type { ItemLista } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
@@ -33,11 +33,28 @@ export function EditarItemHoja({ item, onCerrar, ordenSecciones }: { item: ItemL
 
   async function guardar() {
     if (!item) return;
-    const { error } = await supabase
+    const nuevaCantidad = cantidad.trim() || null;
+    const ingrediente = ingredientes.find((i) => i.id === item.ingrediente_id);
+    const { data, error } = await supabase
       .from("item_lista")
-      .update({ texto: texto.trim(), cantidad: cantidad.trim() || null, seccion_super: seccion })
-      .eq("id", item.id);
+      .update({
+        texto: texto.trim(),
+        cantidad: nuevaCantidad,
+        seccion_super: seccion,
+        // Si se cambia la cantidad, cuenta la escrita (también al guardar la compra) y el elemento pasa a ser
+        // manual: "Completar desde el menú" ya no lo toca.
+        ...(nuevaCantidad !== item.cantidad
+          ? { cantidad_base: ingrediente ? cantidadEnBase(nuevaCantidad, ingrediente.unidad_base, ingrediente.peso_unidad_g) : null, origen: "manual" }
+          : {}),
+      })
+      .eq("id", item.id)
+      .select("id");
     if (error) return toast.error(mensajeError(error));
+    if (!data?.length) {
+      toast.error("Ya no está en la lista: lo han quitado desde otro móvil");
+      refrescar();
+      return onCerrar();
+    }
     // Si el elemento es un ingrediente conocido, recuerda la sección para la próxima vez.
     if (item.ingrediente_id && seccion !== item.seccion_super) {
       await supabase.from("ingrediente").update({ seccion_super: seccion }).eq("id", item.ingrediente_id);

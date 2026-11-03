@@ -385,9 +385,22 @@ interface CambiosDespensa {
   items_borrar?: string[];
   franja_cocinada?: string | null;
   racion_congelada?: Fila;
+  raciones_delta?: { id: string; delta: number }[];
 }
 
 function aplicarCambios(db: Tablas, c: CambiosDespensa) {
+  // Las comprobaciones van primero: si alguna falla, no se cambia nada (como la transacción real).
+  const franja = c.franja_cocinada ? db.franja_menu.find((f) => f.id === c.franja_cocinada) : null;
+  if (c.franja_cocinada && (!franja || franja.cocinado)) throw new Error("Este plato ya está marcado como cocinado (quizá desde otro móvil)");
+  if ((c.items_borrar ?? []).some((id) => !db.item_lista.some((i) => i.id === id))) {
+    throw new Error("La lista ha cambiado desde otro móvil (quizá ya se guardó esta compra): revísala y vuelve a intentarlo");
+  }
+  const existe = (id: string) => db.lote_despensa.some((l) => l.id === id);
+  if ([...(c.lotes_actualizar ?? []).map((a) => a.id), ...(c.lotes_delta ?? []).map((d) => d.id), ...(c.lotes_borrar ?? [])].some((id) => !existe(id))) {
+    throw new Error("Ese lote ya no está en la despensa");
+  }
+  if ((c.raciones_delta ?? []).some((d) => !db.racion_congelada.some((r) => r.id === d.id))) throw new Error("Esa ración ya no está en el congelador");
+
   for (const l of c.lotes_crear ?? []) db.lote_despensa.push(nuevaFila("lote_despensa", { ...l, hogar_id: HOGAR_ID }));
   for (const a of c.lotes_actualizar ?? []) {
     const { id, ...cambios } = a;
@@ -400,6 +413,11 @@ function aplicarCambios(db: Tablas, c: CambiosDespensa) {
     if (Number(lote.cantidad) <= 0.0001) db.lote_despensa = db.lote_despensa.filter((l) => l !== lote);
   }
   db.lote_despensa = db.lote_despensa.filter((l) => !(c.lotes_borrar ?? []).includes(l.id as string));
+  for (const d of c.raciones_delta ?? []) {
+    const racion = db.racion_congelada.find((r) => r.id === d.id)!;
+    racion.raciones = Number(racion.raciones) + d.delta;
+    if (Number(racion.raciones) <= 0) db.racion_congelada = db.racion_congelada.filter((r) => r !== racion);
+  }
   if (c.racion_congelada) db.racion_congelada.push(nuevaFila("racion_congelada", { ...c.racion_congelada, hogar_id: HOGAR_ID }));
   for (const m of c.movimientos ?? []) db.movimiento_despensa.push(nuevaFila("movimiento_despensa", { ...m, hogar_id: HOGAR_ID }));
   db.item_lista = db.item_lista.filter((i) => !(c.items_borrar ?? []).includes(i.id as string));

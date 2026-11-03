@@ -1,5 +1,5 @@
 import { House, Users } from "lucide-react";
-import { motion } from "motion/react";
+import { m as motion } from "motion/react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";

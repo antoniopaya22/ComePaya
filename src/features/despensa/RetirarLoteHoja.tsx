@@ -29,6 +29,7 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
   const [hay, setHay] = useState(1);
   const [envases, setEnvases] = useState(1);
   const [guardando, setGuardando] = useState(false);
+  const [desaparecido, setDesaparecido] = useState(false);
 
   // Los datos se conservan mientras el panel se cierra animado.
   const [actual, setActual] = useState(lote);
@@ -38,8 +39,22 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
       const envase = envaseQueSeCuenta(lote);
       setHay(baseAEnvases(lote.cantidad, envase));
       setEnvases(baseAEnvases(lote.cantidad, envase));
+      setDesaparecido(false);
     }
   }, [lote]);
+
+  // Si otro móvil cambia o quita el lote con el panel abierto, se ve aquí (y no se guarda sobre datos viejos).
+  useEffect(() => {
+    if (!lote || !actual || !lotes) return;
+    const vivo = lotes.find((l) => l.id === actual.id);
+    if (!vivo) return setDesaparecido(true);
+    if (vivo.cantidad === actual.cantidad && vivo.ubicacion === actual.ubicacion && vivo.fecha_caducidad === actual.fecha_caducidad && vivo.abierto_en === actual.abierto_en) return;
+    const envase = envaseQueSeCuenta(vivo);
+    setActual(vivo);
+    setHay(baseAEnvases(vivo.cantidad, envase));
+    setEnvases((e) => Math.min(e, baseAEnvases(vivo.cantidad, envase)));
+    // Solo depende de los lotes: al abrir otro, el efecto de arriba ya lo pone al día.
+  }, [lotes]);
 
   if (!actual) return null;
   const { producto } = actual;
@@ -107,7 +122,8 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
     const ok = await hacer(
       restoCerrado
         ? {
-            lotes_actualizar: [{ id: restoCerrado.id, cantidad: restoCerrado.cantidad }],
+            // Relativo: el envase abierto sale del resto, aunque otro móvil haya cambiado cuántos quedan.
+            lotes_delta: [{ id: restoCerrado.id, delta: restoCerrado.cantidad - actual.cantidad }],
             lotes_crear: [{ producto_id: producto.id, cantidad: abierto.cantidad, ubicacion, fecha_caducidad: abierto.fecha_caducidad, abierto_en: hoy }],
           }
         : { lotes_actualizar: [{ id: actual.id, ubicacion, fecha_caducidad: abierto.fecha_caducidad, abierto_en: hoy }] },
@@ -127,7 +143,7 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
       {
         ...(restoCerrado
           ? {
-              lotes_actualizar: [{ id: restoCerrado.id, cantidad: restoCerrado.cantidad }],
+              lotes_delta: [{ id: restoCerrado.id, delta: restoCerrado.cantidad - actual.cantidad }],
               lotes_crear: [{ producto_id: producto.id, cantidad: abierto.cantidad, ubicacion, fecha_caducidad: abierto.fecha_caducidad, abierto_en: abierto.abierto_en }],
             }
           : {
@@ -169,23 +185,28 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
       descripcion={`${formatearLote(actual.cantidad, unidad, producto.cantidad_envase)} · ${describirCaducidad(actual.fecha_caducidad, hoyISO())}`}
       pie={
         <div className="grid grid-cols-2 gap-2">
-          <Boton variante="peligro" tamano="lg" onClick={() => retirar("tirado")} disabled={guardando || envases <= 0}>
+          <Boton variante="peligro" tamano="lg" onClick={() => retirar("tirado")} disabled={guardando || desaparecido || envases <= 0}>
             <Trash2 /> Tirado
           </Boton>
-          <Boton tamano="lg" onClick={() => retirar("consumo")} disabled={guardando || envases <= 0}>
+          <Boton tamano="lg" onClick={() => retirar("consumo")} disabled={guardando || desaparecido || envases <= 0}>
             <Utensils /> Consumido
           </Boton>
         </div>
       }
     >
       <div className="flex flex-col gap-5">
+        {desaparecido && (
+          <p role="alert" className="rounded-xl bg-aviso-suave px-3.5 py-3 text-sm font-medium text-aviso">
+            Ya no está en la despensa: lo han cambiado desde otro móvil.
+          </p>
+        )}
         <Campo etiqueta="Cuántos hay" ayuda={hay !== total ? "Guarda para que se vea igual en todos los móviles de casa." : undefined}>
           <div className="flex gap-2">
             <div className="flex-1">
               <Contador valor={hay} onChange={(v) => setHay(Math.max(0, v))} min={0} paso={paso} sufijo={sufijo} />
             </div>
             {hay !== total && (
-              <Boton tamano="lg" onClick={guardarCantidad} disabled={guardando}>
+              <Boton tamano="lg" onClick={guardarCantidad} disabled={guardando || desaparecido}>
                 <Check /> Guardar
               </Boton>
             )}

@@ -1,4 +1,5 @@
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { LazyMotion } from "motion/react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "sonner";
@@ -12,6 +13,9 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/fraunces";
 import "./index.css";
 
+// Las animaciones arrancan sin su motor completo; llega en un archivo aparte justo después.
+const funcionesAnimacion = () => import("./lib/animaciones").then((m) => m.default);
+
 registrarMutacionesLista(queryClient);
 instalarCapturaDeErrores();
 vigilarActualizaciones();
@@ -24,9 +28,11 @@ createRoot(document.getElementById("root")!).render(
       // Al abrir, se envían los cambios hechos sin conexión y después se refresca todo.
       onSuccess={() => queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries())}
     >
-      <ConfirmarProvider>
-        <App />
-      </ConfirmarProvider>
+      <LazyMotion features={funcionesAnimacion} strict>
+        <ConfirmarProvider>
+          <App />
+        </ConfirmarProvider>
+      </LazyMotion>
       <Toaster position="top-center" richColors closeButton={false} toastOptions={{ className: "!rounded-2xl" }} />
     </PersistQueryClientProvider>
   </StrictMode>,

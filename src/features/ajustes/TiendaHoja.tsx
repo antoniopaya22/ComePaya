@@ -1,13 +1,15 @@
 import { ChevronDown, ChevronUp, Plus, Trash2, X } from "lucide-react";
-import { motion } from "motion/react";
+import { m as motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Entrada } from "@/components/ui/campos";
 import { Hoja } from "@/components/ui/hoja";
 import { SECCION_OTROS, SECCIONES_POR_DEFECTO } from "@/dominio/lista";
 import { supabase } from "@/lib/supabase";
 import type { Tienda } from "@/lib/tipos";
+import { claves } from "../datos";
 import { mensajeError } from "@/lib/utils";
 import { useHogar } from "../hogar/HogarProvider";
 
@@ -55,10 +57,25 @@ export function TiendaHoja({ tienda, onCerrar }: { tienda: Tienda | "nueva" | nu
     onCerrar();
   }
 
+  const queryClient = useQueryClient();
+
   async function borrar() {
     if (tienda === "nueva" || !tienda) return;
     const { error } = await supabase.from("tienda").delete().eq("id", tienda.id);
     if (error) return toast.error(mensajeError(error));
+    const copia = { ...tienda };
+    queryClient.invalidateQueries({ queryKey: claves.tiendas(copia.hogar_id) });
+    toast(`${copia.nombre} borrada`, {
+      duration: 8000,
+      action: {
+        label: "Deshacer",
+        onClick: async () => {
+          const { error } = await supabase.from("tienda").insert(copia);
+          if (error) toast.error(mensajeError(error));
+          queryClient.invalidateQueries({ queryKey: claves.tiendas(copia.hogar_id) });
+        },
+      },
+    });
     onCerrar();
   }
 

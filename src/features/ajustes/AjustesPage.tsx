@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import { BarraApp } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
+import { useConfirmar } from "@/components/ui/confirmar";
 import { Contador, Interruptor, Selector } from "@/components/ui/campos";
 import { Etiqueta, Tarjeta } from "@/components/ui/varios";
 import { urlReportarProblema, VERSION } from "@/lib/errores";
@@ -48,7 +49,15 @@ export function AjustesPage() {
     queryClient.invalidateQueries({ queryKey: ["hogares", usuario.id] });
   }
 
+  const confirmar = useConfirmar();
+
   async function regenerarCodigo() {
+    const ok = await confirmar({
+      titulo: "¿Generar un código nuevo?",
+      mensaje: "El código actual dejará de servir: quien lo tenga ya no podrá unirse al hogar.",
+      aceptar: "Generar",
+    });
+    if (!ok) return;
     const { error } = await supabase.rpc("regenerar_codigo_invitacion", { p_hogar_id: hogar.id });
     if (error) return toast.error(mensajeError(error));
     await queryClient.invalidateQueries({ queryKey: ["hogares", usuario.id] });

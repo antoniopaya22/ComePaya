@@ -42,11 +42,11 @@ export function Contador({
   sufijo?: ReactNode;
 }) {
   return (
-    <div className="flex h-12 items-center gap-1 rounded-xl border border-borde bg-superficie p-1">
+    <div className="flex h-12 items-center gap-1 rounded-xl border border-borde bg-superficie p-0.5">
       <button
         type="button"
         aria-label="Menos"
-        className="grid size-10 place-items-center rounded-lg bg-superficie-2 active:scale-95 disabled:opacity-40"
+        className="grid size-11 place-items-center rounded-lg bg-superficie-2 active:scale-95 disabled:opacity-40"
         disabled={valor - paso < min}
         onClick={() => onChange(Math.max(min, +(valor - paso).toFixed(2)))}
       >
@@ -65,7 +65,7 @@ export function Contador({
       <button
         type="button"
         aria-label="Más"
-        className="grid size-10 place-items-center rounded-lg bg-superficie-2 active:scale-95"
+        className="grid size-11 place-items-center rounded-lg bg-superficie-2 active:scale-95"
         onClick={() => onChange(+(valor + paso).toFixed(2))}
       >
         <Plus className="size-4" />

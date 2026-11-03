@@ -395,7 +395,7 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
           </div>
         </details>
         <div className="grid grid-cols-2 gap-3">
-          <Campo etiqueta={`Stock mínimo (${unidad})`} ayuda="Se usará en la fase 2 para la lista.">
+          <Campo etiqueta={`Stock mínimo (${unidad})`} ayuda="Si baja de aquí, «Completar desde el menú» lo añade a la lista.">
             <Entrada inputMode="decimal" value={stockMinimo} onChange={(e) => setStockMinimo(e.target.value)} placeholder="—" />
           </Campo>
           <Campo etiqueta="Caduca en (días)" ayuda="Valor sugerido al añadir.">

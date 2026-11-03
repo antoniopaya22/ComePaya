@@ -27,6 +27,29 @@ test("Lista: añadir con cantidad, marcar y ver la sección", async ({ page }) =
   await expect(fila).toHaveAttribute("aria-pressed", "true");
 });
 
+test("Lista: guardar la compra en la despensa y deshacerlo", async ({ page }) => {
+  await page.goto("/lista");
+  await page.getByRole("button", { name: /^Plátano/ }).click();
+  await page.getByRole("button", { name: /Guardar compra \(1\)/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /Guardar 1 en la despensa/ }).click();
+  await expect(page.getByText("1 guardados en la despensa")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Plátano/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Deshacer" }).click();
+  await expect(page.getByText("Deshecho")).toBeVisible();
+  // Vuelve a la lista, marcado como estaba, y no se queda en la despensa.
+  await expect(page.getByRole("button", { name: /^Plátano/ })).toHaveAttribute("aria-pressed", "true");
+  await page.goto("/despensa");
+  await expect(page.getByText("Plátano", { exact: true })).toHaveCount(0);
+});
+
+test("Ajustes: generar un código de invitación nuevo pide confirmación", async ({ page }) => {
+  await page.goto("/ajustes");
+  await page.getByRole("button", { name: /código nuevo/i }).click();
+  await expect(page.getByText("¿Generar un código nuevo?")).toBeVisible();
+  await page.getByRole("button", { name: "Cancelar" }).click();
+  await expect(page.getByText("Código nuevo generado")).toHaveCount(0);
+});
+
 test("Receta: escalar raciones y abrir el modo cocina", async ({ page }) => {
   await page.goto("/recetas");
   await page.getByText("Lentejas con chorizo").click();
@@ -249,6 +272,33 @@ test("Menú: marcar como cocinado sin querer y deshacerlo devuelve la despensa",
   await page.goto("/productos/p-pollo");
   await expect(page.getByRole("button", { name: /^2 × 500 g\s*Congelador/ })).toBeVisible();
   await expect(page.getByText(/Cocinado:/)).toHaveCount(0);
+});
+
+test("Menú: si otro móvil ya lo ha marcado como cocinado, no se descuenta dos veces", async ({ page }) => {
+  await page.goto("/menu");
+  await page.getByText("Pollo al horno con patatas").first().click();
+  // Mientras el panel está abierto, el otro móvil lo marca como cocinado.
+  await page.evaluate(async () => {
+    const r = await fetch("/demo-supabase/rest/v1/franja_menu?select=id&receta_id=eq.r-pollo&cocinado=eq.false");
+    const [f] = await r.json();
+    await fetch(`/demo-supabase/rest/v1/franja_menu?id=eq.${f.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: '{"cocinado":true}' });
+  });
+  await page.getByRole("button", { name: "Ya lo he cocinado" }).click();
+  await expect(page.getByText(/ya está marcado como cocinado/)).toBeVisible();
+  await page.goto("/productos/p-pollo");
+  await expect(page.getByRole("button", { name: /^2 × 500 g\s*Congelador/ })).toBeVisible();
+});
+
+test("Hoy: cocinar en modo cocina y al terminar apuntarlo en el menú", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Cocinar" }).first().click();
+  await expect(page).toHaveURL(/cocinar\?.*franja=/);
+  for (let i = 0; i < 20 && !(await page.getByRole("button", { name: "Terminar y apuntar" }).isVisible()); i++) {
+    await page.getByRole("button", { name: /Siguiente/ }).click();
+  }
+  await page.getByRole("button", { name: "Terminar y apuntar" }).click();
+  await expect(page).toHaveURL(/\/menu$/);
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Ya lo he cocinado" })).toBeVisible();
 });
 
 test("Producto: cambiar el nombre desde su ficha", async ({ page }) => {

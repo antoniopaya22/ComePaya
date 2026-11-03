@@ -12,7 +12,7 @@ export const CLAVE_ANADIR = ["lista", "anadir"] as const;
 /** Mismo ámbito para todas: se envían en orden (añadir antes que marcar), también al recuperar la red. */
 export const AMBITO_LISTA = { id: "lista" };
 
-export type FilaNueva = Pick<ItemLista, "id" | "hogar_id" | "texto" | "cantidad" | "ingrediente_id" | "seccion_super" | "creado_en">;
+export type FilaNueva = Pick<ItemLista, "id" | "hogar_id" | "texto" | "cantidad" | "cantidad_base" | "ingrediente_id" | "seccion_super" | "creado_en">;
 
 export function registrarMutacionesLista(queryClient: QueryClient) {
   queryClient.setMutationDefaults(CLAVE_ALTERNAR, {

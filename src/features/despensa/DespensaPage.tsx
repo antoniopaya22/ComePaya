@@ -13,7 +13,7 @@ import {
   TriangleAlert,
   Warehouse,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m as motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { BarraApp, EnlaceBarra } from "@/components/BarraApp";

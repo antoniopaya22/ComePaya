@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera, Flashlight, FlashlightOff, Keyboard, LoaderCircle, ScanBarcode, Undo2, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m as motion } from "motion/react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { BarraApp } from "@/components/BarraApp";

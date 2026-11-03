@@ -11,7 +11,7 @@ import {
   Users,
   WifiOff,
 } from "lucide-react";
-import { motion } from "motion/react";
+import { m as motion } from "motion/react";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Logo } from "@/components/Logo";

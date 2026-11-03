@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { buscarIngrediente, parsearEntrada, SECCION_OTROS } from "@/dominio/lista";
+import { buscarIngrediente, cantidadEnBase, parsearEntrada, SECCION_OTROS } from "@/dominio/lista";
 import type { ItemLista } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { claves, useIngredientes } from "../datos";
@@ -24,7 +24,7 @@ export function useAnadirALista() {
       await queryClient.cancelQueries({ queryKey: clave });
       queryClient.setQueryData<ItemLista[]>(clave, (lista) => [
         ...(lista ?? []),
-        { ...fila, cantidad_base: null, marcado: false, origen: "manual" },
+        { ...fila, marcado: false, origen: "manual" },
       ]);
     },
     onError: (error) => toast.error(mensajeError(error)),
@@ -41,6 +41,8 @@ export function useAnadirALista() {
       hogar_id: hogar.id,
       texto,
       cantidad,
+      // "2 kg" también como número en la unidad del ingrediente: es lo que entra en la despensa al guardar la compra.
+      cantidad_base: ingrediente ? cantidadEnBase(cantidad, ingrediente.unidad_base, ingrediente.peso_unidad_g) : null,
       ingrediente_id: ingrediente?.id ?? null,
       seccion_super: ingrediente?.seccion_super ?? SECCION_OTROS,
       creado_en: new Date().toISOString(),
