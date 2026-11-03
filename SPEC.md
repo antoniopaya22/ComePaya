@@ -91,7 +91,7 @@ Los módulos se alimentan entre sí:
 - **Notas** libres por receta ("la próxima vez menos sal").
 - Valoración del usuario.
 - Exportar/importar recetas en **Markdown con frontmatter** (legible y versionable en Git).
-- En la receta, cada ingrediente se marca si hay suficiente en casa (o si es básico). Al tocarlo se ve cuánto hay, se puede marcar como básico ("siempre hay en casa") y **unir con un producto** de la despensa, de ahora o comprado antes, cuando es lo mismo con otro nombre ("Gnochi" de la receta y "Ñoquis" de la despensa). Unir dos ingredientes pasa recetas, productos con sus lotes y lista al ingrediente del producto, convirtiendo cantidades (g y ml se toman iguales; entre unidades y peso se pregunta cuánto es una unidad), y borra el otro. También desde la ficha del ingrediente.
+- En la receta, cada ingrediente se marca si hay suficiente en casa (o si es básico). Al tocarlo se ve cuánto hay, se puede marcar como básico ("siempre hay en casa") y **unir con un producto** de la despensa, de ahora o comprado antes, cuando es lo mismo con otro nombre ("Gnochi" de la receta y "Ñoquis" de la despensa). Unir dos ingredientes pasa recetas, productos con sus lotes y lista al ingrediente del producto, convirtiendo cantidades (g y ml se toman iguales; entre unidades y peso se pregunta cuánto es una unidad), y borra el otro, todo en una transacción (función SQL `unir_ingredientes`). También desde la ficha del ingrediente.
 
 ### 4.4 Menú semanal
 - Vista semanal con 14 franjas (comida y cena de lunes a domingo).
@@ -144,7 +144,7 @@ Los módulos se alimentan entre sí:
 ### Unidades
 - Cada ingrediente tiene una **unidad base**: gramos, mililitros o unidades.
 - Cada producto declara cuánto contiene en esa unidad base (p. ej., lata = 400 g).
-- Lo que en casa se cuenta por piezas (patata, cebolla, tomate, zanahoria, pimientos, calabacín, berenjena, brócoli, coliflor, melón, y la fruta que ya lo estaba) va **por unidades**, con su peso medio para la nutrición; lo suelto o en bandeja (espinacas, judías verdes, champiñones, fresas…) sigue en peso. Si un hogar los tiene en gramos, Despensa y Ajustes → Ingredientes ofrecen pasarlos a unidades de una vez. La unidad de un ingrediente en uso se puede cambiar desde su ficha: se convierten recetas, lotes, envases, lista, stock mínimo y medidas caseras (entre unidades y peso, con el peso de una pieza).
+- Lo que en casa se cuenta por piezas (patata, cebolla, tomate, zanahoria, pimientos, calabacín, berenjena, brócoli, coliflor, melón, y la fruta que ya lo estaba) va **por unidades**, con su peso medio para la nutrición; lo suelto o en bandeja (espinacas, judías verdes, champiñones, fresas…) sigue en peso. Si un hogar los tiene en gramos, Despensa y Ajustes → Ingredientes ofrecen pasarlos a unidades de una vez. La unidad de un ingrediente en uso se puede cambiar desde su ficha: se convierten recetas, lotes, envases, lista, stock mínimo y medidas caseras (entre unidades y peso, con el peso de una pieza), en una transacción (función SQL `cambiar_unidad_ingrediente`).
 - Todas las cantidades internas se guardan en unidad base. No implementar conversiones "mágicas" (cucharadas, tazas) en las primeras fases.
 
 ### Hogar (multi-cuenta)
@@ -308,6 +308,7 @@ Todo en planes gratuitos.
 - **Lógica de dominio** en TypeScript puro (`src/dominio/`), sin dependencias de React ni Supabase, con tests en Vitest.
 - **Escaneo**: `barcode-detector` (ver §7.1).
 - **Mantenimiento**: GitHub Actions semanal que hace una consulta a Supabase (el plan gratuito pausa el proyecto tras 7 días sin actividad) y un `pg_dump` como copia de seguridad (el plan gratuito no tiene copias automáticas).
+- **Migraciones**: al subir a `main` una migración nueva, GitHub Actions (`migraciones.yml`) aplica las pendientes con `scripts/aplicar-migracion.mjs`, cada una en una transacción, y las apunta en `control.migracion` (esquema que la API no expone). Vercel despliega a la vez, así que cada migración debe ser compatible con el código anterior. Ambos workflows usan el secreto `SUPABASE_DB_URL`.
 - **Integraciones externas** detrás de adaptadores con caché y tolerancia a fallos.
 - **Límites a vigilar**: 500 MB de base de datos y 1 GB de Storage en Supabase; el cron de Vercel Hobby es diario como mucho.
 

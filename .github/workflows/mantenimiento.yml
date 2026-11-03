@@ -18,7 +18,7 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "::error::Falta el secreto SUPABASE_DB_URL (Settings → Secrets and variables → Actions). Ver README, sección 5."
+            echo "::error::Falta el secreto SUPABASE_DB_URL (Settings → Secrets and variables → Actions). Ver README, sección 1."
             exit 1
           fi
           supabase db dump --db-url "$SUPABASE_DB_URL" -f esquema.sql

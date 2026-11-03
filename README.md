@@ -34,11 +34,13 @@ El código de dominio (`src/dominio/`) es TypeScript puro y es donde van los tes
 ### 1. Supabase
 
 1. Crea el proyecto (plan gratuito, región Europa). Deja activado **Enable Data API**. Puedes desactivar *Automatically expose new tables* y activar *Enable automatic RLS*: las migraciones ya dan los permisos y activan RLS.
-2. En **SQL Editor** ejecuta, en orden, todos los archivos de [supabase/migrations/](supabase/migrations/).
-   Alternativa con la CLI: `npx supabase link --project-ref <ref>` y `npx supabase db push`.
-   Para aplicar una migración nueva sin abrir Supabase: pon la contraseña de la base de datos en tu terminal
-   (`$env:SUPABASE_DB_PASSWORD = "…"` en PowerShell) y ejecuta `npm run migrar -- supabase/migrations/<archivo>.sql`.
-   Va en una transacción: si algo falla, no cambia nada.
+2. Añade en GitHub el secreto `SUPABASE_DB_URL` (*Settings → Secrets and variables → Actions*): la cadena de conexión
+   **Session pooler** de Supabase (*Connect → Session pooler*) con la contraseña de la base de datos, codificada para URL.
+   Con él, cada push a `main` que traiga una migración nueva la aplica sola ([migraciones.yml](.github/workflows/migraciones.yml)),
+   y en un proyecto vacío se aplican todas (lánzalo a mano la primera vez: *Actions → Migraciones → Run workflow*).
+   Cada migración va en una transacción y queda apuntada en `control.migracion`: si algo falla, no cambia nada.
+   Desde tu terminal: `$env:SUPABASE_DB_URL = "…"` (PowerShell) y `npm run migrar` (las que falten) o `npm run migrar -- <archivo>`.
+   Las migraciones deben ser compatibles con el código anterior: Vercel despliega a la vez que se aplican.
 3. En **Project Settings → API keys** copia la *publishable key* y la *secret key* (ver `.env.example`).
 
 ### 2. Login con Google
@@ -75,7 +77,7 @@ Cada miembro activa los avisos en su móvil desde *Ajustes → Avisos en este di
 
 El workflow [.github/workflows/mantenimiento.yml](.github/workflows/mantenimiento.yml) vuelca la base de datos cada lunes y la guarda como artefacto 90 días; esa actividad además evita que Supabase pause el proyecto gratuito.
 
-- Añade el secreto `SUPABASE_DB_URL` en GitHub (*Settings → Secrets → Actions*): la cadena de conexión **Session pooler** de Supabase (*Connect → Session pooler*) con la contraseña de la base de datos, codificada para URL.
+- Usa el mismo secreto `SUPABASE_DB_URL` que las migraciones (paso 1.2).
 - GitHub desactiva los workflows programados de repositorios públicos sin actividad en 60 días.
 
 ## Usarla en el móvil

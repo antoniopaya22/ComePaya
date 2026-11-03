@@ -4,6 +4,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin } from "vite";
 import { hoyISO } from "../src/dominio/caducidad";
+import { convertir } from "../src/dominio/fusion";
 import { datosIniciales, HOGAR_ID, USUARIO_DEMO, type Fila, type Tablas } from "./datos";
 
 export const RUTA_DEMO = "/demo-supabase";
@@ -326,8 +327,51 @@ function ejecutarRpc(db: Tablas, nombre: string, args: Record<string, unknown>):
       return [null];
     case "registrar_suscripcion_push":
       return [null];
+    case "unir_ingredientes": {
+      const origen = db.ingrediente.find((i) => i.id === args.p_origen);
+      const destino = db.ingrediente.find((i) => i.id === args.p_destino);
+      if (!origen || !destino) return [{ message: "Ese ingrediente ya no existe" }, 400];
+      pasarReferencias(db, origen.id as string, destino.id as string, Number(args.p_factor));
+      destino.siempre_disponible = Boolean(destino.siempre_disponible || origen.siempre_disponible);
+      const fechas = [destino.bebe_introducido, origen.bebe_introducido].filter(Boolean) as string[];
+      destino.bebe_introducido = fechas.sort()[0] ?? null;
+      db.ingrediente = db.ingrediente.filter((i) => i !== origen);
+      return [null];
+    }
+    case "cambiar_unidad_ingrediente": {
+      const ing = db.ingrediente.find((i) => i.id === args.p_ingrediente);
+      if (!ing) return [{ message: "Ese ingrediente ya no existe" }, 400];
+      if (ing.unidad_base === args.p_unidad) return [null];
+      const factor = Number(args.p_factor);
+      pasarReferencias(db, ing.id as string, ing.id as string, factor);
+      const eq = ing.equivalencias as Record<string, number> | null;
+      Object.assign(ing, {
+        unidad_base: args.p_unidad,
+        peso_unidad_g: args.p_unidad === "ud" ? args.p_peso_unidad : null,
+        stock_minimo: Number(ing.stock_minimo) > 0 ? convertir(Number(ing.stock_minimo), factor) : null,
+        equivalencias: eq ? Object.fromEntries(Object.entries(eq).map(([k, v]) => [k, convertir(v, factor)])) : null,
+      });
+      return [null];
+    }
     default:
       return [{ message: `RPC ${nombre} no simulada` }, 404];
+  }
+}
+
+/** Como la función SQL pasar_referencias_ingrediente. */
+function pasarReferencias(db: Tablas, origen: string, destino: string, factor: number) {
+  for (const l of db.receta_ingrediente.filter((r) => r.ingrediente_id === origen)) {
+    Object.assign(l, { ingrediente_id: destino, cantidad: convertir(Number(l.cantidad), factor) });
+  }
+  for (const p of db.producto.filter((r) => r.ingrediente_id === origen)) {
+    if (factor !== 1) {
+      for (const l of db.lote_despensa.filter((r) => r.producto_id === p.id)) l.cantidad = convertir(Number(l.cantidad), factor);
+      if (p.cantidad_envase != null) p.cantidad_envase = convertir(Number(p.cantidad_envase), factor);
+    }
+    p.ingrediente_id = destino;
+  }
+  for (const i of db.item_lista.filter((r) => r.ingrediente_id === origen)) {
+    Object.assign(i, { ingrediente_id: destino, cantidad_base: i.cantidad_base != null ? convertir(Number(i.cantidad_base), factor) : null });
   }
 }
 

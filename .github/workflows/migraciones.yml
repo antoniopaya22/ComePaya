@@ -1,0 +1,35 @@
+# Al subir a main una migración nueva: la aplica en Supabase (las que falten, en orden, cada una en una transacción).
+# Vercel despliega a la vez, así que las migraciones deben ser compatibles con el código anterior (añadir, no quitar).
+name: Migraciones
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/aplicar-migracion.mjs"
+  workflow_dispatch:
+
+concurrency:
+  group: migraciones
+  cancel-in-progress: false
+
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Aplicar las pendientes
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Falta el secreto SUPABASE_DB_URL (Settings → Secrets and variables → Actions). Ver README, sección 1."
+            exit 1
+          fi
+          npm run migrar
