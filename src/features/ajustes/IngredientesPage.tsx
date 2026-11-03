@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Entrada, Interruptor, Opciones, Selector } from "@/components/ui/campos";
-import { Hoja } from "@/components/ui/hoja";
+import { Hoja, useCambiosSinGuardar } from "@/components/ui/hoja";
 import { Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
 import { datosBaseDe, emojiPara, ingredientesBaseQueFaltan } from "@/dominio/ingredientes-base";
 import { seccionesDisponibles } from "@/dominio/lista";
@@ -162,6 +162,9 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
   const [eqCucharada, setEqCucharada] = useState("");
   const [eqVaso, setEqVaso] = useState("");
   const [nutrientes, setNutrientes] = useState<Partial<Record<keyof Nutrientes100, string>>>({});
+  const sucio = useCambiosSinGuardar(ingrediente !== null, [
+    nombre, emoji, unidad, seccion, basico, stockMinimo, caducidadDias, grupo, pesoUnidad, alergenos, diasAbrir, eqCucharada, eqVaso, nutrientes,
+  ]);
   const calculados = useNutrientesIngredientes();
   const { data: productos = [] } = useProductos();
   const { data: recetas = [] } = useRecetas();
@@ -263,6 +266,7 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
 
   return (
     <Hoja
+      sucio={sucio}
       abierta={ingrediente !== null}
       onAbiertaChange={(v) => !v && onCerrar()}
       titulo={ingrediente === "nuevo" ? "Nuevo ingrediente" : "Ingrediente"}

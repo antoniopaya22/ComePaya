@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Contador, Entrada, Interruptor, Opciones } from "@/components/ui/campos";
 import { Estrellas } from "@/components/ui/estrellas";
-import { Hoja } from "@/components/ui/hoja";
+import { Hoja, useCambiosSinGuardar } from "@/components/ui/hoja";
 import { alimentosNuevos, recetasPara, type ParaFranja } from "@/dominio/bebe";
 import { hoyISO, type FechaISO } from "@/dominio/caducidad";
 import { DIAS_SEMANA, racionesACocinar, type TipoFranja } from "@/dominio/menu";
@@ -54,6 +54,7 @@ export function FranjaHoja({
   const [congelar, setCongelar] = useState(0);
   const [ocupado, setOcupado] = useState(false);
   const [actual, setActual] = useState(hueco);
+  const sucio = useCambiosSinGuardar(hueco !== null, [modo, recetaId, raciones, sobraDe]);
 
   useEffect(() => {
     if (!hueco) return;
@@ -200,10 +201,12 @@ export function FranjaHoja({
   }
 
   const listo = modo === "fuera" || (modo === "receta" && recetaId) || (modo === "sobras" && sobraDe);
+  const motivoNoListo = modo === "sobras" ? "Elige de qué comida son las sobras" : "Elige una receta de la lista";
   const cocinable = franja && franja.receta_id && !franja.fuera_de_casa;
 
   return (
     <Hoja
+      sucio={sucio}
       abierta={hueco !== null}
       onAbiertaChange={(v) => !v && onCerrar()}
       titulo={`${diaDe(fecha)} · ${tipo === "comida" ? "Comida" : "Cena"}${para === "bebe" ? ` de ${bebe}` : ""}`}
@@ -212,7 +215,7 @@ export function FranjaHoja({
           <Boton variante="peligro" tamano="icono" onClick={vaciar} aria-label="Vaciar franja" disabled={ocupado}>
             <Trash2 />
           </Boton>
-          <Boton onClick={guardar} disabled={!listo || ocupado}>
+          <Boton onClick={() => (listo ? guardar() : toast.error(motivoNoListo))} disabled={ocupado}>
             <Check /> Guardar
           </Boton>
         </div>

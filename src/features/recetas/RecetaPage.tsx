@@ -21,6 +21,7 @@ import { useAlergenosIngredientes, useIngredientes, useLotes, useRecetas } from 
 import { stockDeLotes } from "../despensa/stock";
 import { ChipsAlergenos } from "../salud/Alergenos";
 import { NutricionReceta } from "../salud/NutricionReceta";
+import { AnadirLoQueFalta } from "./AnadirLoQueFalta";
 import { aMarkdown, descargar, nombreArchivo } from "./markdown";
 
 export function RecetaPage() {
@@ -196,6 +197,7 @@ export function RecetaPage() {
           {receta.ingredientes.some((ri) => !basicos.has(ri.ingrediente_id) && !stock.get(ri.ingrediente_id)) && (
             <p className="px-1 text-sm text-suave">¿Alguno lo tenéis en casa con otro nombre? Tócalo para unirlo con su producto.</p>
           )}
+          <AnadirLoQueFalta receta={receta} raciones={racionesVista} stock={stock} basicos={basicos} />
         </section>
 
         {nuevosBebe.length > 0 && (

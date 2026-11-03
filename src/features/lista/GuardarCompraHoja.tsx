@@ -148,7 +148,11 @@ export function GuardarCompraHoja({ items: marcados, abierta, onCerrar }: { item
       descripcion="Lo marcado pasa a la despensa y sale de la lista. La caducidad se toma de la habitual de cada producto."
       pie={
         <div className="flex flex-col gap-2">
-          <Boton tamano="lg" onClick={() => guardar(true)} disabled={guardando || !aGuardar.length}>
+          <Boton
+            tamano="lg"
+            onClick={() => (aGuardar.length ? guardar(true) : toast.error("No hay nada marcado para la despensa: marca alguno arriba o usa «Solo quitar de la lista»"))}
+            disabled={guardando}
+          >
             <Refrigerator /> Guardar {aGuardar.length} en la despensa
           </Boton>
           <Boton variante="fantasma" onClick={() => guardar(false)} disabled={guardando}>

@@ -13,7 +13,7 @@ import { formatearCantidad } from "@/dominio/unidades";
 import { supabase } from "@/lib/supabase";
 import type { Ingrediente, ProductoConIngrediente } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
-import { claves, useIngredientes, useLotes, useProductos } from "../datos";
+import { claves, useIngredientes, useLista, useLotes, useProductos, useRecetas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
 import { fusionarIngredientes } from "./fusionar";
 
@@ -39,6 +39,8 @@ export function UnirIngredienteHoja({
   const { data: ingredientes = [] } = useIngredientes();
   const { data: productos = [] } = useProductos();
   const { data: lotes = [] } = useLotes();
+  const { data: recetas = [] } = useRecetas();
+  const { data: lista = [] } = useLista();
   const [busqueda, setBusqueda] = useState("");
   const [elegido, setElegido] = useState<{ destino: Ingrediente; producto: ProductoConIngrediente | null } | null>(null);
   const [peso, setPeso] = useState("");
@@ -56,6 +58,22 @@ export function UnirIngredienteHoja({
     () => (ingrediente ? candidatosUnion(ingrediente.id, productos, ingredientes, stockPorProducto, busqueda) : null),
     [ingrediente, productos, ingredientes, stockPorProducto, busqueda],
   );
+
+  /** Qué se va a pasar al otro ingrediente, para unir sabiendo lo que cambia (no se puede deshacer). */
+  function resumenUnion(origenId: string, destino: string): string {
+    const n = {
+      recetas: recetas.filter((r) => r.ingredientes.some((ri) => ri.ingrediente_id === origenId)).length,
+      productos: productos.filter((p) => p.ingrediente_id === origenId).length,
+      lista: lista.filter((i) => i.ingrediente_id === origenId).length,
+    };
+    const partes = [
+      n.recetas && `${n.recetas} ${n.recetas === 1 ? "receta" : "recetas"}`,
+      n.productos && `${n.productos} ${n.productos === 1 ? "producto" : "productos"} con su despensa`,
+      n.lista && `${n.lista} de la lista`,
+    ].filter(Boolean);
+    const que = partes.length ? `Pasarán a «${destino}»: ${partes.join(", ")}.` : `No hay nada más que pasar a «${destino}».`;
+    return `${que} Unir no se puede deshacer.`;
+  }
 
   function cerrar() {
     setBusqueda("");
@@ -142,7 +160,7 @@ export function UnirIngredienteHoja({
       descripcion={elegido ? undefined : estado}
       pie={
         elegido ? (
-          <Boton className="w-full" tamano="lg" onClick={unir} disabled={uniendo || factor === null}>
+          <Boton className="w-full" tamano="lg" onClick={() => (factor === null ? toast.error("Escribe cuánto pesa una unidad para poder convertir las cantidades") : unir())} disabled={uniendo}>
             <Merge /> {uniendo ? "Uniendo…" : "Unir"}
           </Boton>
         ) : undefined
@@ -159,6 +177,7 @@ export function UnirIngredienteHoja({
               ? `, así que contará lo que tengáis de «${elegido.producto.nombre}».`
               : "."}
           </p>
+          <p className="text-sm text-suave">{resumenUnion(ingrediente.id, destino.nombre)}</p>
           {pideUnidad && porUnidad && (
             <Campo
               etiqueta={`¿Cuántos ${unidadPeso} son 1 ud de ${porUnidad.nombre.toLowerCase()}?`}

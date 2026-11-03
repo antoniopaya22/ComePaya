@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { buscarIngrediente, cantidadEnBase, parsearEntrada, SECCION_OTROS } from "@/dominio/lista";
+import { normalizar } from "@/dominio/texto";
 import type { ItemLista } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { claves, useIngredientes } from "../datos";
@@ -36,7 +37,7 @@ export function useAnadirALista() {
     if (!nombre) return null;
     const ingrediente = buscarIngrediente(nombre, ingredientes);
     const texto = ingrediente?.nombre ?? nombre;
-    anadirFila.mutate({
+    const fila: FilaNueva = {
       id: crypto.randomUUID(),
       hogar_id: hogar.id,
       texto,
@@ -46,7 +47,18 @@ export function useAnadirALista() {
       ingrediente_id: ingrediente?.id ?? null,
       seccion_super: ingrediente?.seccion_super ?? SECCION_OTROS,
       creado_en: new Date().toISOString(),
-    });
+    };
+    // Si ya está pendiente (quizá lo ha apuntado otro), no se duplica salvo que se pida.
+    const repetido = (queryClient.getQueryData<ItemLista[]>(clave) ?? []).find(
+      (i) => !i.marcado && (ingrediente ? i.ingrediente_id === ingrediente.id : normalizar(i.texto) === normalizar(texto)),
+    );
+    if (repetido) {
+      toast.info(`${texto} ya está en la lista${repetido.cantidad ? ` (${repetido.cantidad})` : ""}`, {
+        action: { label: "Añadir otro", onClick: () => anadirFila.mutate({ ...fila, id: crypto.randomUUID() }) },
+      });
+      return null;
+    }
+    anadirFila.mutate(fila);
     return texto;
   };
 }

@@ -67,7 +67,7 @@ Los módulos se alimentan entre sí:
 - **Empezados**: en un lote se marca cuánto queda (¼, ½, ¾). Si estaba cerrado se abre un envase (separado del resto, con la caducidad tras abrir) y lo gastado cuenta como consumido. La despensa y la ficha muestran "empezado, queda ½".
 - Ordenar la despensa por caducidad, por nombre o por tipo de alimento (sección, en el orden de la tienda) y filtrarla por tipo.
 - **Cambiar cuánto hay**: en el panel de un lote, el contador «Cuántos hay» (en envases, o en unidades si el ingrediente va por unidades) con «Guardar»; queda como ajuste y se ve al momento en los móviles del resto. Con 0, el lote se quita.
-- **Deshacer**: consumir, tirar, guardar la cantidad, mover, abrir, marcar empezado, cambiar la caducidad, cocinar un plato, vaciar una franja, usar o tirar una ración congelada, quitar de la lista y borrar un ingrediente muestran un aviso con «Deshacer» (8 s). En la despensa, deshacer devuelve los lotes de los productos afectados a como estaban (`src/dominio/deshacer.ts`) y borra los movimientos apuntados, para que no cuenten en las estadísticas.
+- **Deshacer**: consumir, tirar, guardar la cantidad, mover, abrir, marcar empezado, cambiar la caducidad, cocinar un plato, vaciar una franja, usar o tirar una ración congelada, quitar de la lista y borrar un ingrediente muestran un aviso con «Deshacer» (8 s). En la despensa, deshacer compara los lotes de antes, de justo después y de ahora (`planDeshacer` en `src/dominio/deshacer.ts`): solo revierte lo que hizo esa acción, sin pisar lo que otro móvil haya hecho entretanto, y borra los movimientos apuntados para que no cuenten en las estadísticas. «Guardar compra» también se puede deshacer.
 
 ### 4.2 Lista de la compra
 - Entradas automáticas (desde el menú y el stock mínimo) y manuales (texto libre).
@@ -75,6 +75,7 @@ Los módulos se alimentan entre sí:
 - **Funciona sin conexión** (PWA) y sincroniza después.
 - Compartida en tiempo real entre los miembros del hogar (Supabase Realtime).
 - Lo comprado pasa a la despensa.
+- Lo que ya está pendiente no se duplica al añadirlo otra vez (aviso con «Añadir otro»). Desde una receta, «Añadir lo que falta a la lista» apunta lo que no llega para las raciones elegidas, con deshacer.
 - La cantidad escrita ("2 kg", "x6", "1,5 l") se guarda también como número en la unidad del ingrediente (`cantidadEnBase`), y es lo que entra en la despensa al guardar la compra. Editar la cantidad de un elemento automático lo pasa a manual.
 
 ### 4.2.1 Reglas de la lista generada (implementadas en la fase 2)
@@ -134,6 +135,7 @@ Los módulos se alimentan entre sí:
 - Una sola suscripción de Supabase Realtime por hogar refresca, en cualquier pantalla, lo que cambia otro miembro (lista, despensa, menú, raciones, recetas e ingredientes). Por eso los datos se consideran frescos 5 minutos; al reconectar o al volver tras más de un minuto en segundo plano se vuelve a pedir todo.
 - El service worker guarda las fotos de productos, recetas y avatares (hasta 400, 60 días) para verlas sin conexión.
 - **Varios móviles a la vez**: también llegan al momento los cambios de hogar (comensales, bebé, alérgenos), miembros, productos, tiendas, reglas y "no me apetece". `aplicar_cambios_despensa` no deja guardar dos veces la misma compra ni cocinar dos veces la misma franja, y falla si un lote o una ración ya no existe (en vez de guardar sobre nada); las raciones congeladas cambian con deltas. El panel de un lote sigue al lote real y avisa si otro móvil lo ha quitado. Los errores se muestran en español (sin conexión, sesión caducada, permisos…).
+- **No perder lo escrito**: las hojas con cambios sin guardar no se cierran al deslizar ni al tocar fuera (aparece «Descartar», que pregunta). El editor de recetas guarda un borrador en el móvil y lo ofrece al volver; al salir con cambios, pregunta. Los botones de guardar no se desactivan: al pulsarlos dicen qué falta.
 - **Arranque**: solo Hoy va en el JavaScript inicial; el resto de pantallas se descarga al abrirla y las pestañas principales se precargan en reposo. Las animaciones (Motion) cargan su motor después (`LazyMotion`).
 
 ---

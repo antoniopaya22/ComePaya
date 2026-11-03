@@ -21,6 +21,7 @@ export function BarraApp({
   grande = true,
   inicio,
   escritorio = true,
+  antesDeSalir,
   children,
 }: {
   titulo: string;
@@ -36,6 +37,8 @@ export function BarraApp({
   inicio?: ReactNode;
   /** Con false no pinta la cabecera de escritorio (la pantalla tiene la suya). */
   escritorio?: boolean;
+  /** Se pregunta antes de volver (p. ej., hay cambios sin guardar); con false no se sale. */
+  antesDeSalir?: () => Promise<boolean>;
   /** Contenido bajo el título grande (en ambos tamaños), como filtros o un aviso. */
   children?: ReactNode;
 }) {
@@ -53,7 +56,8 @@ export function BarraApp({
     return () => observador.disconnect();
   }, [grande]);
 
-  function volver() {
+  async function volver() {
+    if (antesDeSalir && !(await antesDeSalir())) return;
     // Con historial propio se vuelve atrás (conserva el desplazamiento); si no, a la pantalla madre.
     if ((window.history.state as { idx?: number } | null)?.idx) navigate(-1);
     else navigate(atras ?? "/");

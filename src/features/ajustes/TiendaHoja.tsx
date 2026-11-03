@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Entrada } from "@/components/ui/campos";
-import { Hoja } from "@/components/ui/hoja";
+import { Hoja, useCambiosSinGuardar } from "@/components/ui/hoja";
 import { SECCION_OTROS, SECCIONES_POR_DEFECTO } from "@/dominio/lista";
 import { supabase } from "@/lib/supabase";
 import type { Tienda } from "@/lib/tipos";
@@ -19,6 +19,7 @@ export function TiendaHoja({ tienda, onCerrar }: { tienda: Tienda | "nueva" | nu
   const [nombre, setNombre] = useState("");
   const [secciones, setSecciones] = useState<string[]>([]);
   const [nueva, setNueva] = useState("");
+  const sucio = useCambiosSinGuardar(tienda !== null, [nombre, secciones]);
 
   useEffect(() => {
     if (tienda === "nueva") {
@@ -81,6 +82,7 @@ export function TiendaHoja({ tienda, onCerrar }: { tienda: Tienda | "nueva" | nu
 
   return (
     <Hoja
+      sucio={sucio}
       abierta={tienda !== null}
       onAbiertaChange={(v) => !v && onCerrar()}
       titulo={tienda === "nueva" ? "Nueva tienda" : "Tienda"}

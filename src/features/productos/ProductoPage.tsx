@@ -7,7 +7,7 @@ import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Entrada } from "@/components/ui/campos";
 import { useConfirmar } from "@/components/ui/confirmar";
-import { Hoja } from "@/components/ui/hoja";
+import { Hoja, useCambiosSinGuardar } from "@/components/ui/hoja";
 import { Fila, FilaBoton, Grupo } from "@/components/ui/lista";
 import { Esqueleto, Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
 import { describirCaducidad, estadoCaducidad, hoyISO } from "@/dominio/caducidad";
@@ -201,6 +201,7 @@ function EditarProductoHoja({ producto, onCerrar }: { producto: ProductoConIngre
   const [envase, setEnvase] = useState("");
   const [ingrediente, setIngrediente] = useState("");
   const [abierto, setAbierto] = useState<string | null>(null);
+  const sucio = useCambiosSinGuardar(producto !== null, [nombre, marca, envase, ingrediente]);
 
   if (producto && abierto !== producto.id) {
     setAbierto(producto.id);
@@ -235,6 +236,7 @@ function EditarProductoHoja({ producto, onCerrar }: { producto: ProductoConIngre
 
   return (
     <Hoja
+      sucio={sucio}
       abierta={producto !== null}
       onAbiertaChange={(v) => {
         if (!v) {

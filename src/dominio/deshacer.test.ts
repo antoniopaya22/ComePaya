@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planRestaurar, planVacio, productosAfectados, type FotoLote } from "./deshacer.js";
+import { planDeshacer, planVacio, productosAfectados, type FotoLote } from "./deshacer.js";
 
 const lote = (id: string, cambios: Partial<FotoLote> = {}): FotoLote => ({
   id,
@@ -25,32 +25,43 @@ describe("productosAfectados", () => {
   });
 });
 
-describe("planRestaurar", () => {
-  it("consumir parte: devuelve la cantidad", () => {
-    const plan = planRestaurar([lote("a")], [lote("a", { cantidad: 4 })]);
-    expect(plan).toEqual({ lotes_crear: [], lotes_actualizar: [lote("a")], lotes_borrar: [] });
+describe("planDeshacer", () => {
+  it("consumir parte: devuelve la cantidad con la diferencia", () => {
+    const plan = planDeshacer([lote("a")], [lote("a", { cantidad: 4 })], [lote("a", { cantidad: 4 })]);
+    expect(plan).toEqual({ lotes_crear: [], lotes_actualizar: [], lotes_delta: [{ id: "a", delta: 2 }], lotes_borrar: [] });
+  });
+
+  it("si el otro móvil gastó más después, se respeta: solo se devuelve lo de esta acción", () => {
+    const plan = planDeshacer([lote("a")], [lote("a", { cantidad: 4 })], [lote("a", { cantidad: 1 })]);
+    expect(plan.lotes_delta).toEqual([{ id: "a", delta: 2 }]);
   });
 
   it("consumir todo (el lote se borró): lo crea de nuevo con sus datos", () => {
-    const plan = planRestaurar([lote("a", { abierto_en: "2026-11-01" })], []);
+    const plan = planDeshacer([lote("a", { abierto_en: "2026-11-01" })], [], []);
     expect(plan.lotes_crear).toEqual([
       { producto_id: "p1", cantidad: 6, ubicacion: "despensa", fecha_caducidad: "2026-12-01", abierto_en: "2026-11-01" },
     ]);
-    expect(plan.lotes_actualizar).toEqual([]);
   });
 
   it("abrir un envase de varios: borra el abierto nuevo y devuelve el resto", () => {
-    const plan = planRestaurar([lote("a")], [lote("a", { cantidad: 5 }), lote("nuevo", { cantidad: 1, ubicacion: "nevera", abierto_en: "2026-11-03" })]);
+    const despues = [lote("a", { cantidad: 5 }), lote("nuevo", { cantidad: 1, ubicacion: "nevera", abierto_en: "2026-11-03" })];
+    const plan = planDeshacer([lote("a")], despues, despues);
     expect(plan.lotes_borrar).toEqual(["nuevo"]);
-    expect(plan.lotes_actualizar).toEqual([lote("a")]);
+    expect(plan.lotes_delta).toEqual([{ id: "a", delta: 1 }]);
   });
 
-  it("mover a otro sitio y caducidad cambiada: vuelve todo como estaba", () => {
-    const plan = planRestaurar([lote("a")], [lote("a", { ubicacion: "nevera", fecha_caducidad: null })]);
-    expect(plan.lotes_actualizar).toEqual([lote("a")]);
+  it("mover: vuelve al sitio de antes, salvo que el otro lo haya movido después", () => {
+    const despues = [lote("a", { ubicacion: "nevera" })];
+    expect(planDeshacer([lote("a")], despues, despues).lotes_actualizar).toEqual([{ id: "a", ubicacion: "despensa" }]);
+    expect(planDeshacer([lote("a")], despues, [lote("a", { ubicacion: "congelador" })]).lotes_actualizar).toEqual([]);
+  });
+
+  it("no toca lo que otro móvil ha creado o quitado desde entonces", () => {
+    const plan = planDeshacer([lote("a"), lote("b")], [lote("a", { cantidad: 4 }), lote("b")], [lote("a", { cantidad: 4 }), lote("otro")]);
+    expect(plan).toEqual({ lotes_crear: [], lotes_actualizar: [], lotes_delta: [{ id: "a", delta: 2 }], lotes_borrar: [] });
   });
 
   it("sin cambios no hay nada que hacer", () => {
-    expect(planVacio(planRestaurar([lote("a")], [lote("a")]))).toBe(true);
+    expect(planVacio(planDeshacer([lote("a")], [lote("a")], [lote("a")]))).toBe(true);
   });
 });

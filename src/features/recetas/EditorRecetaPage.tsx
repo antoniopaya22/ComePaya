@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { useConfirmar } from "@/components/ui/confirmar";
+import { useCambiosSinGuardar } from "@/components/ui/hoja";
 import { AreaTexto, Campo, Contador, Entrada, Opciones } from "@/components/ui/campos";
 import { Estrellas } from "@/components/ui/estrellas";
 import { Cargando, Tarjeta } from "@/components/ui/varios";
@@ -47,6 +48,45 @@ const nuevaClave = () => `fila-${++contador}`;
 const filaIngredienteVacia = (): FilaIngrediente => ({ clave: nuevaClave(), nombre: "", cantidad: "", opcional: false, unidadNueva: "g" });
 const filaPasoVacia = (): FilaPaso => ({ clave: nuevaClave(), texto: "", minutos: "", nombreTemporizador: "" });
 const numero = (texto: string) => Number(texto.replace(",", "."));
+
+interface Formulario {
+  nombre: string;
+  raciones: number;
+  prep: string;
+  coccion: string;
+  previa: string;
+  previaHoras: string;
+  etiquetas: string;
+  valoracion: number | null;
+  notas: string;
+  filas: FilaIngrediente[];
+  pasos: FilaPaso[];
+  fotoUrl: string | null;
+  fuenteUrl: string | null;
+}
+
+/** Las claves de las filas cambian en cada carga: no cuentan como cambio. */
+function sinClaves(f: Formulario) {
+  return { ...f, filas: f.filas.map(({ clave: _c, ...resto }) => resto), pasos: f.pasos.map(({ clave: _c, ...resto }) => resto) };
+}
+
+function leerBorrador(clave: string): Formulario | null {
+  try {
+    const texto = localStorage.getItem(clave);
+    return texto ? (JSON.parse(texto) as Formulario) : null;
+  } catch {
+    return null;
+  }
+}
+
+function escribirBorrador(clave: string, formulario: Formulario | null) {
+  try {
+    if (formulario) localStorage.setItem(clave, JSON.stringify(formulario));
+    else localStorage.removeItem(clave);
+  } catch {
+    // Sin almacenamiento (modo privado): simplemente no hay borrador.
+  }
+}
 
 export function EditorRecetaPage() {
   const { id } = useParams();
@@ -176,8 +216,57 @@ export function EditorRecetaPage() {
   const errorCantidad = filasUsadas.some((f) => !(numero(f.cantidad) > 0));
   const valida = nombre.trim() && filasUsadas.length > 0 && !errorCantidad;
 
+  // Borrador en este móvil: lo escrito se guarda solo y, si se sale sin guardar (o se cierra la app), se puede recuperar.
+  const claveBorrador = `comepaya:borrador-receta:${hogar.id}:${id ?? "nueva"}`;
+  const formulario: Formulario = { nombre, raciones, prep, coccion, previa, previaHoras, etiquetas, valoracion, notas, filas, pasos, fotoUrl, fuenteUrl };
+  const listo = id || importada ? cargada : true;
+  const sucio = useCambiosSinGuardar(listo, sinClaves(formulario));
+  const [borrador, setBorrador] = useState<Formulario | null>(null);
+  const [borradorVisto, setBorradorVisto] = useState(false);
+  useEffect(() => {
+    if (!listo || borradorVisto) return;
+    setBorradorVisto(true);
+    const guardado = leerBorrador(claveBorrador);
+    if (guardado && JSON.stringify(sinClaves(guardado)) !== JSON.stringify(sinClaves(formulario))) setBorrador(guardado);
+  }, [listo]);
+  useEffect(() => {
+    // Mientras se decide si recuperar el anterior, no se pisa.
+    if (borradorVisto && !borrador) escribirBorrador(claveBorrador, sucio ? formulario : null);
+  }, [sucio, JSON.stringify(formulario), borradorVisto, borrador]);
+
+  function recuperarBorrador(b: Formulario) {
+    setNombre(b.nombre);
+    setRaciones(b.raciones);
+    setPrep(b.prep);
+    setCoccion(b.coccion);
+    setPrevia(b.previa);
+    setPreviaHoras(b.previaHoras);
+    setEtiquetas(b.etiquetas);
+    setValoracion(b.valoracion);
+    setNotas(b.notas);
+    setFilas(b.filas.map((f) => ({ ...f, clave: nuevaClave() })));
+    setPasos(b.pasos.map((p) => ({ ...p, clave: nuevaClave() })));
+    setFotoUrl(b.fotoUrl);
+    setFuenteUrl(b.fuenteUrl);
+    setBorrador(null);
+  }
+
+  function descartarBorrador() {
+    escribirBorrador(claveBorrador, null);
+    setBorrador(null);
+  }
+
   async function guardar() {
-    if (!valida) return;
+    if (!valida) {
+      // El botón no se desactiva: al pulsarlo se dice qué falta.
+      return toast.error(
+        !nombre.trim()
+          ? "Falta el nombre de la receta"
+          : !filasUsadas.length
+            ? "Añade al menos un ingrediente"
+            : "Revisa las cantidades: cada ingrediente necesita una mayor que 0",
+      );
+    }
     setGuardando(true);
     try {
       // Crea los ingredientes que aún no existen (una sola vez aunque se repitan en la receta).
@@ -229,6 +318,7 @@ export function EditorRecetaPage() {
         queryClient.invalidateQueries({ queryKey: claves.recetas(hogar.id) }),
         queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) }),
       ]);
+      escribirBorrador(claveBorrador, null);
       toast.success("Receta guardada");
       navigate(`/recetas/${recetaId}`, { replace: true });
     } catch (error) {
@@ -249,6 +339,7 @@ export function EditorRecetaPage() {
     if (!seguro) return;
     const { error } = await supabase.from("receta").delete().eq("id", original.id);
     if (error) return toast.error(mensajeError(error));
+    escribirBorrador(claveBorrador, null);
     await queryClient.invalidateQueries({ queryKey: claves.recetas(hogar.id) });
     queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
     navigate("/recetas", { replace: true });
@@ -261,6 +352,16 @@ export function EditorRecetaPage() {
       <BarraApp
         titulo={original ? "Editar receta" : "Nueva receta"}
         atras={original ? `/recetas/${original.id}` : "/recetas"}
+        antesDeSalir={
+          sucio
+            ? () =>
+                confirmar({
+                  titulo: "¿Salir sin guardar?",
+                  mensaje: "Lo que has escrito queda como borrador en este móvil: al volver a abrir la receta podrás recuperarlo.",
+                  aceptar: "Salir",
+                })
+            : undefined
+        }
         acciones={
           original && (
             <BotonBarra etiqueta="Borrar receta" onClick={borrar} className="text-peligro!">
@@ -270,6 +371,20 @@ export function EditorRecetaPage() {
         }
       />
       <div className="flex flex-col gap-6 px-4 md:px-0">
+        {borrador && (
+          <Tarjeta className="flex flex-col gap-3 p-4" role="alert">
+            <p className="text-[15px]">
+              <span className="font-semibold">Tienes cambios sin guardar</span> de la última vez que editaste{" "}
+              {borrador.nombre ? `«${borrador.nombre}»` : "esta receta"} en este móvil.
+            </p>
+            <div className="flex gap-2">
+              <Boton onClick={() => recuperarBorrador(borrador)}>Recuperar</Boton>
+              <Boton variante="fantasma" onClick={descartarBorrador}>
+                Descartar
+              </Boton>
+            </div>
+          </Tarjeta>
+        )}
         <label className="relative block aspect-[16/9] cursor-pointer overflow-hidden rounded-3xl border border-dashed border-borde bg-superficie-2">
           {fotoUrl ? (
             <img src={fotoUrl} alt="" className="size-full object-cover" />
@@ -496,7 +611,7 @@ export function EditorRecetaPage() {
         </Tarjeta>
 
         <div className="pb-seguro sticky bottom-0 z-10 -mx-4 border-t border-borde/70 bg-fondo/90 px-4 pt-3 backdrop-blur-xl md:mx-0 md:px-0">
-          <Boton tamano="lg" className="w-full" onClick={guardar} disabled={!valida || guardando}>
+          <Boton tamano="lg" className="w-full" onClick={guardar} disabled={guardando}>
             <Check /> {guardando ? "Guardando…" : "Guardar receta"}
           </Boton>
           {errorCantidad && <p className="mt-1.5 text-center text-sm text-peligro">Cada ingrediente necesita una cantidad mayor que 0.</p>}

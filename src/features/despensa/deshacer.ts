@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { planRestaurar, planVacio, productosAfectados, type FotoLote } from "@/dominio/deshacer";
+import { planDeshacer, planVacio, productosAfectados, type FotoLote } from "@/dominio/deshacer";
 import { supabase } from "@/lib/supabase";
 import { mensajeError } from "@/lib/utils";
 import { claves } from "../datos";
@@ -8,10 +8,11 @@ import { aplicarCambiosDespensa, type CambiosDespensa } from "./cambios";
 
 const COLUMNAS = "id, producto_id, cantidad, ubicacion, fecha_caducidad, abierto_en";
 
-/** Cómo estaba la despensa antes de un cambio, para poder volver atrás. */
+/** Cómo estaba la despensa antes y justo después de un cambio, para poder volver atrás. */
 export interface Instantanea {
   productos: string[];
   lotes: FotoLote[];
+  despues: FotoLote[];
   movimientos: NonNullable<CambiosDespensa["movimientos"]>;
   franjaCocinada: string | null;
   racionCongelada: CambiosDespensa["racion_congelada"] | null;
@@ -26,22 +27,27 @@ export async function aplicarConDeshacer(hogarId: string, cambios: CambiosDespen
   const instantanea: Instantanea = {
     productos,
     lotes: lotes.filter((l) => productos.includes(l.producto_id)).map(foto),
+    despues: [],
     movimientos: cambios.movimientos ?? [],
     franjaCocinada: cambios.franja_cocinada ?? null,
     racionCongelada: cambios.racion_congelada ?? null,
   };
   await aplicarCambiosDespensa(hogarId, cambios);
+  instantanea.despues = await lotesDe(productos);
   return instantanea;
 }
 
-/** Vuelve los lotes de los productos afectados a como estaban y quita los movimientos que se apuntaron. */
+async function lotesDe(productos: string[]): Promise<FotoLote[]> {
+  if (!productos.length) return [];
+  const { data, error } = await supabase.from("lote_despensa").select(COLUMNAS).in("producto_id", productos);
+  if (error) throw error;
+  return ((data ?? []) as FotoLote[]).map(foto);
+}
+
+/** Deshace lo que hizo el cambio (sin pisar lo que otro móvil haya hecho después) y quita los movimientos que apuntó. */
 export async function deshacerDespensa(hogarId: string, antes: Instantanea): Promise<void> {
-  if (antes.productos.length) {
-    const { data, error } = await supabase.from("lote_despensa").select(COLUMNAS).in("producto_id", antes.productos);
-    if (error) throw error;
-    const plan = planRestaurar(antes.lotes, ((data ?? []) as FotoLote[]).map(foto));
-    if (!planVacio(plan)) await aplicarCambiosDespensa(hogarId, plan);
-  }
+  const plan = planDeshacer(antes.lotes, antes.despues, await lotesDe(antes.productos));
+  if (!planVacio(plan)) await aplicarCambiosDespensa(hogarId, plan);
   // Los movimientos alimentan las estadísticas (lo tirado, lo consumido): se borran para que no cuenten.
   for (const m of antes.movimientos) await borrarUltimo("movimiento_despensa", { producto_id: m.producto_id, tipo: m.tipo, cantidad: m.cantidad });
   if (antes.franjaCocinada) {

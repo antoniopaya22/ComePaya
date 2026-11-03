@@ -301,6 +301,49 @@ test("Hoy: cocinar en modo cocina y al terminar apuntarlo en el menú", async ({
   await expect(page.getByRole("dialog").getByRole("button", { name: "Ya lo he cocinado" })).toBeVisible();
 });
 
+test("Receta: añadir lo que falta a la lista y deshacerlo", async ({ page }) => {
+  await page.goto("/recetas");
+  await page.getByText("Merluza en salsa verde").click();
+  const boton = page.getByRole("button", { name: /Añadir lo que falta a la lista/ });
+  await boton.click();
+  await expect(page.getByText(/añadidos? a la lista/)).toBeVisible();
+  // Lo que ya está en la lista no se vuelve a ofrecer.
+  await expect(boton).toHaveCount(0);
+  await page.getByRole("button", { name: "Deshacer" }).click();
+  await expect(boton).toBeVisible();
+});
+
+test("Lista: lo que ya está pendiente no se duplica", async ({ page }) => {
+  await page.goto("/lista");
+  await page.getByPlaceholder(/Añadir/).fill("pan");
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await expect(page.getByText("Pan ya está en la lista")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Pan/ })).toHaveCount(1);
+});
+
+test("Hojas: con cambios sin guardar no se cierran sin preguntar", async ({ page }) => {
+  await page.goto("/productos/p-tomate");
+  await page.getByRole("button", { name: "Editar producto" }).click();
+  const hoja = page.getByRole("dialog");
+  await hoja.getByRole("textbox").first().fill("Tomate cambiado");
+  await page.keyboard.press("Escape");
+  await expect(hoja.getByRole("button", { name: "Descartar" })).toBeVisible();
+  await hoja.getByRole("button", { name: "Descartar" }).click();
+  await page.getByRole("button", { name: "Descartar" }).last().click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tomate triturado");
+});
+
+test("Receta: lo escrito sin guardar queda como borrador y se recupera", async ({ page }) => {
+  await page.goto("/recetas/nueva");
+  await page.getByPlaceholder(/Lentejas|Nombre/).first().fill("Crema de calabaza");
+  await page.getByRole("button", { name: "Volver" }).click();
+  await page.getByRole("button", { name: "Salir" }).click();
+  await page.goto("/recetas/nueva");
+  await expect(page.getByText("Tienes cambios sin guardar")).toBeVisible();
+  await page.getByRole("button", { name: "Recuperar" }).click();
+  await expect(page.getByPlaceholder(/Lentejas|Nombre/).first()).toHaveValue("Crema de calabaza");
+});
+
 test("Producto: cambiar el nombre desde su ficha", async ({ page }) => {
   await page.goto("/productos/p-tomate");
   await page.getByRole("button", { name: "Editar producto" }).click();
