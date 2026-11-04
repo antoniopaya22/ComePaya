@@ -24,6 +24,7 @@ export async function POST(request: Request): Promise<Response> {
   webpush.setVapidDetails(process.env.VAPID_SUBJECT ?? "mailto:avisos@despensa.invalid", process.env.VITE_VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
 
   const ahora = new Date();
+  await purgar(ahora);
   const hoy = horaLocal(ahora).fecha;
   const [franjas, lotes] = await Promise.all([
     restTodas<FranjaAviso>(
@@ -97,6 +98,21 @@ export async function POST(request: Request): Promise<Response> {
   if (sinEntregar.length) await rest(`aviso_enviado?clave=in.(${sinEntregar.map((c) => `"${c}"`).join(",")})`, { method: "DELETE" });
   if (caducadas.length) await rest(`suscripcion_push?id=in.(${[...new Set(caducadas)].join(",")})`, { method: "DELETE" });
   return json({ avisos: pendientes.length, enviados });
+}
+
+/**
+ * Ya que corre cada hora, purga lo que solo crece (el plan gratuito tiene 500 MB): avisos ya enviados de hace
+ * más de 14 días, errores del navegador de hace más de 90 e intentos de unirse a un hogar de hace más de uno.
+ * Si falla, los avisos se mandan igual.
+ */
+async function purgar(ahora: Date) {
+  const hace = (dias: number) => new Date(ahora.getTime() - dias * 86_400_000).toISOString();
+  const borrados = await Promise.allSettled([
+    rest(`aviso_enviado?enviado_en=lt.${hace(14)}`, { method: "DELETE" }),
+    rest(`error_cliente?creado_en=lt.${hace(90)}`, { method: "DELETE" }),
+    rest(`intento_union?en=lt.${hace(1)}`, { method: "DELETE" }),
+  ]);
+  for (const b of borrados) if (b.status === "rejected") console.error("Fallo purgando", b.reason);
 }
 
 /** Compara en tiempo constante (con el hash, para que la longitud tampoco dé pistas). */
