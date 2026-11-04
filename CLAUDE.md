@@ -13,7 +13,7 @@ App doméstica para gestionar despensa, lista de la compra y menú semanal (comi
 - `src/features/<módulo>/`: pantallas. `src/components/ui/`: componentes base.
 - `api/`: funciones de servidor de Vercel (exportan `GET(request)`); en desarrollo las sirve un plugin de `vite.config.ts`.
   Vercel las ejecuta como ES modules sin empaquetar: en `api/` y `src/dominio/` los imports relativos llevan `.js` (`./caducidad.js`) y no usan `@/`. Lo comprueba `api/_lib/importaciones.test.ts`.
-- `supabase/migrations/`: esquema real. Toda tabla del hogar lleva `hogar_id` y la política RLS `es_miembro(hogar_id)`. Los tipos de `src/lib/tipos.ts` se mantienen a mano.
+- `supabase/migrations/`: esquema real. `supabase/migraciones.test.ts` las aplica todas sobre Postgres (PGlite) con stubs de Supabase y prueba sus funciones: añade ahí los casos de cada migración nueva. Toda tabla del hogar lleva `hogar_id` y la política RLS `es_miembro(hogar_id)`. Los tipos de `src/lib/tipos.ts` se mantienen a mano.
 
 ## Forma de trabajar
 - Avanza fase a fase según `SPEC.md` §11; cada fase debe dejar la app usable.

@@ -1,4 +1,5 @@
-# En cada push y pull request: lint, tests de dominio con cobertura mínima, tipos y compilación, y tests de pantalla en modo demo.
+# En cada push y pull request: lint, tests (dominio, API y migraciones sobre Postgres) con cobertura mínima, tipos y compilación,
+# y tests de pantalla en modo demo.
 name: CI
 
 on:
@@ -22,7 +23,7 @@ jobs:
       - run: npm ci
       - name: Lint (con tipos)
         run: npm run lint
-      - name: Tests de dominio y cobertura
+      - name: Tests (dominio, API y migraciones) y cobertura
         run: npm run test:cobertura
       # build ya comprueba los tipos (tsc --noEmit) antes de compilar.
       - name: Tipos y compilación

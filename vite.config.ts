@@ -97,7 +97,7 @@ export default defineConfig({
     alias: { "@": path.resolve(import.meta.dirname, "src") },
   },
   test: {
-    include: ["src/**/*.test.ts", "api/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "api/**/*.test.ts", "supabase/**/*.test.ts"],
     // `npm run test:cobertura`: la lógica de dominio es la que lleva los tests (CLAUDE.md); no puede bajar de aquí.
     coverage: {
       provider: "v8",

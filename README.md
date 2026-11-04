@@ -20,7 +20,7 @@ Stack: React + Vite + Tailwind en Vercel, Supabase (Postgres, login con Google, 
 npm install
 npm run dev        # http://localhost:5173 contra tu Supabase (.env.local); también sirve /api
 npm run dev:demo   # http://localhost:5199 con una Supabase simulada y datos de ejemplo, sin cuentas
-npm test           # tests de dominio (Vitest)
+npm test           # tests de dominio, API y migraciones (Vitest; las migraciones, sobre Postgres con PGlite)
 npm run test:cobertura  # los mismos, con cobertura mínima de src/dominio
 npm run lint       # oxlint con información de tipos (promesas sin atender, hooks…)
 npm run test:e2e   # tests de pantalla (Playwright) contra el modo demo
