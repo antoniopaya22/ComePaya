@@ -52,20 +52,20 @@ export function useSincronizacionHogar(hogarId: string) {
     canal.subscribe((estado) => {
       if (estado !== "SUBSCRIBED") return;
       // Al reconectar, lo que pasó mientras tanto no llega como evento: se pide de nuevo.
-      if (conectadoAntes) refrescarTodo();
+      if (conectadoAntes) void refrescarTodo();
       conectadoAntes = true;
     });
 
     let ocultaDesde = 0;
     function alCambiarVisibilidad() {
       if (document.hidden) ocultaDesde = Date.now();
-      else if (ocultaDesde && Date.now() - ocultaDesde > AUSENCIA_LARGA_MS) refrescarTodo();
+      else if (ocultaDesde && Date.now() - ocultaDesde > AUSENCIA_LARGA_MS) void refrescarTodo();
     }
     document.addEventListener("visibilitychange", alCambiarVisibilidad);
 
     return () => {
       document.removeEventListener("visibilitychange", alCambiarVisibilidad);
-      supabase.removeChannel(canal);
+      void supabase.removeChannel(canal);
     };
   }, [hogarId, queryClient]);
 }

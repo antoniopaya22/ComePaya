@@ -41,9 +41,9 @@ export function EscanerPage() {
   const enCurso = useRef(new Set<string>());
 
   const refrescar = () => {
-    queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
-    queryClient.invalidateQueries({ queryKey: claves.productos(hogar.id) });
-    queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.productos(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
   };
 
   async function sumarUno(guardado: Guardado) {

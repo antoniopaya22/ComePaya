@@ -51,7 +51,7 @@ export function ModoCocinaPage() {
     if (!terminados.length) return;
     setTemporizadores((lista) => lista.map((t) => (terminados.some((x) => x.id === t.id) ? { ...t, sonando: true } : t)));
     navigator.vibrate?.([400, 200, 400, 200, 400]);
-    for (const t of terminados) avisar(`${t.nombre}: ¡tiempo!`);
+    for (const t of terminados) void avisar(`${t.nombre}: ¡tiempo!`);
   }, [ahora, temporizadores]);
 
   const sonando = temporizadores.some((t) => t.sonando);
@@ -87,7 +87,7 @@ export function ModoCocinaPage() {
             const activos = temporizadores.filter((t) => !t.sonando).length;
             if (activos && !(await confirmar({ titulo: "¿Salir del modo cocina?", mensaje: `Hay ${activos === 1 ? "un temporizador en marcha" : `${activos} temporizadores en marcha`} y se perderán.`, aceptar: "Salir" })))
               return;
-            navigate(`/recetas/${receta.id}`);
+            void navigate(`/recetas/${receta.id}`);
           }}
         >
           <X />

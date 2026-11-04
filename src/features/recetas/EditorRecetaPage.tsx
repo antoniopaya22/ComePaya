@@ -340,7 +340,7 @@ export function EditorRecetaPage() {
       // La foto anterior y las que se probaron y descartaron ya no las usa nadie.
       for (const url of [original?.foto_url, ...subidas.current]) if (url && url !== fotoUrl) void borrarFoto(url);
       toast.success("Receta guardada");
-      navigate(`/recetas/${recetaId}`, { replace: true });
+      void navigate(`/recetas/${recetaId}`, { replace: true });
     } catch (error) {
       toast.error(mensajeError(error));
     } finally {
@@ -362,8 +362,8 @@ export function EditorRecetaPage() {
     escribirBorrador(claveBorrador, null);
     void borrarFoto(original.foto_url);
     await queryClient.invalidateQueries({ queryKey: claves.recetas(hogar.id) });
-    queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
-    navigate("/recetas", { replace: true });
+    void queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
+    void navigate("/recetas", { replace: true });
   }
 
   if (id && isPending) return <Cargando />;

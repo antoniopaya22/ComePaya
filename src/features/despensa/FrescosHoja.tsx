@@ -106,7 +106,7 @@ export function FrescosHoja({
     try {
       const producto = await productoGenerico(elegido);
       const { antes } = await anadirLote(hogar.id, producto, cantidad, ubicacion, caducidad);
-      for (const clave of [claves.lotes, claves.productos, claves.ingredientes]) queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
+      for (const clave of [claves.lotes, claves.productos, claves.ingredientes]) void queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
       avisarConDeshacer(queryClient, hogar.id, `${formatearCantidad(cantidad, unidad)} de ${elegido.nombre.toLowerCase()}`, () => deshacerDespensa(hogar.id, antes));
       navigator.vibrate?.(15);
       // De vuelta a la cuadrícula para seguir con lo siguiente de la compra.

@@ -19,6 +19,7 @@ export function Selector({ className, ...props }: ComponentProps<"select">) {
 
 export function Campo({ etiqueta, ayuda, children, className }: { etiqueta: string; ayuda?: ReactNode; children: ReactNode; className?: string }) {
   return (
+    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- solo evita el clic implícito del label; el teclado va a los controles.
     <label
       className={cn("flex flex-col gap-1.5", className)}
       onClick={(e) => {

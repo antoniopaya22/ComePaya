@@ -119,7 +119,7 @@ export function NuevoLoteHoja({
       const { antes } = await anadirLote(hogar.id, elegido, envasesABase(envases, elegido.cantidad_envase), ubicacion, caducidad);
 
       for (const clave of [claves.lotes, claves.productos, claves.ingredientes]) {
-        queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
+        void queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
       }
       avisarConDeshacer(queryClient, hogar.id, `${elegido.nombre} añadido`, () => deshacerDespensa(hogar.id, antes));
       reiniciar();

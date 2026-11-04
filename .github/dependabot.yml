@@ -1,0 +1,26 @@
+# Actualizaciones semanales de dependencias y de las acciones de GitHub, agrupadas para no llenar de PRs.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      menores:
+        update-types: [minor, patch]
+    ignore:
+      # Node 22 en CI y en Vercel: los tipos van con esa versión.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+      # El motor del escáner va fijado: se sirve desde la app y se guarda en el móvil.
+      - dependency-name: zxing-wasm
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      acciones:
+        patterns: ["*"]

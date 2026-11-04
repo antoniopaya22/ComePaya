@@ -66,8 +66,8 @@ export function SaludHoja({ abierta, onCerrar }: { abierta: boolean; onCerrar: (
         const { error } = await supabase.from("hogar").update({ aditivos_vigilados: vigilados, alergenos }).eq("id", hogar.id);
         if (error) throw error;
       }
-      queryClient.invalidateQueries({ queryKey: claves.reglas(hogar.id) });
-      queryClient.invalidateQueries({ queryKey: ["hogares", usuario.id] });
+      void queryClient.invalidateQueries({ queryKey: claves.reglas(hogar.id) });
+      void queryClient.invalidateQueries({ queryKey: ["hogares", usuario.id] });
       toast.success("Guardado");
       onCerrar();
     } catch (error) {

@@ -29,7 +29,7 @@ export function ImportarRecetaHoja({ abierta, onCerrar }: { abierta: boolean; on
       if (!respuesta.ok) return setError(cuerpo.error ?? "No se ha podido importar");
       onCerrar();
       setUrl("");
-      navigate("/recetas/nueva", { state: { receta: cuerpo, url: url.trim() } satisfies RecetaImportada });
+      void navigate("/recetas/nueva", { state: { receta: cuerpo, url: url.trim() } satisfies RecetaImportada });
     } catch {
       setError("Sin conexión");
     } finally {

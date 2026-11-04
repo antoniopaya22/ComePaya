@@ -50,7 +50,7 @@ export const persister = createAsyncStoragePersister({ storage: almacen, key: CL
 
 /** Al cerrar sesión no deben quedar en el dispositivo datos del hogar ni cambios pendientes de otra cuenta. */
 export function vaciarCache() {
-  queryClient.cancelQueries();
+  void queryClient.cancelQueries();
   queryClient.getMutationCache().clear();
   queryClient.clear();
   void persister.removeClient();

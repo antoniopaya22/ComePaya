@@ -98,5 +98,13 @@ export default defineConfig({
   },
   test: {
     include: ["src/**/*.test.ts", "api/**/*.test.ts"],
+    // `npm run test:cobertura`: la lógica de dominio es la que lleva los tests (CLAUDE.md); no puede bajar de aquí.
+    coverage: {
+      provider: "v8",
+      include: ["src/dominio/**"],
+      exclude: ["**/*.test.ts"],
+      reporter: ["text-summary", "html"],
+      thresholds: { lines: 95, statements: 95, functions: 95, branches: 88 },
+    },
   },
 });

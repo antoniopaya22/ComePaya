@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:cobertura": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
+    "lint": "oxlint --type-aware",
     "iconos": "pwa-assets-generator",
     "dev:demo": "vite --config vite.demo.config.ts --mode demo",
     "test:e2e": "playwright test",
@@ -48,12 +50,15 @@
   "devDependencies": {
     "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^26.6.6",
+    "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/web-push": "^3.6.4",
     "@vite-pwa/assets-generator": "^2.0.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "@vitest/coverage-v8": "^5.1.0",
+    "oxlint": "^1.91.0",
+    "oxlint-tsgolint": "^7.0.2005",
     "postgres": "^3.4.7",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
@@ -63,5 +68,8 @@
     "workbox-core": "^7.4.1",
     "workbox-precaching": "^7.4.1",
     "workbox-routing": "^7.4.1"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

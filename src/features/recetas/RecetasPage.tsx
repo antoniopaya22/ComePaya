@@ -94,8 +94,8 @@ export function RecetasPage() {
           if (!archivos.length) return;
           const textos = await Promise.all(archivos.map((a) => a.text()));
           const r = await importar(hogar.id, textos, ingredientes, (recetas ?? []).map((x) => x.nombre));
-          queryClient.invalidateQueries({ queryKey: claves.recetas(hogar.id) });
-          queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
+          void queryClient.invalidateQueries({ queryKey: claves.recetas(hogar.id) });
+          void queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
           if (r.importadas.length) toast.success(`${r.importadas.length} recetas importadas`);
           if (r.saltadas.length) toast.info(`Ya existían: ${r.saltadas.join(", ")}`);
           if (r.errores.length) toast.error(r.errores.join(" · "));

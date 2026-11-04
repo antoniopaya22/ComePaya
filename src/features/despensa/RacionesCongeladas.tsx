@@ -32,7 +32,7 @@ export function RacionesCongeladas() {
     } catch (error) {
       return toast.error(mensajeError(error));
     }
-    refrescar();
+    void refrescar();
     const copia = { ...r };
     avisarConDeshacer(queryClient, hogar.id, tirar ? `${r.descripcion}: tirada` : `${r.descripcion}: usada 1 ración`, async () => {
       const { data } = await supabase.from("racion_congelada").select("id").eq("id", copia.id);
@@ -94,7 +94,7 @@ function NuevaRacionHoja({ abierta, onCerrar }: { abierta: boolean; onCerrar: ()
   async function guardar() {
     const { error } = await supabase.from("racion_congelada").insert({ hogar_id: hogar.id, descripcion: descripcion.trim(), raciones });
     if (error) return toast.error(mensajeError(error));
-    queryClient.invalidateQueries({ queryKey: claves.raciones(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.raciones(hogar.id) });
     setDescripcion("");
     onCerrar();
   }

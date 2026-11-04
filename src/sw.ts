@@ -9,7 +9,7 @@ import { CacheFirst } from "workbox-strategies";
 
 declare let self: ServiceWorkerGlobalScope;
 
-self.skipWaiting();
+void self.skipWaiting();
 clientsClaim();
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);

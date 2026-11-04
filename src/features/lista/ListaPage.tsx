@@ -110,7 +110,7 @@ export function ListaPage() {
   async function borrar(item: ItemLista) {
     const { error } = await supabase.from("item_lista").delete().eq("id", item.id);
     if (error) return toast.error(mensajeError(error));
-    queryClient.invalidateQueries({ queryKey: clave });
+    void queryClient.invalidateQueries({ queryKey: clave });
     toast(`${item.texto} quitado`, {
       duration: 8000,
       action: {
@@ -118,7 +118,7 @@ export function ListaPage() {
         onClick: async () => {
           const { error } = await supabase.from("item_lista").insert(item);
           if (error) toast.error(mensajeError(error));
-          queryClient.invalidateQueries({ queryKey: clave });
+          void queryClient.invalidateQueries({ queryKey: clave });
         },
       },
     });
@@ -282,7 +282,7 @@ export function ListaPage() {
                           dragElastic={{ left: 0.6, right: 0 }}
                           dragSnapToOrigin
                           onDragEnd={(_e, info) => {
-                            if (info.offset.x < -110) borrar(item);
+                            if (info.offset.x < -110) void borrar(item);
                           }}
                         >
                           <button

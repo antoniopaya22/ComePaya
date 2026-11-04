@@ -12,3 +12,4 @@ test-results
 .env.vercel
 instalar-supabase.sql
 programar-recordatorios.sql
+coverage/

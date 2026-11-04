@@ -46,7 +46,7 @@ export function AlimentosBebePage() {
       .update({ bebe_introducido: i.bebe_introducido ? null : hoyISO() })
       .eq("id", i.id);
     if (error) return toast.error(mensajeError(error));
-    queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
   }
 
   const fila = (i: Ingrediente) => (

@@ -41,8 +41,8 @@ export function AjusteBebe() {
           ayuda="Su comida y su cena en cada día del menú, con sus recetas (etiqueta «bebé») y aviso de lo que aún no ha probado."
           onChange={(v) => {
             setActivo(v);
-            if (!v) guardar(null);
-            else if (limpiarNombreBebe(nombre)) guardar(limpiarNombreBebe(nombre));
+            if (!v) void guardar(null);
+            else if (limpiarNombreBebe(nombre)) void guardar(limpiarNombreBebe(nombre));
           }}
         />
       )}

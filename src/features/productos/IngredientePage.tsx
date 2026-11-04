@@ -52,7 +52,7 @@ export function IngredientePage() {
       seccion_super: ingrediente!.seccion_super,
     });
     if (error) return toast.error(mensajeError(error));
-    queryClient.invalidateQueries({ queryKey: claves.lista(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.lista(hogar.id) });
     toast.success(`${ingrediente!.nombre} a la lista`);
   }
 
@@ -126,7 +126,7 @@ export function IngredientePage() {
                 .update({ bebe_introducido: v ? hoyISO() : null })
                 .eq("id", ingrediente.id);
               if (error) return toast.error(mensajeError(error));
-              queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
+              void queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
             }}
           />
         )}

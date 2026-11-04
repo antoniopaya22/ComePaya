@@ -59,8 +59,8 @@ export function BarraApp({
   async function volver() {
     if (antesDeSalir && !(await antesDeSalir())) return;
     // Con historial propio se vuelve atrás (conserva el desplazamiento); si no, a la pantalla madre.
-    if ((window.history.state as { idx?: number } | null)?.idx) navigate(-1);
-    else navigate(atras ?? "/");
+    if ((window.history.state as { idx?: number } | null)?.idx) void navigate(-1);
+    else void navigate(atras ?? "/");
   }
 
   const tituloCompacto = inicio ?? (

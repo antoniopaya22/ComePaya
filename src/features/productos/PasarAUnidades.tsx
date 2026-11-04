@@ -30,7 +30,7 @@ export function PasarAUnidades({ className }: { className?: string }) {
     try {
       for (const p of pendientes) await cambiarUnidad(p.ingrediente, "ud", p.peso);
       for (const clave of [claves.ingredientes, claves.productos, claves.lotes, claves.recetas, claves.lista]) {
-        queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
+        void queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
       }
       toast.success(`${pendientes.length} ${pendientes.length === 1 ? "ingrediente pasa" : "ingredientes pasan"} a contarse por unidades`);
     } catch (error) {

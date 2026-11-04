@@ -112,7 +112,7 @@ export function Buscador({ abierto, onCambiar }: { abierto: boolean; onCambiar: 
 
   function ir(ruta: string) {
     cerrar();
-    navigate(ruta);
+    void navigate(ruta);
   }
 
   function anadir() {

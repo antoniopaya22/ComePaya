@@ -93,7 +93,7 @@ export function FranjaHoja({
   async function rechazar(id: string) {
     const { error } = await supabase.from("rechazo_sugerencia").insert({ hogar_id: hogar.id, receta_id: id, fecha: hoyISO() });
     if (error) return toast.error(mensajeError(error));
-    queryClient.invalidateQueries({ queryKey: claveRechazos(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claveRechazos(hogar.id) });
   }
 
   if (!actual) return null;
@@ -143,7 +143,7 @@ export function FranjaHoja({
     const { error } = await supabase.from("franja_menu").upsert(fila, { onConflict: "hogar_id,fecha,tipo,para" });
     setOcupado(false);
     if (error) return toast.error(mensajeError(error));
-    refrescar();
+    void refrescar();
     onGuardado?.();
     onCerrar();
   }
@@ -152,7 +152,7 @@ export function FranjaHoja({
     if (franja) {
       const { error } = await supabase.from("franja_menu").delete().eq("id", franja.id);
       if (error) return toast.error(mensajeError(error));
-      refrescar();
+      void refrescar();
       const copia = { ...franja };
       avisarConDeshacer(queryClient, hogar.id, "Franja vaciada", async () => {
         const { error } = await supabase.from("franja_menu").upsert(copia, { onConflict: "hogar_id,fecha,tipo,para" });
@@ -186,14 +186,14 @@ export function FranjaHoja({
           lotes: lotesFrescos,
           ingredientes,
         });
-        queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
-        queryClient.invalidateQueries({ queryKey: claves.raciones(hogar.id) });
+        void queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
+        void queryClient.invalidateQueries({ queryKey: claves.raciones(hogar.id) });
         const primeraVez = para === "bebe" ? nuevos : [];
         if (primeraVez.length) {
           // Lo que ha comido por primera vez queda apuntado como probado.
           const { error } = await supabase.from("ingrediente").update({ bebe_introducido: fecha }).in("id", primeraVez).is("bebe_introducido", null);
           if (error) throw error;
-          queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
+          void queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
         }
         const deshacer = async () => {
           await deshacerDespensa(hogar.id, antes);
@@ -211,7 +211,7 @@ export function FranjaHoja({
           tipo: faltaba.length ? "info" : "success",
         });
       }
-      refrescar();
+      void refrescar();
       onCerrar();
     } catch (error) {
       toast.error(mensajeError(error));

@@ -63,7 +63,7 @@ export function AnadirLoQueFalta({
     setAnadiendo(false);
     if (error) return toast.error(mensajeError(error));
     const refrescar = () => queryClient.invalidateQueries({ queryKey: claves.lista(hogar.id) });
-    refrescar();
+    void refrescar();
     toast.success(`${filas.length} ${filas.length === 1 ? "añadido" : "añadidos"} a la lista`, {
       description: filas.map((f) => f.texto.toLowerCase()).join(", "),
       duration: 8000,
@@ -72,7 +72,7 @@ export function AnadirLoQueFalta({
         onClick: async () => {
           const { error } = await supabase.from("item_lista").delete().in("id", filas.map((f) => f.id));
           if (error) toast.error(mensajeError(error));
-          refrescar();
+          void refrescar();
         },
       },
     });

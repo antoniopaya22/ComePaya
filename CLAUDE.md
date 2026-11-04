@@ -8,7 +8,7 @@ App doméstica para gestionar despensa, lista de la compra y menú semanal (comi
 
 ## Proyecto
 - PWA React + Vite + Tailwind (Vercel) con Supabase. Puesta en marcha en `README.md`.
-- `npm test` (Vitest), `npm run build` (tipos + compilación), `npm run dev`.
+- `npm test` (Vitest), `npm run test:cobertura` (cobertura mínima de `src/dominio/`), `npm run lint` (oxlint con tipos: typescript-eslint aún no admite TypeScript 7), `npm run build` (tipos + compilación), `npm run dev`.
 - `src/dominio/`: lógica pura sin React ni Supabase; aquí van los tests.
 - `src/features/<módulo>/`: pantallas. `src/components/ui/`: componentes base.
 - `api/`: funciones de servidor de Vercel (exportan `GET(request)`); en desarrollo las sirve un plugin de `vite.config.ts`.

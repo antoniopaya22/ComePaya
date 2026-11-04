@@ -60,7 +60,7 @@ export function IngredientesPage() {
     setCargando(true);
     try {
       const n = await cargarIngredientesBase(hogar.id, ingredientes ?? []);
-      queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
+      void queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
       toast.success(`${n} ingredientes añadidos`);
     } catch (error) {
       toast.error(mensajeError(error));
@@ -199,9 +199,9 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
 
   const secciones = seccionesDisponibles(tiendas[0]?.orden_secciones ?? [], [...ingredientes.map((i) => i.seccion_super), seccion]);
   const refrescar = () => {
-    queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
-    queryClient.invalidateQueries({ queryKey: claves.productos(hogar.id) });
-    queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.productos(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
   };
 
   const original = ingrediente && ingrediente !== "nuevo" ? ingrediente : null;
@@ -214,8 +214,8 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
       // Ya tiene recetas o despensa: se convierten sus cantidades antes de guardar lo demás.
       try {
         await cambiarUnidad(original!, unidad, pesoNumero);
-        queryClient.invalidateQueries({ queryKey: claves.recetas(hogar.id) });
-        queryClient.invalidateQueries({ queryKey: claves.lista(hogar.id) });
+        void queryClient.invalidateQueries({ queryKey: claves.recetas(hogar.id) });
+        void queryClient.invalidateQueries({ queryKey: claves.lista(hogar.id) });
       } catch (error) {
         return toast.error(mensajeError(error));
       }

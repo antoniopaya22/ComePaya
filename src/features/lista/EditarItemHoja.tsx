@@ -67,15 +67,15 @@ export function EditarItemHoja({
     if (error) return toast.error(mensajeError(error));
     if (!data?.length) {
       toast.error("Ya no está en la lista: lo han quitado desde otro móvil");
-      refrescar();
+      void refrescar();
       return onCerrar();
     }
     // Si el elemento es un ingrediente conocido, recuerda la sección para la próxima vez.
     if (item.ingrediente_id && seccion !== item.seccion_super) {
       await supabase.from("ingrediente").update({ seccion_super: seccion }).eq("id", item.ingrediente_id);
-      queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
+      void queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
     }
-    refrescar();
+    void refrescar();
     onCerrar();
   }
 
@@ -83,7 +83,7 @@ export function EditarItemHoja({
     if (!item) return;
     const { error } = await supabase.from("item_lista").delete().eq("id", item.id);
     if (error) return toast.error(mensajeError(error));
-    refrescar();
+    void refrescar();
     const copia = { ...item };
     toast(`${item.texto} quitado`, {
       duration: 8000,
@@ -92,7 +92,7 @@ export function EditarItemHoja({
         onClick: async () => {
           const { error } = await supabase.from("item_lista").insert(copia);
           if (error) toast.error(mensajeError(error));
-          refrescar();
+          void refrescar();
         },
       },
     });

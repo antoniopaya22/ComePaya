@@ -65,7 +65,7 @@ export function TiendaHoja({ tienda, onCerrar }: { tienda: Tienda | "nueva" | nu
     const { error } = await supabase.from("tienda").delete().eq("id", tienda.id);
     if (error) return toast.error(mensajeError(error));
     const copia = { ...tienda };
-    queryClient.invalidateQueries({ queryKey: claves.tiendas(copia.hogar_id) });
+    void queryClient.invalidateQueries({ queryKey: claves.tiendas(copia.hogar_id) });
     toast(`${copia.nombre} borrada`, {
       duration: 8000,
       action: {
@@ -73,7 +73,7 @@ export function TiendaHoja({ tienda, onCerrar }: { tienda: Tienda | "nueva" | nu
         onClick: async () => {
           const { error } = await supabase.from("tienda").insert(copia);
           if (error) toast.error(mensajeError(error));
-          queryClient.invalidateQueries({ queryKey: claves.tiendas(copia.hogar_id) });
+          void queryClient.invalidateQueries({ queryKey: claves.tiendas(copia.hogar_id) });
         },
       },
     });

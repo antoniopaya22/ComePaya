@@ -1,4 +1,4 @@
-# En cada push y pull request: tipos, tests de dominio, compilación y tests de pantalla en modo demo.
+# En cada push y pull request: lint, tests de dominio con cobertura mínima, tipos y compilación, y tests de pantalla en modo demo.
 name: CI
 
 on:
@@ -20,11 +20,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Tipos
-        run: npm run typecheck
-      - name: Tests de dominio
-        run: npm test
-      - name: Compilación
+      - name: Lint (con tipos)
+        run: npm run lint
+      - name: Tests de dominio y cobertura
+        run: npm run test:cobertura
+      # build ya comprueba los tipos (tsc --noEmit) antes de compilar.
+      - name: Tipos y compilación
         run: npm run build
         env:
           VITE_SUPABASE_URL: https://ejemplo.supabase.co

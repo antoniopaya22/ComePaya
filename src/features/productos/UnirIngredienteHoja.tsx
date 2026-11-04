@@ -95,7 +95,7 @@ export function UnirIngredienteHoja({
   async function cambiarBasico(v: boolean) {
     const { error } = await supabase.from("ingrediente").update({ siempre_disponible: v }).eq("id", ingrediente!.id);
     if (error) return toast.error(mensajeError(error));
-    queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) });
   }
 
   if (!ingrediente) return null;
@@ -119,7 +119,7 @@ export function UnirIngredienteHoja({
     try {
       await fusionarIngredientes(ingrediente!, destino, factor);
       for (const clave of [claves.recetas, claves.ingredientes, claves.productos, claves.lotes, claves.lista]) {
-        queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
+        void queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
       }
       toast.success(`«${ingrediente!.nombre}» unido con «${destino.nombre}»`);
       cerrar();

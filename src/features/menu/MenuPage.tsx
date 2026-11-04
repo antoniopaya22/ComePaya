@@ -111,7 +111,7 @@ export function MenuPage() {
         { onConflict: "hogar_id,fecha,tipo,para", ignoreDuplicates: true },
       );
       if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
+      void queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
       toast.success("Semana copiada", { description: "Las sobras se copian como platos normales: revísalas si hace falta." });
     } catch (error) {
       toast.error(mensajeError(error));

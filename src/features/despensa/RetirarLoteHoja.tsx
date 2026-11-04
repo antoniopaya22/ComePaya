@@ -83,7 +83,7 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
     setGuardando(true);
     try {
       const antes = await aplicarConDeshacer(hogar.id, cambios, lotes ?? [actual]);
-      refrescar();
+      void refrescar();
       avisarConDeshacer(queryClient, hogar.id, mensaje, () => deshacerDespensa(hogar.id, antes), { descripcion });
       return true;
     } catch (error) {

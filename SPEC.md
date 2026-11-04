@@ -329,6 +329,7 @@ Todo en planes gratuitos.
 - **Escaneo**: `barcode-detector` (ver §7.1).
 - **Mantenimiento**: GitHub Actions semanal que hace una consulta a Supabase (el plan gratuito pausa el proyecto tras 7 días sin actividad) y un `pg_dump` como copia de seguridad (el plan gratuito no tiene copias automáticas), cifrada. Cada semana se ensaya la restauración: se descifra y se carga en una Supabase vacía del runner, y falla si no aparece ningún hogar.
 - **Migraciones**: al subir a `main` una migración nueva, GitHub Actions (`migraciones.yml`) aplica las pendientes con `scripts/aplicar-migracion.mjs`, cada una en una transacción, y las apunta en `control.migracion` (esquema que la API no expone). Vercel despliega a la vez, así que cada migración debe ser compatible con el código anterior. Ambos workflows usan el secreto `SUPABASE_DB_URL`.
+- **Calidad**: oxlint con información de tipos (typescript-eslint aún no admite TypeScript 7) en CI: promesas sin atender, reglas de hooks y accesibilidad; las dependencias de hooks que faltan quedan como aviso. Cobertura mínima de `src/dominio/` (95 % de líneas, 88 % de ramas). Dependabot semanal agrupado. Node 22 (`engines`).
 - **Integraciones externas** detrás de adaptadores con caché y tolerancia a fallos.
 - **Límites a vigilar**: 500 MB de base de datos y 1 GB de Storage en Supabase; el cron de Vercel Hobby es diario como mucho.
 

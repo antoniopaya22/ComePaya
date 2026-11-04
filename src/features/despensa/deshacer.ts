@@ -99,9 +99,9 @@ export function avisarConDeshacer(
           toast.error(`No se ha podido deshacer: ${mensajeError(error)}`);
         } finally {
           for (const clave of [claves.lotes, claves.raciones, claves.franjas, claves.lista, claves.ingredientes]) {
-            queryClient.invalidateQueries({ queryKey: clave(hogarId) });
+            void queryClient.invalidateQueries({ queryKey: clave(hogarId) });
           }
-          queryClient.invalidateQueries({ queryKey: ["movimientos", hogarId] });
+          void queryClient.invalidateQueries({ queryKey: ["movimientos", hogarId] });
         }
       },
     },

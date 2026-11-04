@@ -119,7 +119,7 @@ export function GuardarCompraHoja({ items: marcados, abierta, onCerrar }: { item
       }
       // Lotes, movimientos y quitar de la lista, todo o nada: un reintento (o el otro móvil) no duplica la compra.
       const antes = await aplicarConDeshacer(hogar.id, cambios, lotes);
-      for (const clave of [claves.lotes, claves.productos, claves.lista]) queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
+      for (const clave of [claves.lotes, claves.productos, claves.lista]) void queryClient.invalidateQueries({ queryKey: clave(hogar.id) });
       const quitados = items.map((i) => ({ ...i }));
       avisarConDeshacer(
         queryClient,

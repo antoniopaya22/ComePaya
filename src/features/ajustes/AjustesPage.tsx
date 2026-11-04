@@ -312,7 +312,7 @@ export function AjustesPage() {
         tienda={tienda}
         onCerrar={() => {
           setTienda(null);
-          queryClient.invalidateQueries({ queryKey: claves.tiendas(hogar.id) });
+          void queryClient.invalidateQueries({ queryKey: claves.tiendas(hogar.id) });
         }}
       />
     </>

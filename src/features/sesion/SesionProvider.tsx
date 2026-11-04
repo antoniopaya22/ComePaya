@@ -18,7 +18,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
         // guardada para abrir la app con lo que hay en el móvil (la lista del súper); se renueva sola al volver la red.
         setSesion(error || !navigator.onLine ? sesionGuardada() : null);
       });
-    comprobar();
+    void comprobar();
     const { data } = supabase.auth.onAuthStateChange((evento, nueva) => {
       // La sesión inicial ya la decide comprobar(), también cuando no hay red.
       if (evento === "INITIAL_SESSION" && !nueva) return;

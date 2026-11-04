@@ -266,7 +266,7 @@ function BuscadorMercadona({
         className="flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          buscar();
+          void buscar();
         }}
       >
         <Entrada value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Buscar en Mercadona" type="search" />

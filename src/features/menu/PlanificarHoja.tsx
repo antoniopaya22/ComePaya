@@ -58,7 +58,7 @@ export function PlanificarHoja({ abierta, lunes, franjas, onCerrar }: { abierta:
     );
     setGuardando(false);
     if (error) return toast.error(mensajeError(error));
-    queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.franjas(hogar.id) });
     toast.success(`${elegidas.length} comidas planificadas`, { description: "Ahora puedes completar la lista desde el menú." });
     onCerrar();
   }

@@ -77,9 +77,9 @@ export function ProductoPage() {
     if (!ok) return;
     const { error } = await supabase.from("producto").delete().eq("id", producto!.id);
     if (error) return toast.error(mensajeError(error));
-    queryClient.invalidateQueries({ queryKey: claves.productos(hogar.id) });
-    queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
-    navigate(-1);
+    void queryClient.invalidateQueries({ queryKey: claves.productos(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
+    void navigate(-1);
   }
 
   return (
@@ -231,8 +231,8 @@ function EditarProductoHoja({ producto, onCerrar }: { producto: ProductoConIngre
       if (error) return toast.error(mensajeError(error));
       if (!data?.length) return toast.error("Este producto ya no existe: lo han borrado desde otro móvil");
     }
-    queryClient.invalidateQueries({ queryKey: claves.productos(hogar.id) });
-    queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.productos(hogar.id) });
+    void queryClient.invalidateQueries({ queryKey: claves.lotes(hogar.id) });
     setAbierto(null);
     onCerrar();
   }
