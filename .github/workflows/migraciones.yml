@@ -1,28 +1,34 @@
-# Al subir a main una migración nueva: la aplica en Supabase (las que falten, en orden, cada una en una transacción).
-# Vercel despliega a la vez, así que las migraciones deben ser compatibles con el código anterior (añadir, no quitar).
+# Cuando el CI de un push a main termina bien: aplica en Supabase las migraciones pendientes (en orden, cada una en
+# una transacción). Así una migración que no pasa los tests (supabase/migraciones.test.ts) no llega a producción.
+# Sin pendientes no hace nada. Vercel despliega sin esperar, así que durante los minutos del CI el código nuevo corre
+# con el esquema anterior y viceversa: las migraciones deben ser compatibles en los dos sentidos (añadir, no quitar).
 name: Migraciones
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
-    paths:
-      - "supabase/migrations/**"
-      - "scripts/aplicar-migracion.mjs"
   workflow_dispatch:
 
 concurrency:
   group: migraciones
   cancel-in-progress: false
 
-# Lo mínimo: leer el código. Los artifacts usan su propio token.
+# Lo mínimo: leer el código.
 permissions:
   contents: read
 
 jobs:
   aplicar:
+    # Solo tras un push a main con el CI en verde (no por pull requests ni si ha fallado), o a mano.
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # El commit que ha pasado el CI, no lo último de main (puede haber llegado otro push entretanto).
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: actions/setup-node@v5
         with:
           node-version: 22

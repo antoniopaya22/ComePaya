@@ -38,11 +38,11 @@ El código de dominio (`src/dominio/`) es TypeScript puro y es donde van los tes
 1. Crea el proyecto (plan gratuito, región Europa). Deja activado **Enable Data API**. Puedes desactivar *Automatically expose new tables* y activar *Enable automatic RLS*: las migraciones ya dan los permisos y activan RLS.
 2. Añade en GitHub el secreto `SUPABASE_DB_URL` (*Settings → Secrets and variables → Actions*): la cadena de conexión
    **Session pooler** de Supabase (*Connect → Session pooler*) con la contraseña de la base de datos, codificada para URL.
-   Con él, cada push a `main` que traiga una migración nueva la aplica sola ([migraciones.yml](.github/workflows/migraciones.yml)),
+   Con él, cuando el CI de un push a `main` termina bien, se aplican solas las migraciones pendientes ([migraciones.yml](.github/workflows/migraciones.yml)),
    y en un proyecto vacío se aplican todas (lánzalo a mano la primera vez: *Actions → Migraciones → Run workflow*).
    Cada migración va en una transacción y queda apuntada en `control.migracion`: si algo falla, no cambia nada.
    Desde tu terminal: `$env:SUPABASE_DB_URL = "…"` (PowerShell) y `npm run migrar` (las que falten) o `npm run migrar -- <archivo>`.
-   Las migraciones deben ser compatibles con el código anterior: Vercel despliega a la vez que se aplican.
+   Vercel despliega sin esperar al CI, así que durante unos minutos el código nuevo corre con el esquema anterior (y luego el anterior con el nuevo, si algo falla): las migraciones deben ser compatibles en los dos sentidos.
 3. En **Project Settings → API keys** copia la *publishable key* y la *secret key* (ver `.env.example`).
 
 ### 2. Login con Google
