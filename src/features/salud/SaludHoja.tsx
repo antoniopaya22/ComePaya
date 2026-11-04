@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Entrada } from "@/components/ui/campos";
-import { Hoja } from "@/components/ui/hoja";
+import { Hoja, useCambiosSinGuardar } from "@/components/ui/hoja";
 import { GRUPOS_ALIMENTO, REGLAS_POR_DEFECTO, type GrupoAlimento } from "@/dominio/nutricion";
 import { supabase } from "@/lib/supabase";
 import { mensajeError } from "@/lib/utils";
@@ -24,6 +24,7 @@ export function SaludHoja({ abierta, onCerrar }: { abierta: boolean; onCerrar: (
   const [aditivos, setAditivos] = useState("");
   const [alergenos, setAlergenos] = useState<string[]>([]);
   const [guardando, setGuardando] = useState(false);
+  const sucio = useCambiosSinGuardar(abierta, [filas, aditivos, alergenos]);
 
   // Se rellena al abrir, cuando ya han llegado las reglas (si no, guardar las borraría).
   useEffect(() => {
@@ -89,6 +90,7 @@ export function SaludHoja({ abierta, onCerrar }: { abierta: boolean; onCerrar: (
     <Hoja
       abierta={abierta}
       onAbiertaChange={(v) => !v && onCerrar()}
+      sucio={sucio}
       titulo="Salud"
       descripcion="Cuántas comidas y cenas a la semana con cada grupo. Las de partida siguen las recomendaciones de la AESAN."
       pie={
@@ -130,8 +132,8 @@ function FilaRegla({ etiqueta, fila, onChange }: { etiqueta: string; fila: Fila 
   return (
     <>
       <span>{etiqueta}</span>
-      <Entrada inputMode="numeric" className="h-9 text-center" value={actual.minimo} onChange={(e) => onChange({ ...actual, minimo: e.target.value.replace(/\D/g, "") })} placeholder="—" aria-label={`Mínimo de ${etiqueta}`} />
-      <Entrada inputMode="numeric" className="h-9 text-center" value={actual.maximo} onChange={(e) => onChange({ ...actual, maximo: e.target.value.replace(/\D/g, "") })} placeholder="—" aria-label={`Máximo de ${etiqueta}`} />
+      <Entrada inputMode="numeric" className="h-11 text-center" value={actual.minimo} onChange={(e) => onChange({ ...actual, minimo: e.target.value.replace(/\D/g, "") })} placeholder="—" aria-label={`Mínimo de ${etiqueta}`} />
+      <Entrada inputMode="numeric" className="h-11 text-center" value={actual.maximo} onChange={(e) => onChange({ ...actual, maximo: e.target.value.replace(/\D/g, "") })} placeholder="—" aria-label={`Máximo de ${etiqueta}`} />
     </>
   );
 }

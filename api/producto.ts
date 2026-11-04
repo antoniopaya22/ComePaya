@@ -2,7 +2,7 @@ import { EAN_VALIDO, type ProductoExterno } from "../src/dominio/producto-extern
 import { guardarCatalogo, leerCatalogo } from "./_lib/catalogo.js";
 import { aProductoExterno, buscarEnMercadonaPorEan } from "./_lib/mercadona.js";
 import { buscarEnOpenFoodFacts } from "./_lib/openfoodfacts.js";
-import { comprobarAcceso, json } from "./_lib/supabase-servidor.js";
+import { comprobarAcceso, json, rest, servidorConfigurado } from "./_lib/supabase-servidor.js";
 
 /**
  * GET /api/producto?ean=8410188012092
@@ -40,5 +40,10 @@ export async function GET(request: Request): Promise<Response> {
     return json(externo, 200, "private, max-age=86400");
   }
   if (fallo) return json({ error: "Open Food Facts no responde" }, 502);
+  // Se apunta para saber qué se escapa (§6); si falla el apunte, el escaneo sigue igual.
+  if (servidorConfigurado)
+    await rest("rpc/apuntar_ean_no_encontrado", { method: "POST", body: { p_ean: ean } }).catch((error) =>
+      console.error("No se ha podido apuntar el código no encontrado", ean, error),
+    );
   return json({ error: "Producto no encontrado" }, 404, "private, max-age=3600");
 }

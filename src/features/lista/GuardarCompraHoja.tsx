@@ -182,7 +182,7 @@ export function GuardarCompraHoja({ items: marcados, abierta, onCerrar }: { item
               {posible ? (
                 l.incluir && (
                   <>
-                    <Selector value={l.producto} onChange={(e) => cambiar(l.item.id, { producto: e.target.value })} className="h-10 text-sm">
+                    <Selector value={l.producto} onChange={(e) => cambiar(l.item.id, { producto: e.target.value })} className="h-11">
                       {opciones.map((p) => (
                         <option key={p.id} value={p.id}>
                           {[p.nombre, p.marca, p.cantidad_envase && formatearCantidad(p.cantidad_envase, l.ingrediente.unidad_base)].filter(Boolean).join(" · ")}
@@ -192,7 +192,7 @@ export function GuardarCompraHoja({ items: marcados, abierta, onCerrar }: { item
                     </Selector>
                     <div className="grid grid-cols-2 gap-2">
                       <Contador valor={l.envases} onChange={(v) => cambiar(l.item.id, { envases: Math.max(0.5, v) })} min={0.5} />
-                      <Selector value={l.ubicacion} onChange={(e) => cambiar(l.item.id, { ubicacion: e.target.value as Ubicacion })} className="h-12 text-sm">
+                      <Selector value={l.ubicacion} onChange={(e) => cambiar(l.item.id, { ubicacion: e.target.value as Ubicacion })} className="h-12">
                         {UBICACIONES.map((u) => (
                           <option key={u.valor} value={u.valor}>
                             {u.etiqueta}

@@ -87,7 +87,7 @@ export function AjustesPage() {
               {hogares.length > 1 && (
                 <Selector
                   aria-label="Cambiar de hogar"
-                  className="h-9 w-auto text-sm"
+                  className="h-11 w-auto"
                   value={hogar.id}
                   onChange={(e) => cambiarHogar(e.target.value)}
                 >

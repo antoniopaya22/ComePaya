@@ -487,6 +487,17 @@ test("Despensa: filtrar por tipo de alimento y ordenar por tipo", async ({ page 
   if (process.env.CAPTURA) await page.screenshot({ path: process.env.CAPTURA });
 });
 
+test("Receta: añadirla al menú eligiendo el hueco", async ({ page }) => {
+  await page.goto("/recetas/r-merluza");
+  await page.getByRole("link", { name: "Añadir al menú" }).click();
+  await expect(page.getByText("Elige la comida o la cena para «Merluza en salsa verde»")).toBeVisible();
+  await page.getByRole("button", { name: /Planificar/ }).last().click();
+  const hoja = page.getByRole("dialog");
+  await hoja.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText(/Elige la comida o la cena/)).toHaveCount(0);
+  await expect(page.getByText("Merluza en salsa verde").first()).toBeVisible();
+});
+
 test("Despensa: filtrar ultraprocesados y ordenar por sal", async ({ page }) => {
   await page.goto("/despensa");
   await expect(page.getByRole("img", { name: "Nutri-Score B" }).first()).toBeVisible();

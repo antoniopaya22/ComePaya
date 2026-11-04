@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Contador, Entrada, Opciones, Selector } from "@/components/ui/campos";
-import { Hoja } from "@/components/ui/hoja";
+import { Hoja, useCambiosSinGuardar } from "@/components/ui/hoja";
 import { hoyISO, sumarDias, type FechaISO } from "@/dominio/caducidad";
 import { buscarIngrediente, seccionesDisponibles } from "@/dominio/lista";
 import { normalizar } from "@/dominio/texto";
@@ -50,6 +50,8 @@ export function NuevoLoteHoja({
   const [ubicacion, setUbicacion] = useState<Ubicacion>("nevera");
   const [caducidad, setCaducidad] = useState<FechaISO | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // Un producto nuevo a medio rellenar no se pierde al deslizar sin querer.
+  const sucio = useCambiosSinGuardar(abierta, nuevo);
 
   const sugerencias = useMemo(() => {
     const texto = normalizar(busqueda);
@@ -136,6 +138,7 @@ export function NuevoLoteHoja({
         if (!v) reiniciar();
         onAbiertaChange(v);
       }}
+      sucio={sucio}
       titulo="Añadir a la despensa"
       pie={
         <Boton className="w-full" tamano="lg" onClick={guardar} disabled={!listo || guardando}>

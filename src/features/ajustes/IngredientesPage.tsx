@@ -401,7 +401,7 @@ export function IngredienteHoja({ ingrediente, onCerrar }: { ingrediente: Ingred
                 </span>
                 <Entrada
                   inputMode="decimal"
-                  className="h-9 w-20 text-right"
+                  className="h-11 w-20 text-right"
                   value={nutrientes[clave] ?? ""}
                   placeholder={
                     ingrediente && ingrediente !== "nuevo" ? (calculados.get(ingrediente.id)?.[clave]?.toString().replace(".", ",") ?? "—") : "—"

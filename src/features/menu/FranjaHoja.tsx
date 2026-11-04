@@ -32,11 +32,16 @@ export function FranjaHoja({
   franja,
   franjasSemana,
   onCerrar,
+  recetaInicial = null,
+  onGuardado,
 }: {
   hueco: { fecha: FechaISO; tipo: TipoFranja; para: ParaFranja } | null;
   franja: FranjaMenu | undefined;
   franjasSemana: FranjaMenu[];
   onCerrar: () => void;
+  /** Receta que se quiere poner (viene de «Añadir al menú» en una receta). */
+  recetaInicial?: string | null;
+  onGuardado?: () => void;
 }) {
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
@@ -64,8 +69,8 @@ export function FranjaHoja({
     if (!hueco) return;
     setActual(hueco);
     setAlAbrir(resumenFranja(franja));
-    setModo(franja?.fuera_de_casa ? "fuera" : franja?.es_sobra_de ? "sobras" : "receta");
-    setRecetaId(franja?.receta_id ?? null);
+    setModo(recetaInicial ? "receta" : franja?.fuera_de_casa ? "fuera" : franja?.es_sobra_de ? "sobras" : "receta");
+    setRecetaId(recetaInicial ?? franja?.receta_id ?? null);
     setRaciones(franja?.raciones ?? racionesPorDefecto(hueco.para));
     setSobraDe(franja?.es_sobra_de ?? null);
     setBusqueda("");
@@ -139,6 +144,7 @@ export function FranjaHoja({
     setOcupado(false);
     if (error) return toast.error(mensajeError(error));
     refrescar();
+    onGuardado?.();
     onCerrar();
   }
 

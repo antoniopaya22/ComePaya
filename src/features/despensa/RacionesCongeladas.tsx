@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Contador, Entrada } from "@/components/ui/campos";
-import { Hoja } from "@/components/ui/hoja";
+import { Hoja, useCambiosSinGuardar } from "@/components/ui/hoja";
 import { Tarjeta } from "@/components/ui/varios";
 import { diasHasta, hoyISO } from "@/dominio/caducidad";
 import { supabase } from "@/lib/supabase";
@@ -89,6 +89,7 @@ function NuevaRacionHoja({ abierta, onCerrar }: { abierta: boolean; onCerrar: ()
   const queryClient = useQueryClient();
   const [descripcion, setDescripcion] = useState("");
   const [raciones, setRaciones] = useState(2);
+  const sucio = useCambiosSinGuardar(abierta, descripcion.trim());
 
   async function guardar() {
     const { error } = await supabase.from("racion_congelada").insert({ hogar_id: hogar.id, descripcion: descripcion.trim(), raciones });
@@ -102,6 +103,7 @@ function NuevaRacionHoja({ abierta, onCerrar }: { abierta: boolean; onCerrar: ()
     <Hoja
       abierta={abierta}
       onAbiertaChange={(v) => !v && onCerrar()}
+      sucio={sucio}
       titulo="Ración congelada"
       pie={
         <Boton className="w-full" onClick={guardar} disabled={!descripcion.trim()}>

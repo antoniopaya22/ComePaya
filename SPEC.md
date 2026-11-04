@@ -108,6 +108,8 @@ Los módulos se alimentan entre sí:
 - Opcional: publicar el menú como feed iCal.
 - **Menú de bebé** (Ajustes → Bebé, con su nombre): cada día tiene además la comida y la cena del bebé (1 ración por defecto). Para él se proponen las recetas con la etiqueta «bebé» (si no hay ninguna, todas) y las de bebé no se proponen para la casa; la planificación automática y el equilibrio semanal son solo de la casa. Sus platos cuentan para la lista y se descuentan de la despensa como el resto. Se lleva qué alimentos ha probado ya (`ingrediente.bebe_introducido`): al elegir un plato se avisa de lo que sería la primera vez (con sus alérgenos) y al marcarlo cocinado queda apuntado; también se marca a mano en Ajustes → Lo que ha probado o en la ficha del ingrediente. Hoy y el feed iCal muestran también sus comidas.
 
+- **Añadir una receta al menú** desde su ficha («Al menú», junto a Cocinar): el Menú pide elegir el hueco y la receta ya va puesta. Desde Hoy, una comida sin planificar abre directamente ese hueco.
+
 ### 4.5 Modo cocina
 - Pantalla que no se apaga (Wake Lock API).
 - Texto grande, un paso cada vez, avance con un toque.
@@ -228,6 +230,8 @@ El modelo es orientativo; ajustarlo durante la implementación y mantener esta t
 4. Mercadona (id dentro del código Hacendado o lista de códigos conocidos).
 5. Alta manual (nombre + foto, buscando en Mercadona por nombre o tecleando el código si la cámara no lo lee), guardada para siempre.
 
+Los códigos que no aparecen en ninguna fuente se apuntan en `ean_no_encontrado` (solo el código, cuántas veces y cuándo; sin usuario ni hogar) para saber qué se escapa y mejorar el reconocimiento.
+
 Las consultas a Open Food Facts y Mercadona se hacen desde funciones de servidor (`/api` en Vercel): el navegador no puede fijar el `User-Agent` y Mercadona no admite CORS.
 
 ---
@@ -321,7 +325,7 @@ Todo en planes gratuitos.
 - **Hosting**: Vercel (plan Hobby, uso personal no comercial).
 - **Lógica de dominio** en TypeScript puro (`src/dominio/`), sin dependencias de React ni Supabase, con tests en Vitest.
 - **Escaneo**: `barcode-detector` (ver §7.1).
-- **Mantenimiento**: GitHub Actions semanal que hace una consulta a Supabase (el plan gratuito pausa el proyecto tras 7 días sin actividad) y un `pg_dump` como copia de seguridad (el plan gratuito no tiene copias automáticas).
+- **Mantenimiento**: GitHub Actions semanal que hace una consulta a Supabase (el plan gratuito pausa el proyecto tras 7 días sin actividad) y un `pg_dump` como copia de seguridad (el plan gratuito no tiene copias automáticas), cifrada. Cada semana se ensaya la restauración: se descifra y se carga en una Supabase vacía del runner, y falla si no aparece ningún hogar.
 - **Migraciones**: al subir a `main` una migración nueva, GitHub Actions (`migraciones.yml`) aplica las pendientes con `scripts/aplicar-migracion.mjs`, cada una en una transacción, y las apunta en `control.migracion` (esquema que la API no expone). Vercel despliega a la vez, así que cada migración debe ser compatible con el código anterior. Ambos workflows usan el secreto `SUPABASE_DB_URL`.
 - **Integraciones externas** detrás de adaptadores con caché y tolerancia a fallos.
 - **Límites a vigilar**: 500 MB de base de datos y 1 GB de Storage en Supabase; el cron de Vercel Hobby es diario como mucho.

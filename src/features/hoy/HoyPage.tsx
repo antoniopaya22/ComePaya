@@ -226,7 +226,7 @@ function PlatoDeHoy({
   }
   if (!receta) {
     return (
-      <Link to="/menu">
+      <Link to={`/menu?fecha=${hoyISO()}&tipo=${tipo}`} aria-label={`Planificar la ${tipo} de hoy`}>
         <Tarjeta className="flex h-full items-center gap-3 border border-dashed border-borde-control/60 p-4 text-suave">
           <span className="grid size-16 place-items-center rounded-2xl bg-superficie-2">
             <Plus className="size-6" />

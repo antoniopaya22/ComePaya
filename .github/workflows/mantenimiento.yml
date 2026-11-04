@@ -10,6 +10,8 @@ on:
 jobs:
   copia-de-seguridad:
     runs-on: ubuntu-latest
+    outputs:
+      subida: ${{ steps.cifrar.outputs.subir }}
     steps:
       - uses: supabase/setup-cli@v1
         with:
@@ -44,3 +46,45 @@ jobs:
           name: copia-cifrada-${{ github.run_number }}
           path: copia.tar.gz.gpg
           retention-days: 90
+
+  # Una copia que nunca se ha restaurado no es una copia: se descifra y se carga en una Supabase vacía del runner.
+  ensayo-de-restauracion:
+    needs: copia-de-seguridad
+    if: needs.copia-de-seguridad.outputs.subida == 'si'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: copia-cifrada-${{ github.run_number }}
+      - name: Descifrar
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          gpg --batch --pinentry-mode loopback --passphrase-fd 3 -d copia.tar.gz.gpg 3<<<"$BACKUP_PASSPHRASE" | tar xzf -
+          ls -l copia
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Supabase vacía
+        run: |
+          supabase init --force
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
+      - name: Restaurar
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" --single-transaction -v ON_ERROR_STOP=1 -f copia/esquema.sql -c "SET session_replication_role = replica" -f copia/datos.sql > /dev/null
+      - name: Comprobar que hay datos
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -At -c "
+            select 'hogares', count(*) from public.hogar union all
+            select 'ingredientes', count(*) from public.ingrediente union all
+            select 'productos', count(*) from public.producto union all
+            select 'lotes', count(*) from public.lote_despensa union all
+            select 'recetas', count(*) from public.receta union all
+            select 'lista', count(*) from public.item_lista union all
+            select 'menu', count(*) from public.franja_menu" | tee recuento.txt
+          if grep -q '^hogares|0$' recuento.txt; then
+            echo "::error::La copia restaurada no tiene ningún hogar"
+            exit 1
+          fi
+          echo "Restauración correcta" >> "$GITHUB_STEP_SUMMARY"
+          sed 's/|/: /' recuento.txt >> "$GITHUB_STEP_SUMMARY"

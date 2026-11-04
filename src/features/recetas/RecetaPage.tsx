@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Baby, Check, Clock, CookingPot, Download, EllipsisVertical, Hourglass, Pencil, Timer, Users } from "lucide-react";
+import { ArrowLeft, Baby, CalendarPlus, Check, Clock, CookingPot, Download, EllipsisVertical, Hourglass, Pencil, Timer, Users } from "lucide-react";
 import { useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { BarraApp, BotonBarra, EnlaceBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { Menu, MenuContenido, MenuDisparador, MenuOpcion } from "@/components/ui/menu";
@@ -35,6 +35,7 @@ export function RecetaPage() {
   const [mirando, setMirando] = useState<{ id: string; necesario: number } | null>(null);
   const { hogar } = useHogar();
   const hoy = hoyISO();
+  const navigate = useNavigate();
 
   // Cuántas veces se ha cocinado en el último año (las sobras no cuentan como otra vez).
   const { data: historial } = useQuery({
@@ -94,6 +95,9 @@ export function RecetaPage() {
                 </BotonBarra>
               </MenuDisparador>
               <MenuContenido>
+                <MenuOpcion onSelect={() => navigate(`/menu?receta=${receta.id}`)}>
+                  <CalendarPlus /> Añadir al menú
+                </MenuOpcion>
                 <MenuOpcion onSelect={() => descargar(nombreArchivo(receta.nombre), aMarkdown(receta))}>
                   <Download /> Descargar la receta (.md)
                 </MenuOpcion>
@@ -272,8 +276,13 @@ export function RecetaPage() {
 
       {/* Móvil: la acción principal, abajo y a mano. */}
       <div className="pb-seguro fixed inset-x-0 bottom-0 z-30 border-t border-borde/70 bg-fondo/90 backdrop-blur-xl md:hidden">
-        <div className="px-4 py-3">
-          <Boton asChild tamano="lg" className="w-full rounded-2xl">
+        <div className="flex gap-2 px-4 py-3">
+          <Boton asChild variante="secundario" tamano="lg" className="shrink-0 rounded-2xl px-4">
+            <Link to={`/menu?receta=${receta.id}`} aria-label="Añadir al menú">
+              <CalendarPlus /> Al menú
+            </Link>
+          </Boton>
+          <Boton asChild tamano="lg" className="flex-1 rounded-2xl">
             <Link to={enlaceCocinar}>
               <CookingPot /> Cocinar · {racionesVista} {racionesVista === 1 ? "ración" : "raciones"}
             </Link>

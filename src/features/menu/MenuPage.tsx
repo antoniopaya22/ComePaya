@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Baby, ChevronLeft, ChevronRight, CircleCheck, Copy, ListChecks, Plane, Plus, Repeat, Sparkles } from "lucide-react";
+import { Baby, ChevronLeft, ChevronRight, CircleCheck, Copy, ListChecks, Plane, Plus, Repeat, Sparkles, CalendarPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -50,6 +50,23 @@ export function MenuPage() {
     setAbierta({ fecha: f.fecha, tipo: f.tipo, para: paraDe(f) });
     setParams({}, { replace: true });
   }, [franjaPedida, franjas, setParams]);
+  // /menu?fecha=…&tipo=comida (desde Hoy): abre directamente ese hueco para planificarlo.
+  const fechaPedida = params.get("fecha");
+  const tipoPedido = params.get("tipo");
+  useEffect(() => {
+    if (!fechaPedida || (tipoPedido !== "comida" && tipoPedido !== "cena")) return;
+    setLunes(lunesDe(fechaPedida));
+    setAbierta({ fecha: fechaPedida, tipo: tipoPedido, para: "casa" });
+    setParams({}, { replace: true });
+  }, [fechaPedida, tipoPedido, setParams]);
+  // /menu?receta=… (desde una receta, «Añadir al menú»): se elige el hueco y la receta ya va puesta.
+  const [recetaParaPoner, setRecetaParaPoner] = useState<string | null>(null);
+  const recetaPedida = params.get("receta");
+  useEffect(() => {
+    if (!recetaPedida) return;
+    setRecetaParaPoner(recetaPedida);
+    setParams({}, { replace: true });
+  }, [recetaPedida, setParams]);
   const [generando, setGenerando] = useState(false);
 
   const buscar = (fecha: FechaISO, tipo: TipoFranja, para: ParaFranja = "casa") =>
@@ -137,6 +154,15 @@ export function MenuPage() {
       />
 
       <div className="flex flex-col gap-4 px-4 md:px-0">
+        {recetaParaPoner && (
+          <Tarjeta className="sticky top-[calc(env(safe-area-inset-top)+3.75rem)] z-30 flex items-center gap-3 border border-primario/40 bg-primario-suave p-3.5 text-primario">
+            <CalendarPlus className="size-5 shrink-0" />
+            <p className="flex-1 text-sm font-medium">Elige la comida o la cena para «{nombreReceta(recetaParaPoner)}»</p>
+            <Boton variante="fantasma" tamano="sm" onClick={() => setRecetaParaPoner(null)} className="h-11 text-primario">
+              Cancelar
+            </Boton>
+          </Tarjeta>
+        )}
         {/* Móvil: las acciones de la semana, con texto. */}
         <div className="-mt-1 grid grid-cols-2 gap-2 md:hidden">
           <Boton variante="secundario" onClick={() => setPlanificando(true)}>
@@ -256,7 +282,9 @@ export function MenuPage() {
         hueco={abierta}
         franja={abierta ? buscar(abierta.fecha, abierta.tipo, abierta.para) : undefined}
         franjasSemana={franjas}
+        recetaInicial={recetaParaPoner}
         onCerrar={() => setAbierta(null)}
+        onGuardado={() => setRecetaParaPoner(null)}
       />
     </>
   );

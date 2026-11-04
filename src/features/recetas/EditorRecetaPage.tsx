@@ -7,7 +7,7 @@ import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { useConfirmar } from "@/components/ui/confirmar";
 import { useCambiosSinGuardar } from "@/components/ui/hoja";
-import { AreaTexto, Campo, Contador, Entrada, Opciones } from "@/components/ui/campos";
+import { AreaTexto, Campo, Contador, Entrada, Opciones, Selector } from "@/components/ui/campos";
 import { Estrellas } from "@/components/ui/estrellas";
 import { Cargando, Tarjeta } from "@/components/ui/varios";
 import { parsearLineaIngrediente } from "@/dominio/importar";
@@ -208,6 +208,18 @@ export function EditorRecetaPage() {
 
   const cambiarFila = (clave: string, cambio: Partial<FilaIngrediente>) => setFilas(filas.map((f) => (f.clave === clave ? { ...f, ...cambio } : f)));
   const cambiarPaso = (clave: string, cambio: Partial<FilaPaso>) => setPasos(pasos.map((p) => (p.clave === clave ? { ...p, ...cambio } : p)));
+
+  /** Quitar un ingrediente o un paso, con "Deshacer" (es fácil darle sin querer). */
+  function quitarFila(f: FilaIngrediente) {
+    const antes = filas;
+    setFilas(filas.length > 1 ? filas.filter((x) => x.clave !== f.clave) : [filaIngredienteVacia()]);
+    if (f.nombre.trim()) toast(`Quitado: ${f.nombre.trim()}`, { action: { label: "Deshacer", onClick: () => setFilas(antes) } });
+  }
+  function quitarPaso(p: FilaPaso, i: number) {
+    const antes = pasos;
+    setPasos(pasos.length > 1 ? pasos.filter((x) => x.clave !== p.clave) : [filaPasoVacia()]);
+    if (p.texto.trim()) toast(`Quitado el paso ${i + 1}`, { action: { label: "Deshacer", onClick: () => setPasos(antes) } });
+  }
 
   const filasUsadas = filas.filter((f) => f.nombre.trim());
   /** Cantidad de una fila en la unidad base del ingrediente (convierte las medidas caseras). */
@@ -468,78 +480,76 @@ export function EditorRecetaPage() {
             const cantidadMal = f.nombre.trim() && !(numero(f.cantidad) > 0);
             return (
               <Tarjeta key={f.clave} className="flex flex-col gap-2 p-3">
+                {/* Móvil: el nombre con todo el ancho; cantidad, medida y "opcional" debajo. */}
                 <div className="flex gap-2">
                   <Entrada
                     list="receta-ingredientes"
                     value={f.nombre}
                     onChange={(e) => cambiarFila(f.clave, { nombre: e.target.value })}
                     placeholder="Ingrediente"
+                    aria-label="Ingrediente"
+                    autoComplete="off"
                   />
-                  <div className={cn("relative shrink-0", unidad === "ud" ? "w-28" : "w-36")}>
-                    <Entrada
-                      inputMode="decimal"
-                      value={f.cantidad}
-                      onChange={(e) => cambiarFila(f.clave, { cantidad: e.target.value })}
-                      placeholder="0"
-                      className={cn(unidad === "ud" ? "pr-9" : "pr-16", "text-right", cantidadMal && "border-peligro")}
-                      aria-label="Cantidad"
-                    />
-                    {unidad === "ud" ? (
-                      <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-suave">{unidad}</span>
-                    ) : (
-                      <select
-                        aria-label="Medida"
-                        value={f.medida ?? "base"}
-                        onChange={(e) => cambiarFila(f.clave, { medida: e.target.value as FilaIngrediente["medida"] })}
-                        className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-md bg-transparent py-1 text-sm text-suave outline-none"
-                      >
-                        <option value="base">{unidad}</option>
-                        {MEDIDAS_CASERAS.map((m) => (
-                          <option key={m.valor} value={m.valor}>
-                            {m.etiqueta}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
                   <Boton
                     variante="fantasma"
                     tamano="icono"
-                    className="shrink-0"
+                    className="shrink-0 text-suave"
                     aria-label="Quitar ingrediente"
-                    onClick={() => setFilas(filas.length > 1 ? filas.filter((x) => x.clave !== f.clave) : [filaIngredienteVacia()])}
+                    onClick={() => quitarFila(f)}
                   >
                     <X />
                   </Boton>
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  {f.nombre.trim() && !existente ? (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-suave">Nuevo, se mide en</span>
-                      <Opciones
-                        opciones={[
-                          { valor: "g" as const, etiqueta: "g" },
-                          { valor: "ml" as const, etiqueta: "ml" },
-                          { valor: "ud" as const, etiqueta: "ud" },
-                        ]}
-                        valor={f.unidadNueva}
-                        onChange={(u) => cambiarFila(f.clave, { unidadNueva: u })}
-                        className="[&_button]:h-8 [&_button]:px-3"
-                      />
-                    </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Entrada
+                    inputMode="decimal"
+                    value={f.cantidad}
+                    onChange={(e) => cambiarFila(f.clave, { cantidad: e.target.value })}
+                    placeholder="0"
+                    className={cn("w-24 text-right", cantidadMal && "border-peligro")}
+                    aria-label="Cantidad"
+                  />
+                  {unidad === "ud" ? (
+                    <span className="px-1 text-[15px] text-suave">ud</span>
                   ) : (
-                    <span />
+                    <Selector
+                      aria-label="Medida"
+                      value={f.medida ?? "base"}
+                      onChange={(e) => cambiarFila(f.clave, { medida: e.target.value as FilaIngrediente["medida"] })}
+                      className="w-auto min-w-20"
+                    >
+                      <option value="base">{unidad}</option>
+                      {MEDIDAS_CASERAS.map((m) => (
+                        <option key={m.valor} value={m.valor}>
+                          {m.etiqueta}
+                        </option>
+                      ))}
+                    </Selector>
                   )}
-                  <label className="flex items-center gap-2 text-sm text-suave">
+                  <label className="ml-auto flex min-h-11 items-center gap-2 px-1 text-[15px] text-suave">
                     <input
                       type="checkbox"
                       checked={f.opcional}
                       onChange={(e) => cambiarFila(f.clave, { opcional: e.target.checked })}
-                      className="size-4 accent-[var(--primario)]"
+                      className="size-5 accent-[var(--primario)]"
                     />
                     Opcional
                   </label>
                 </div>
+                {f.nombre.trim() && !existente && (
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="text-suave">Nuevo, se mide en</span>
+                    <Opciones
+                      opciones={[
+                        { valor: "g" as const, etiqueta: "g" },
+                        { valor: "ml" as const, etiqueta: "ml" },
+                        { valor: "ud" as const, etiqueta: "ud" },
+                      ]}
+                      valor={f.unidadNueva}
+                      onChange={(u) => cambiarFila(f.clave, { unidadNueva: u })}
+                    />
+                  </div>
+                )}
                 {f.medida && f.medida !== "base" && numero(f.cantidad) > 0 && unidad !== "ud" && (
                   <p className="text-xs text-suave">
                     ≈ {formatearCantidad(medidaABase(numero(f.cantidad), f.medida, unidad, existente?.equivalencias ?? null) ?? 0, unidad)}
@@ -575,7 +585,8 @@ export function EditorRecetaPage() {
                   variante="fantasma"
                   tamano="icono"
                   aria-label="Quitar paso"
-                  onClick={() => setPasos(pasos.length > 1 ? pasos.filter((x) => x.clave !== p.clave) : [filaPasoVacia()])}
+                  className="shrink-0 text-suave"
+                  onClick={() => quitarPaso(p, i)}
                 >
                   <X />
                 </Boton>
@@ -587,14 +598,13 @@ export function EditorRecetaPage() {
                   value={p.minutos}
                   onChange={(e) => cambiarPaso(p.clave, { minutos: e.target.value })}
                   placeholder="min"
-                  className="h-9 w-20"
+                  className="w-20"
                   aria-label="Minutos del temporizador"
                 />
                 <Entrada
                   value={p.nombreTemporizador}
                   onChange={(e) => cambiarPaso(p.clave, { nombreTemporizador: e.target.value })}
                   placeholder="Nombre (opcional)"
-                  className="h-9"
                 />
               </div>
             </Tarjeta>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Entrada, Opciones, Selector } from "@/components/ui/campos";
-import { Hoja } from "@/components/ui/hoja";
+import { Hoja, useCambiosSinGuardar } from "@/components/ui/hoja";
 import { cantidadEnBase, seccionesDisponibles } from "@/dominio/lista";
 import { supabase } from "@/lib/supabase";
 import type { ItemLista, Tienda } from "@/lib/tipos";
@@ -31,6 +31,7 @@ export function EditarItemHoja({
   const [seccion, setSeccion] = useState("");
   // Súper donde se compra ("" = en cualquiera).
   const [tiendaId, setTiendaId] = useState("");
+  const sucio = useCambiosSinGuardar(item !== null, [texto, cantidad, seccion, tiendaId]);
 
   useEffect(() => {
     if (item) {
@@ -102,6 +103,7 @@ export function EditarItemHoja({
     <Hoja
       abierta={item !== null}
       onAbiertaChange={(v) => !v && onCerrar()}
+      sucio={sucio}
       titulo="Editar"
       pie={
         <div className="grid grid-cols-[auto_1fr] gap-2">
