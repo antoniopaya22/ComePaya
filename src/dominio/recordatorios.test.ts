@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avisosCaducidad, avisosPreparacion, formatearTemporizador, horaLocal, segundosRestantes, type FranjaAviso } from "./recordatorios.js";
+import { avisosCaducidad, avisosPreparacion, endpointPushPermitido, formatearTemporizador, horaLocal, segundosRestantes, type FranjaAviso } from "./recordatorios.js";
 
 describe("horaLocal", () => {
   it("convierte a hora de España en invierno y en verano", () => {
@@ -99,5 +99,26 @@ describe("temporizadores", () => {
     [3725, "1:02:05"],
   ])("%i s → %s", (s, texto) => {
     expect(formatearTemporizador(s)).toBe(texto);
+  });
+});
+
+describe("endpointPushPermitido", () => {
+  it.each([
+    "https://fcm.googleapis.com/fcm/send/abc:123",
+    "https://updates.push.services.mozilla.com/wpush/v2/gAAAA",
+    "https://wns2-db5p.notify.windows.com/w/?token=abc",
+    "https://web.push.apple.com/QGuQyavXutnMH",
+  ])("acepta %s", (url) => {
+    expect(endpointPushPermitido(url)).toBe(true);
+  });
+
+  it.each([
+    "http://fcm.googleapis.com/fcm/send/abc",
+    "https://fcm.googleapis.com.atacante.com/x",
+    "https://atacante.com/push.apple.com/",
+    "https://169.254.169.254/latest/meta-data/",
+    "https://evilpush.services.mozilla.com.evil/x",
+  ])("rechaza %s", (url) => {
+    expect(endpointPushPermitido(url)).toBe(false);
   });
 });

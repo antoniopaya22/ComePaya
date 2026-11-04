@@ -56,6 +56,8 @@ El código de dominio (`src/dominio/`) es TypeScript puro y es donde van los tes
 2. Variables de entorno: todas las de [.env.example](.env.example). Para las de push genera un par de claves con `npx web-push generate-vapid-keys`.
 3. Cada push a `main` despliega; cada rama tiene su URL de prueba.
 
+Las cabeceras de seguridad de `vercel.json` solo dejan conectar con `*.supabase.co`: si usas un dominio propio para Supabase, añádelo a `connect-src`.
+
 ### 4. Recordatorios cada hora (pg_cron)
 
 En Supabase → **Database → Extensions** activa `pg_cron` y `pg_net`. Después, en el SQL Editor (cambia la URL y el secreto por los tuyos, el mismo `CRON_SECRET` que en Vercel):

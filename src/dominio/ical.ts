@@ -45,7 +45,7 @@ export function generarIcal(nombreHogar: string, franjas: FranjaIcal[], generado
 }
 
 function escapar(texto: string): string {
-  return texto.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  return texto.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r\n?|\n/g, "\\n");
 }
 
 /** RFC 5545: líneas de como mucho 75 octetos, continuadas con un espacio. */

@@ -129,3 +129,14 @@ export function formatearTemporizador(segundos: number): string {
   const ss = String(s).padStart(2, "0");
   return h ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
 }
+
+/**
+ * Servicios de push conocidos (Chrome/Android, Firefox, Edge/Windows, Safari). El servidor solo manda avisos a
+ * estas direcciones, para que nadie pueda usarlo para hacer peticiones a otra. La misma lista está en la
+ * restricción `suscripcion_push_endpoint_conocido` de la base de datos.
+ */
+const ENDPOINT_PUSH = /^https:\/\/(fcm\.googleapis\.com|android\.googleapis\.com|([a-z0-9-]+\.)*push\.services\.mozilla\.com|([a-z0-9-]+\.)*notify\.windows\.com|([a-z0-9-]+\.)*push\.apple\.com)\//;
+
+export function endpointPushPermitido(endpoint: string): boolean {
+  return endpoint.length <= 1000 && ENDPOINT_PUSH.test(endpoint);
+}

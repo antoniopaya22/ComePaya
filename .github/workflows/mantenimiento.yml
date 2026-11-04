@@ -7,6 +7,10 @@ on:
     - cron: "0 4 * * 1"
   workflow_dispatch:
 
+# Lo mínimo: leer el código. Los artifacts usan su propio token.
+permissions:
+  contents: read
+
 jobs:
   copia-de-seguridad:
     runs-on: ubuntu-latest

@@ -112,6 +112,12 @@ describe("generarIcal", () => {
     expect(ical).toContain("DTSTAMP:20261101T100000Z");
   });
 
+  it("un salto de línea en un nombre no abre una línea nueva del calendario", () => {
+    const ical = generarIcal("Casa\r\nX-INYECTADO:1", [], new Date("2026-11-01T10:00:00Z"));
+    expect(ical).not.toMatch(/\r\nX-INYECTADO/);
+    expect(ical).toContain("Casa\\nX-INYECTADO:1");
+  });
+
   it("pliega las líneas largas", () => {
     const ical = generarIcal("Casa", [{ id: "f", fecha: "2026-11-02", tipo: "cena", fuera_de_casa: false, es_sobra_de: null, receta: { nombre: "Á".repeat(60) } }], new Date());
     for (const linea of ical.split("\r\n")) expect(new TextEncoder().encode(linea).length).toBeLessThanOrEqual(75);

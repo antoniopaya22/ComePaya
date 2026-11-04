@@ -29,7 +29,9 @@ export function PantallaBienvenida({ onListo, onCancelar }: { onListo: (hogar: H
         : await supabase.rpc("unirse_hogar", { p_codigo: codigo });
     setEnviando(null);
     if (error) return toast.error(mensajeError(error));
-    const hogar = data as Hogar;
+    // Un código que no existe devuelve un hogar vacío (no un error: así el servidor cuenta el intento).
+    const hogar = data as Hogar | null;
+    if (!hogar?.id) return toast.error("Código de invitación no válido");
     if (accion === "crear") {
       // Ingredientes habituales para no empezar de cero (se pueden borrar o editar en Ajustes).
       const { data: existentes } = await supabase.from("ingrediente").select("nombre").eq("hogar_id", hogar.id);

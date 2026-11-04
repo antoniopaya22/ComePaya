@@ -1,6 +1,7 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import webpush from "web-push";
 import { sumarDias } from "../src/dominio/caducidad.js";
-import { avisosCaducidad, avisosPreparacion, horaLocal, type Aviso, type FranjaAviso, type LoteAviso } from "../src/dominio/recordatorios.js";
+import { avisosCaducidad, avisosPreparacion, endpointPushPermitido, horaLocal, type Aviso, type FranjaAviso, type LoteAviso } from "../src/dominio/recordatorios.js";
 import { json, rest, restTodas, servidorConfigurado } from "./_lib/supabase-servidor.js";
 
 interface Suscripcion {
@@ -16,7 +17,7 @@ interface Suscripcion {
  */
 export async function POST(request: Request): Promise<Response> {
   const secreto = process.env.CRON_SECRET;
-  if (!secreto || request.headers.get("x-cron-secret") !== secreto) return json({ error: "No autorizado" }, 401);
+  if (!secreto || !mismoSecreto(request.headers.get("x-cron-secret") ?? "", secreto)) return json({ error: "No autorizado" }, 401);
   if (!servidorConfigurado || !process.env.VAPID_PRIVATE_KEY || !process.env.VITE_VAPID_PUBLIC_KEY) {
     return json({ error: "Faltan SUPABASE_SECRET_KEY o las claves VAPID" }, 500);
   }
@@ -68,7 +69,8 @@ export async function POST(request: Request): Promise<Response> {
   const sinEntregar: string[] = [];
   for (const aviso of pendientes) {
     const deHogar = new Set(miembros.filter((m) => m.hogar_id === aviso.hogar_id).map((m) => m.user_id));
-    const destinos = suscripciones.filter((s) => deHogar.has(s.user_id));
+    // La base de datos ya solo admite servicios de push conocidos; se comprueba otra vez por si acaso.
+    const destinos = suscripciones.filter((s) => deHogar.has(s.user_id) && endpointPushPermitido(s.endpoint));
     let entregados = 0;
     await Promise.all(
       destinos.map(async (s) => {
@@ -95,4 +97,10 @@ export async function POST(request: Request): Promise<Response> {
   if (sinEntregar.length) await rest(`aviso_enviado?clave=in.(${sinEntregar.map((c) => `"${c}"`).join(",")})`, { method: "DELETE" });
   if (caducadas.length) await rest(`suscripcion_push?id=in.(${[...new Set(caducadas)].join(",")})`, { method: "DELETE" });
   return json({ avisos: pendientes.length, enviados });
+}
+
+/** Compara en tiempo constante (con el hash, para que la longitud tampoco dé pistas). */
+function mismoSecreto(recibido: string, esperado: string): boolean {
+  const hash = (texto: string) => createHash("sha256").update(texto).digest();
+  return timingSafeEqual(hash(recibido), hash(esperado));
 }

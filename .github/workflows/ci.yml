@@ -6,6 +6,10 @@ on:
     branches: [main]
   pull_request:
 
+# Lo mínimo: leer el código. Los artifacts usan su propio token.
+permissions:
+  contents: read
+
 jobs:
   comprobar:
     runs-on: ubuntu-latest
