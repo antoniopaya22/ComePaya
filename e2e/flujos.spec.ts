@@ -473,7 +473,7 @@ test("Despensa: marcar un producto empezado con lo que queda", async ({ page }) 
 
 test("Despensa: filtrar por tipo de alimento y ordenar por tipo", async ({ page }) => {
   await page.goto("/despensa");
-  await page.getByRole("button", { name: "Todos los tipos" }).click();
+  await page.getByRole("button", { name: "Tipo", exact: true }).click();
   await page.getByRole("menuitem", { name: /Lácteos y huevos/ }).click();
   await expect(page.getByText("Leche semidesnatada")).toBeVisible();
   await expect(page.getByText("Patatas")).toHaveCount(0);
@@ -485,6 +485,23 @@ test("Despensa: filtrar por tipo de alimento y ordenar por tipo", async ({ page 
   await expect(page.getByRole("heading", { name: /Fruta y verdura/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Lácteos y huevos/ })).toBeVisible();
   if (process.env.CAPTURA) await page.screenshot({ path: process.env.CAPTURA });
+});
+
+test("Despensa: filtrar ultraprocesados y ordenar por sal", async ({ page }) => {
+  await page.goto("/despensa");
+  await expect(page.getByRole("img", { name: "Nutri-Score B" }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Filtrar por salud" }).click();
+  await page.getByRole("menuitem", { name: /Ultraprocesados/ }).click();
+  await expect(page.getByText("Tomate triturado")).toBeVisible();
+  await expect(page.getByText("Patatas")).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Salud: Ultraprocesados/ }).click();
+  await page.getByRole("menuitem", { name: /^Todo/ }).click();
+  await page.getByRole("button", { name: "Ordenar" }).click();
+  await page.getByRole("menuitem", { name: "Más sal" }).click();
+  // El chorizo (4 g de sal por 100 g, de su ingrediente) va primero y enseña el dato.
+  await expect(page.getByRole("button", { name: /Chorizo dulce/ }).first()).toContainText("4 g sal/100 g");
+  await expect(page.locator("main li").first()).toContainText("Chorizo dulce");
 });
 
 test("Recetas: unir un ingrediente con un producto de la despensa y marcar básicos", async ({ page }) => {

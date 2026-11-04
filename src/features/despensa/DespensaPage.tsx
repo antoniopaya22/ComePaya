@@ -9,6 +9,7 @@ import {
   Refrigerator,
   ScanBarcode,
   Search,
+  HeartPulse,
   Snowflake,
   TriangleAlert,
   Warehouse,
@@ -26,6 +27,15 @@ import { Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios
 import { describirCaducidad, estadoCaducidad, etiquetaCaducidad, hoyISO } from "@/dominio/caducidad";
 import { agruparPorProducto, describirQueda, organizarDespensa, type GrupoLotes, type OrdenDespensa } from "@/dominio/despensa";
 import { EMOJI_SECCION, emojiPara } from "@/dominio/ingredientes-base";
+import {
+  cumpleFiltroSalud,
+  describirDatoSalud,
+  ETIQUETA_FILTRO_SALUD,
+  FILTROS_SALUD,
+  ORDENES_SALUD,
+  type FiltroSalud,
+  type OrdenSalud,
+} from "@/dominio/salud-despensa";
 import { normalizar } from "@/dominio/texto";
 import { formatearLote } from "@/dominio/unidades";
 import { UBICACIONES, type LoteConProducto, type Ubicacion } from "@/lib/tipos";
@@ -35,13 +45,20 @@ import { FrescosHoja } from "./FrescosHoja";
 import { NuevoLoteHoja } from "./NuevoLoteHoja";
 import { RacionesCongeladas } from "./RacionesCongeladas";
 import { RetirarLoteHoja } from "./RetirarLoteHoja";
+import { NotaNutriscore, ResumenSaludDespensa, saludDeProducto } from "./SaludDespensa";
 
 const ICONOS: Record<Ubicacion, typeof Refrigerator> = { nevera: Refrigerator, congelador: Snowflake, despensa: Warehouse };
 
-const ORDENES: { valor: OrdenDespensa; etiqueta: string }[] = [
+const ORDENES: { valor: OrdenDespensa; etiqueta: string; corta?: string; salud?: boolean }[] = [
   { valor: "caducidad", etiqueta: "Caducidad" },
-  { valor: "tipo", etiqueta: "Tipo de alimento" },
+  { valor: "tipo", etiqueta: "Tipo de alimento", corta: "Tipo" },
   { valor: "nombre", etiqueta: "Nombre" },
+  { valor: "nutriscore", etiqueta: "Nutri-Score (A primero)", corta: "Nutri-Score", salud: true },
+  { valor: "nova", etiqueta: "Menos procesado primero", corta: "NOVA", salud: true },
+  { valor: "proteina", etiqueta: "Más proteína", corta: "Proteína", salud: true },
+  { valor: "kcal", etiqueta: "Más calorías", corta: "Calorías", salud: true },
+  { valor: "azucares", etiqueta: "Más azúcar", corta: "Azúcar", salud: true },
+  { valor: "sal", etiqueta: "Más sal", corta: "Sal", salud: true },
 ];
 const CLAVE_ORDEN = "comepaya.orden-despensa";
 const claseDesplegable =
@@ -63,6 +80,7 @@ export function DespensaPage() {
   const { data: tiendas = [] } = useTiendas();
   const [filtro, setFiltro] = useState<Ubicacion | "todo">("todo");
   const [tipo, setTipo] = useState<string | null>(null);
+  const [salud, setSalud] = useState<FiltroSalud | null>(null);
   const [orden, setOrden] = useState<OrdenDespensa>(() => leerOrden());
   const [busqueda, setBusqueda] = useState("");
   const [nuevo, setNuevo] = useState(false);
@@ -76,13 +94,21 @@ export function DespensaPage() {
       (l) =>
         (filtro === "todo" || l.ubicacion === filtro) &&
         (!tipo || l.producto.ingrediente.seccion_super === tipo) &&
+        (!salud || cumpleFiltroSalud(saludDeProducto(l.producto), salud)) &&
         (!texto || normalizar(`${l.producto.nombre} ${l.producto.marca ?? ""} ${l.producto.ingrediente.nombre}`).includes(texto)),
     );
-  }, [lotes, filtro, tipo, busqueda]);
+  }, [lotes, filtro, tipo, salud, busqueda]);
 
   const grupos = useMemo(() => agruparPorProducto(visibles), [visibles]);
   const organizado = useMemo(
-    () => organizarDespensa(grupos, orden, (g) => g.lotes[0].producto.ingrediente.seccion_super, tiendas[0]?.orden_secciones),
+    () =>
+      organizarDespensa(
+        grupos,
+        orden,
+        (g) => g.lotes[0].producto.ingrediente.seccion_super,
+        tiendas[0]?.orden_secciones,
+        (g) => saludDeProducto(g.lotes[0].producto),
+      ),
     [grupos, orden, tiendas],
   );
   // Tipos de alimento que hay en casa, con cuántos productos de cada uno.
@@ -99,6 +125,11 @@ export function DespensaPage() {
       tiendas[0]?.orden_secciones,
     ).map((g) => g.grupos[0]);
   }, [lotes, tiendas]);
+
+  const datosSalud = useMemo(() => {
+    const porProducto = new Map((lotes ?? []).map((l) => [l.producto_id, l.producto]));
+    return [...porProducto.values()].map(saludDeProducto);
+  }, [lotes]);
 
   function cambiarOrden(nuevo: OrdenDespensa) {
     setOrden(nuevo);
@@ -194,7 +225,7 @@ export function DespensaPage() {
         <div className="-mt-2 flex items-center gap-2">
             <Menu>
               <MenuDisparador className={cn(claseDesplegable, tipo && "bg-primario-suave text-primario")}>
-                {tipo ? `${EMOJI_SECCION[tipo] ?? "🧺"} ${tipo}` : "Todos los tipos"} <ChevronDown className="size-4" />
+                {tipo ? `${EMOJI_SECCION[tipo] ?? "🧺"} ${tipo}` : "Tipo"} <ChevronDown className="size-4" />
               </MenuDisparador>
               <MenuContenido align="start" className="max-h-[60dvh] overflow-y-auto">
                 <MenuEtiqueta>Tipo de alimento</MenuEtiqueta>
@@ -213,12 +244,41 @@ export function DespensaPage() {
               </MenuContenido>
             </Menu>
             <Menu>
-              <MenuDisparador className={cn(claseDesplegable, "ml-auto")} aria-label="Ordenar">
-                <ArrowDownUp className="size-4" /> {ORDENES.find((o) => o.valor === orden)?.etiqueta}
+              <MenuDisparador className={cn(claseDesplegable, salud && "bg-aviso-suave text-aviso")} aria-label={salud ? `Salud: ${ETIQUETA_FILTRO_SALUD[salud]}` : "Filtrar por salud"}>
+                <HeartPulse className="size-4" /> {salud ? ETIQUETA_FILTRO_SALUD[salud] : "Salud"} <ChevronDown className="size-4" />
               </MenuDisparador>
-              <MenuContenido>
+              <MenuContenido align="start">
+                <MenuEtiqueta>Mostrar solo</MenuEtiqueta>
+                <MenuOpcion onSelect={() => setSalud(null)}>
+                  <span className="flex-1">Todo</span>
+                  {!salud && <Check className="text-primario!" />}
+                </MenuOpcion>
+                {FILTROS_SALUD.map((f) => (
+                  <MenuOpcion key={f} onSelect={() => setSalud(f)}>
+                    <span className="flex-1">{ETIQUETA_FILTRO_SALUD[f]}</span>
+                    <span className="text-xs text-suave">{datosSalud.filter((d) => cumpleFiltroSalud(d, f)).length}</span>
+                    {salud === f && <Check className="text-primario!" />}
+                  </MenuOpcion>
+                ))}
+              </MenuContenido>
+            </Menu>
+            <Menu>
+              <MenuDisparador className={cn(claseDesplegable, "ml-auto")} aria-label="Ordenar">
+                <ArrowDownUp className="size-4" /> {(() => {
+                  const o = ORDENES.find((x) => x.valor === orden);
+                  return o?.corta ?? o?.etiqueta;
+                })()}
+              </MenuDisparador>
+              <MenuContenido align="end" className="max-h-[60dvh] overflow-y-auto">
                 <MenuEtiqueta>Ordenar por</MenuEtiqueta>
-                {ORDENES.map((o) => (
+                {ORDENES.filter((o) => !o.salud).map((o) => (
+                  <MenuOpcion key={o.valor} onSelect={() => cambiarOrden(o.valor)}>
+                    <span className="flex-1">{o.etiqueta}</span>
+                    {orden === o.valor && <Check className="text-primario!" />}
+                  </MenuOpcion>
+                ))}
+                <MenuEtiqueta>Salud</MenuEtiqueta>
+                {ORDENES.filter((o) => o.salud).map((o) => (
                   <MenuOpcion key={o.valor} onSelect={() => cambiarOrden(o.valor)}>
                     <span className="flex-1">{o.etiqueta}</span>
                     {orden === o.valor && <Check className="text-primario!" />}
@@ -244,6 +304,7 @@ export function DespensaPage() {
                 setBusqueda("");
                 setFiltro("todo");
                 setTipo(null);
+                setSalud(null);
               }}
             >
               Quitar filtros
@@ -271,7 +332,7 @@ export function DespensaPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: -40 }}
                       >
-                        <FilaProducto grupo={g} hoy={hoy} onLote={setRetirando} />
+                        <FilaProducto grupo={g} hoy={hoy} onLote={setRetirando} orden={orden} />
                       </motion.li>
                     ))}
                   </AnimatePresence>
@@ -282,6 +343,15 @@ export function DespensaPage() {
         )}
 
         {(filtro === "todo" || filtro === "congelador") && <RacionesCongeladas />}
+        {filtro === "todo" && !tipo && !salud && !busqueda && (
+          <ResumenSaludDespensa
+            datos={datosSalud}
+            onFiltrar={(f) => {
+              setSalud(f);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
+        )}
         {/* Hueco para que el botón flotante no tape la última fila. */}
         <div className="h-16 md:hidden" />
       </div>
@@ -303,7 +373,7 @@ const tono = (estado: ReturnType<typeof estadoCaducidad>) => (estado === "caduca
  * Un producto con todos sus lotes (§4.1): total y caducidad más próxima. Con un solo lote, tocar lo abre;
  * con varios, se despliegan para elegir cuál.
  */
-function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProducto>; hoy: string; onLote: (l: LoteConProducto) => void }) {
+function FilaProducto({ grupo, hoy, onLote, orden }: { grupo: GrupoLotes<LoteConProducto>; hoy: string; onLote: (l: LoteConProducto) => void; orden: OrdenDespensa }) {
   const [abierto, setAbierto] = useState(false);
   const { producto } = grupo.lotes[0];
   const unidad = producto.ingrediente.unidad_base;
@@ -311,6 +381,8 @@ function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProduct
   const estado = estadoCaducidad(grupo.proxima, hoy);
   const empezado = grupo.lotes.find((l) => l.abierto_en);
   const queda = empezado ? describirQueda(empezado.cantidad, producto.cantidad_envase) : null;
+  // Al ordenar por un nutriente, se ve su valor en la fila.
+  const dato = (ORDENES_SALUD as readonly string[]).includes(orden) ? describirDatoSalud(saludDeProducto(producto), orden as OrdenSalud) : null;
 
   return (
     <div>
@@ -326,8 +398,13 @@ function FilaProducto({ grupo, hoy, onLote }: { grupo: GrupoLotes<LoteConProduct
           </span>
         )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[16px] font-medium">{producto.nombre}</span>
+          <span className="flex items-center gap-1.5">
+            {producto.nutriscore && <NotaNutriscore nota={producto.nutriscore} />}
+            <span className="truncate text-[16px] font-medium">{producto.nombre}</span>
+          </span>
           <span className="block truncate text-[13.5px] text-suave">
+            {dato && <span className="font-medium text-texto">{dato} · </span>}
+            {producto.nova === 4 && !dato && <span className="text-aviso">Ultraprocesado · </span>}
             {formatearLote(grupo.total, unidad, producto.cantidad_envase)}
             {empezado && <span className="text-aviso"> · empezado{queda ? `, ${queda}` : ""}</span>}
             {producto.marca ? ` · ${producto.marca}` : ""}

@@ -86,7 +86,7 @@ export interface Producto {
 }
 
 export interface ProductoConIngrediente extends Producto {
-  ingrediente: Pick<Ingrediente, "id" | "nombre" | "unidad_base" | "caducidad_defecto_dias" | "emoji" | "seccion_super" | "dias_tras_abrir">;
+  ingrediente: Pick<Ingrediente, "id" | "nombre" | "unidad_base" | "caducidad_defecto_dias" | "emoji" | "seccion_super" | "dias_tras_abrir" | "nutrientes_100">;
 }
 
 export interface Lote {

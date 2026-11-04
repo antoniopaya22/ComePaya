@@ -271,6 +271,7 @@ Mostrar varios indicadores, porque miden cosas distintas:
 - **Niveles de nutrientes** (grasa, saturadas, azúcares, sal: bajo / moderado / alto por 100 g) como semáforo.
 - **Aditivos** (E-números), con posibilidad de marcar los que preocupan al usuario.
 - Si faltan datos, indicarlo en lugar de dar una nota.
+- **En la despensa**: cada producto lleva su letra de Nutri-Score y se avisa si es ultraprocesado (NOVA 4). Se puede ordenar por Nutri-Score, NOVA o por proteína, calorías, azúcar o sal por 100 g (el valor se ve en la fila), y filtrar «Ultraprocesados», «Alto en azúcar», «Alto en sal» (sus niveles o, si faltan, los umbrales FSA de 22,5 g y 1,5 g) y «Sin datos». Lo fresco sin código usa los nutrientes de su ingrediente. Al final, un resumen de lo que hay en casa con el reparto por Nutri-Score y atajos a esos filtros. Lógica en `src/dominio/salud-despensa.ts`.
 
 ### 8.2 Receta
 - Valores por ración calculados sumando los nutrientes por 100 g de sus ingredientes: calorías, proteína, fibra, azúcares, sal.

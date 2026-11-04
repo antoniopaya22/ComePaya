@@ -1,5 +1,6 @@
 import type { FechaISO } from "./caducidad.js";
 import { abrirEnvase, type Apertura, type LoteAbrible } from "./alergenos.js";
+import { ORDENES_SALUD, ordenarPorSalud, type DatosSalud, type OrdenSalud } from "./salud-despensa.js";
 import type { UnidadBase } from "./unidades.js";
 
 export interface LoteDescontable {
@@ -182,7 +183,7 @@ export function describirQueda(cantidad: number, cantidadEnvase: number | null):
   return Math.abs(cercana.valor - f) <= 0.05 ? `queda ${cercana.etiqueta}` : `queda ${Math.round(f * 100)} %`;
 }
 
-export type OrdenDespensa = "caducidad" | "nombre" | "tipo";
+export type OrdenDespensa = "caducidad" | "nombre" | "tipo" | OrdenSalud;
 
 /**
  * Cómo se presenta la despensa: por caducidad (lo primero que hay que gastar), por nombre o
@@ -194,8 +195,13 @@ export function organizarDespensa<G extends { lotes: { producto: { nombre: strin
   orden: OrdenDespensa,
   seccionDe: (g: G) => string,
   ordenSecciones: string[] = [],
+  /** Para ordenar por Nutri-Score, NOVA o un nutriente. */
+  saludDe?: (g: G) => DatosSalud,
 ): { seccion: string | null; grupos: G[] }[] {
   if (orden === "caducidad") return [{ seccion: null, grupos }];
+  if ((ORDENES_SALUD as readonly string[]).includes(orden)) {
+    return [{ seccion: null, grupos: saludDe ? ordenarPorSalud(grupos, orden as OrdenSalud, saludDe) : grupos }];
+  }
   if (orden === "nombre") {
     return [{ seccion: null, grupos: [...grupos].sort((a, b) => a.lotes[0].producto.nombre.localeCompare(b.lotes[0].producto.nombre, "es")) }];
   }

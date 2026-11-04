@@ -179,7 +179,7 @@ export function consultarLotes(hogarId: string) {
   return filas<LoteConProducto>(
     supabase
       .from("lote_despensa")
-      .select("*, producto:producto(*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super, dias_tras_abrir))")
+      .select("*, producto:producto(*, ingrediente:ingrediente(id, nombre, unidad_base, caducidad_defecto_dias, emoji, seccion_super, dias_tras_abrir, nutrientes_100))")
       .eq("hogar_id", hogarId)
       .order("fecha_caducidad", { ascending: true, nullsFirst: false })
       .order("creado_en"),
