@@ -44,7 +44,7 @@ jobs:
           tar czf - copia | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 -o copia.tar.gz.gpg 3<<<"$BACKUP_PASSPHRASE"
           rm -rf copia
           echo "subir=si" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: steps.cifrar.outputs.subir == 'si'
         with:
           name: copia-cifrada-${{ github.run_number }}
@@ -57,7 +57,7 @@ jobs:
     if: needs.copia-de-seguridad.outputs.subida == 'si'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: copia-cifrada-${{ github.run_number }}
       - name: Descifrar
