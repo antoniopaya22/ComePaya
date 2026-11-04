@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Bug, CalendarPlus, Carrot, ChartColumn, ChevronRight, Copy, HeartPulse, LogOut, Plus, RefreshCw, Share2, Store, Users } from "lucide-react";
+import { Bug, CalendarPlus, Carrot, ChartColumn, ChevronRight, Copy, HeartPulse, LogOut, Plus, RefreshCw, Share2, Store, UserMinus, Users } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -10,7 +10,7 @@ import { Contador, Interruptor, Selector } from "@/components/ui/campos";
 import { Etiqueta, Tarjeta } from "@/components/ui/varios";
 import { urlReportarProblema, VERSION } from "@/lib/errores";
 import { supabase } from "@/lib/supabase";
-import type { Tienda } from "@/lib/tipos";
+import type { Miembro, Tienda } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
 import { cerrarSesionPreguntando, useUsuario } from "../sesion/SesionProvider";
 import { claves, useMiembros, useTiendas } from "../datos";
@@ -70,6 +70,37 @@ export function AjustesPage() {
     if (error) return toast.error(mensajeError(error));
     await queryClient.invalidateQueries({ queryKey: ["hogares", usuario.id] });
     toast.success("Código nuevo generado. El anterior ya no sirve.");
+  }
+
+  async function quitarMiembro(m: Miembro) {
+    const ok = await confirmar({
+      titulo: `¿Quitar a ${m.nombre ?? m.email} del hogar?`,
+      mensaje: "Dejará de ver y editar los datos del hogar. Si tenía el código, genera uno nuevo para que no vuelva a entrar.",
+      aceptar: "Quitar",
+      peligro: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase.rpc("quitar_miembro", { p_hogar: hogar.id, p_user: m.user_id });
+    if (error) return toast.error(mensajeError(error));
+    await queryClient.invalidateQueries({ queryKey: claves.miembros(hogar.id) });
+    toast.success(`${m.nombre ?? m.email} ya no está en el hogar`);
+  }
+
+  async function salirDelHogar() {
+    const ok = await confirmar({
+      titulo: `¿Salir de «${hogar.nombre}»?`,
+      mensaje:
+        miembros.length > 1
+          ? "Dejarás de ver sus datos. Para volver, necesitarás su código de invitación."
+          : "Eres el único miembro: nadie podrá volver a entrar y sus datos quedarán inaccesibles.",
+      aceptar: "Salir",
+      peligro: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("miembro").delete().eq("hogar_id", hogar.id).eq("user_id", usuario.id);
+    if (error) return toast.error(mensajeError(error));
+    await queryClient.invalidateQueries({ queryKey: ["hogares", usuario.id] });
+    toast.success(`Has salido de «${hogar.nombre}»`);
   }
 
   return (
@@ -166,6 +197,11 @@ export function AjustesPage() {
                       <span className="block truncate text-xs text-suave">{m.email}</span>
                     </span>
                     {m.rol === "admin" && <Etiqueta>Administra</Etiqueta>}
+                    {rol === "admin" && m.user_id !== usuario.id && (
+                      <Boton variante="fantasma" tamano="icono-sm" aria-label={`Quitar a ${m.nombre ?? m.email}`} onClick={() => quitarMiembro(m)}>
+                        <UserMinus />
+                      </Boton>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -173,6 +209,9 @@ export function AjustesPage() {
           </Tarjeta>
           <Boton variante="fantasma" className="self-start" onClick={anadirHogar}>
             <Plus /> Crear o unirme a otro hogar
+          </Boton>
+          <Boton variante="fantasma" className="self-start text-peligro" onClick={salirDelHogar}>
+            <LogOut /> Salir de este hogar
           </Boton>
         </Bloque>
 

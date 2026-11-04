@@ -5,7 +5,7 @@ import { Link, useParams } from "react-router";
 import { toast } from "sonner";
 import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Interruptor } from "@/components/ui/campos";
-import { Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
+import { ErrorCarga, Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
 import { hoyISO } from "@/dominio/caducidad";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { CLAVES_NUTRIENTES, GRUPOS_ALIMENTO } from "@/dominio/nutricion";
@@ -24,7 +24,7 @@ export function IngredientePage() {
   const { id } = useParams();
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
-  const { data: ingredientes, isPending } = useIngredientes();
+  const { data: ingredientes, isPending, error: errorCarga, refetch: recargar } = useIngredientes();
   const { data: productos = [] } = useProductos();
   const { data: lotes = [] } = useLotes();
   const { data: recetas = [] } = useRecetas();
@@ -35,6 +35,7 @@ export function IngredientePage() {
   const ingrediente = ingredientes?.find((i) => i.id === id);
 
   if (isPending) return <FichaEsqueleto />;
+  if (errorCarga && !ingredientes) return <ErrorCarga error={errorCarga} onReintentar={() => void recargar()} />;
   if (!ingrediente) return <Vacio icono={<ArrowLeft />} titulo="Este ingrediente ya no existe" />;
 
   const suyos = productos.filter((p) => p.ingrediente_id === ingrediente.id);

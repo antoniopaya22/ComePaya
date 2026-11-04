@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { Entrada } from "@/components/ui/campos";
-import { ListaEsqueleto, Vacio } from "@/components/ui/varios";
+import { ErrorCarga, ListaEsqueleto, Vacio } from "@/components/ui/varios";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { agruparPorSeccion, deLaTienda, dividirDictado, textoParaCompartir } from "@/dominio/lista";
 import { supabase } from "@/lib/supabase";
@@ -27,7 +27,7 @@ export function ListaPage() {
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
   const clave = claves.lista(hogar.id);
-  const { data: items, isPending } = useLista();
+  const { data: items, isPending, error: errorCarga, refetch: recargar } = useLista();
   const { data: ingredientes = [] } = useIngredientes();
   const { data: tiendas = [] } = useTiendas();
   const { data: recetas = [] } = useRecetas();
@@ -241,6 +241,8 @@ export function ListaPage() {
 
         {isPending ? (
           <ListaEsqueleto filas={6} />
+        ) : errorCarga && !items ? (
+          <ErrorCarga error={errorCarga} onReintentar={() => void recargar()} />
         ) : !visibles.length ? (
           <Vacio icono={<ListChecks />} titulo="Nada que comprar">
             Escribe lo que falta o complétala desde el menú. Se ordena sola por secciones del súper, en el orden de tu tienda.

@@ -97,6 +97,8 @@ export function EditorRecetaPage() {
   const { data: recetas, isPending } = useRecetas();
   const { data: ingredientes = [] } = useIngredientes();
   const original = id ? recetas?.find((r) => r.id === id) : undefined;
+  // Id de una receta nueva, fijo mientras se edita: reintentar tras un fallo guarda la misma, no otra.
+  const [idNuevo] = useState(() => crypto.randomUUID());
 
   const [nombre, setNombre] = useState("");
   const [raciones, setRaciones] = useState(hogar.comensales ?? 2);
@@ -299,7 +301,7 @@ export function EditorRecetaPage() {
 
       const { data: recetaId, error } = await supabase.rpc("guardar_receta", {
         p_receta: {
-          id: original?.id ?? "",
+          id: original?.id ?? idNuevo,
           hogar_id: hogar.id,
           nombre: nombre.trim(),
           raciones,
@@ -317,6 +319,8 @@ export function EditorRecetaPage() {
           ],
           valoracion: valoracion ?? "",
           notas,
+          foto_url: fotoUrl ?? "",
+          fuente_url: fuenteUrl ?? "",
         },
         p_ingredientes: lineas,
         p_pasos: pasos
@@ -328,8 +332,6 @@ export function EditorRecetaPage() {
           })),
       });
       if (error) throw error;
-      const { error: errorFoto } = await supabase.from("receta").update({ foto_url: fotoUrl, fuente_url: fuenteUrl }).eq("id", recetaId);
-      if (errorFoto) throw errorFoto;
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: claves.recetas(hogar.id) }),
         queryClient.invalidateQueries({ queryKey: claves.ingredientes(hogar.id) }),

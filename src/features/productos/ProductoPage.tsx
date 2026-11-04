@@ -9,7 +9,7 @@ import { Campo, Entrada } from "@/components/ui/campos";
 import { useConfirmar } from "@/components/ui/confirmar";
 import { Hoja, useCambiosSinGuardar } from "@/components/ui/hoja";
 import { Fila, FilaBoton, Grupo } from "@/components/ui/lista";
-import { Esqueleto, Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
+import { ErrorCarga, Esqueleto, Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
 import { describirCaducidad, estadoCaducidad, hoyISO } from "@/dominio/caducidad";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { describirQueda } from "@/dominio/despensa";
@@ -33,7 +33,7 @@ export function ProductoPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const confirmar = useConfirmar();
-  const { data: productos, isPending } = useProductos();
+  const { data: productos, isPending, error: errorCarga, refetch: recargar } = useProductos();
   const { data: lotes = [] } = useLotes();
   const producto = productos?.find((p) => p.id === id);
   const [lote, setLote] = useState<LoteConProducto | null>(null);
@@ -59,6 +59,7 @@ export function ProductoPage() {
   });
 
   if (isPending) return <FichaEsqueleto />;
+  if (errorCarga && !productos) return <ErrorCarga error={errorCarga} onReintentar={() => void recargar()} />;
   if (!producto) return <Vacio icono={<ArrowLeft />} titulo="Este producto ya no existe" />;
 
   const suyos = lotes.filter((l) => l.producto_id === producto.id);

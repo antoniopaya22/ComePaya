@@ -50,7 +50,8 @@ export function HogarProvider({ children }: { children: ReactNode }) {
   }
 
   if (isPending) return <Cargando texto="Cargando tu hogar…" className="min-h-dvh" />;
-  if (error) {
+  // Si falla una recarga pero los hogares ya están guardados en el móvil, se sigue con ellos (sin conexión).
+  if (!hogares) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-6">
         <p className="text-[17px] font-semibold">No se ha podido cargar tu hogar</p>

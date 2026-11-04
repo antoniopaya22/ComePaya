@@ -7,7 +7,7 @@ import { Boton } from "@/components/ui/boton";
 import { Menu, MenuContenido, MenuDisparador, MenuOpcion } from "@/components/ui/menu";
 import { Contador } from "@/components/ui/campos";
 import { Estrellas } from "@/components/ui/estrellas";
-import { Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
+import { ErrorCarga, Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
 import { diasHasta, hoyISO, sumarDias } from "@/dominio/caducidad";
 import { alergenosDeReceta } from "@/dominio/alergenos";
 import { alimentosNuevos, esRecetaDeBebe } from "@/dominio/bebe";
@@ -27,7 +27,7 @@ import { aMarkdown, descargar, nombreArchivo } from "./markdown";
 
 export function RecetaPage() {
   const { id } = useParams();
-  const { data: recetas, isPending } = useRecetas();
+  const { data: recetas, isPending, error: errorCarga, refetch: recargar } = useRecetas();
   const { data: lotes = [] } = useLotes();
   const { data: ingredientes = [] } = useIngredientes();
   const receta = recetas?.find((r) => r.id === id);
@@ -61,6 +61,7 @@ export function RecetaPage() {
   };
 
   if (isPending) return <FichaEsqueleto />;
+  if (errorCarga && !recetas) return <ErrorCarga error={errorCarga} onReintentar={() => void recargar()} />;
   if (!receta) return <Vacio icono={<ArrowLeft />} titulo="Esta receta ya no existe" />;
 
   const racionesVista = raciones ?? receta.raciones;

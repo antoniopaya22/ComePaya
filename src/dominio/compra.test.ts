@@ -26,6 +26,11 @@ describe("stockPorIngrediente", () => {
 });
 
 describe("calcularFaltantes", () => {
+  it("no confunde el origen por decimales de coma flotante", () => {
+    const faltantes = calcularFaltantes(new Map([["leche", 0.1 + 0.2]]), new Map([["leche", 0.3]]), [ing("leche", { stock_minimo: 500 })]);
+    expect(faltantes).toEqual([{ ingrediente_id: "leche", cantidad: 500, origen: "stock_minimo" }]);
+  });
+
   it("resta la despensa a lo que pide el menú", () => {
     const faltantes = calcularFaltantes(new Map([["lenteja", 600], ["arroz", 200]]), new Map([["lenteja", 500], ["arroz", 1000]]), [
       ing("lenteja"),

@@ -7,7 +7,7 @@ import { BarraApp, BotonBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
 import { Campo, Entrada, Interruptor, Opciones, Selector } from "@/components/ui/campos";
 import { Hoja, useCambiosSinGuardar } from "@/components/ui/hoja";
-import { Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
+import { ErrorCarga, Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
 import { datosBaseDe, emojiPara, ingredientesBaseQueFaltan } from "@/dominio/ingredientes-base";
 import { seccionesDisponibles } from "@/dominio/lista";
 import { normalizar } from "@/dominio/texto";
@@ -50,7 +50,7 @@ function nutrientesManuales(valores: Partial<Record<keyof Nutrientes100, string>
 export function IngredientesPage() {
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
-  const { data: ingredientes, isPending } = useIngredientes();
+  const { data: ingredientes, isPending, error: errorCarga, refetch: recargar } = useIngredientes();
   const [busqueda, setBusqueda] = useState("");
   const [editando, setEditando] = useState<Ingrediente | "nuevo" | null>(null);
   const [cargando, setCargando] = useState(false);
@@ -118,6 +118,8 @@ export function IngredientesPage() {
         )}
         {isPending ? (
           <ListaEsqueleto />
+        ) : errorCarga && !ingredientes ? (
+          <ErrorCarga error={errorCarga} onReintentar={() => void recargar()} />
         ) : !visibles.length ? (
           <Vacio icono={<Carrot />} titulo="Sin ingredientes" />
         ) : (

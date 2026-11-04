@@ -285,13 +285,16 @@ function ejecutarRpc(db: Tablas, nombre: string, args: Record<string, unknown>):
       return [db.hogar[0]];
     case "regenerar_token_ical":
       return [(db.hogar[0].ical_token = "nuevotokenical")];
+    case "quitar_miembro":
+      db.miembro = db.miembro.filter((m) => !(m.hogar_id === args.p_hogar && m.user_id === args.p_user));
+      return [null];
     case "regenerar_codigo_invitacion":
       return [(db.hogar[0].codigo_invitacion = "NUEVO234")];
     case "guardar_receta": {
       const datos = args.p_receta as Fila;
       let receta = db.receta.find((r) => r.id === datos.id);
       if (!receta) {
-        receta = nuevaFila("receta", { hogar_id: HOGAR_ID });
+        receta = nuevaFila("receta", { hogar_id: HOGAR_ID, ...(datos.id ? { id: datos.id } : {}) });
         db.receta.push(receta);
       }
       const vacio = (v: unknown) => (v === "" ? null : v);
@@ -307,6 +310,8 @@ function ejecutarRpc(db: Tablas, nombre: string, args: Record<string, unknown>):
         notas: vacio(datos.notas),
         actualizado_en: new Date().toISOString(),
       });
+      if ("foto_url" in datos) receta.foto_url = vacio(datos.foto_url);
+      if ("fuente_url" in datos) receta.fuente_url = vacio(datos.fuente_url);
       receta.foto_url ??= null;
       receta.fuente_url ??= null;
       const id = receta.id as string;

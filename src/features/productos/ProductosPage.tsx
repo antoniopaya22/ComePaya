@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { BarraApp } from "@/components/BarraApp";
 import { Entrada } from "@/components/ui/campos";
-import { ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
+import { ErrorCarga, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { normalizar } from "@/dominio/texto";
 import { formatearCantidad, formatearLote } from "@/dominio/unidades";
@@ -14,7 +14,7 @@ import { COLOR_NUTRISCORE, TEXTO_NUTRISCORE } from "@/lib/colores-salud";
 
 /** Todos los productos del hogar, también los que ahora no hay en casa. */
 export function ProductosPage() {
-  const { data: productos, isPending } = useProductos();
+  const { data: productos, isPending, error: errorCarga, refetch: recargar } = useProductos();
   const { data: lotes = [] } = useLotes();
   const [busqueda, setBusqueda] = useState("");
   const [soloSinStock, setSoloSinStock] = useState(false);
@@ -61,6 +61,8 @@ export function ProductosPage() {
 
         {isPending ? (
           <ListaEsqueleto />
+        ) : errorCarga && !productos ? (
+          <ErrorCarga error={errorCarga} onReintentar={() => void recargar()} />
         ) : !visibles.length ? (
           <Vacio icono={<Package />} titulo={productos?.length ? "Nada coincide" : "Aún no hay productos"}>
             {productos?.length ? null : "Se crean al añadir algo a la despensa o al escanearlo."}

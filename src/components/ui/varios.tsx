@@ -1,6 +1,7 @@
-import { LoaderCircle } from "lucide-react";
+import { CloudOff, LoaderCircle } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { cn, mensajeError } from "@/lib/utils";
+import { Boton } from "./boton";
 
 export function Tarjeta({ className, ...props }: ComponentProps<"div">) {
   // En el móvil, sin borde: superficie sobre el fondo, como las tarjetas nativas.
@@ -67,3 +68,15 @@ export function Vacio({ icono, titulo, children }: { icono: ReactNode; titulo: s
   );
 }
 
+
+/** Una carga que ha fallado sin nada guardado en el móvil: decirlo y dejar reintentar, en vez de mostrarlo vacío. */
+export function ErrorCarga({ error, onReintentar }: { error: unknown; onReintentar: () => void }) {
+  return (
+    <Vacio icono={<CloudOff />} titulo="No se ha podido cargar">
+      <p>{mensajeError(error)}</p>
+      <Boton variante="secundario" className="mt-3" onClick={onReintentar}>
+        Reintentar
+      </Boton>
+    </Vacio>
+  );
+}

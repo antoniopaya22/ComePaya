@@ -35,9 +35,10 @@ export function calcularFaltantes(
     if (ing.siempre_disponible) continue;
     const necesario = necesidades.get(ing.id) ?? 0;
     const disponible = (stock.get(ing.id) ?? 0) + (yaComprado.get(ing.id) ?? 0);
-    const faltaMenu = Math.max(0, necesario - disponible);
-    const sobrante = Math.max(0, disponible - necesario);
-    const faltaMinimo = Math.max(0, (ing.stock_minimo ?? 0) - sobrante);
+    // Redondeado antes de comparar: 0,1 + 0,2 − 0,3 no debe contar como falta del menú.
+    const faltaMenu = redondear(Math.max(0, necesario - disponible));
+    const sobrante = redondear(Math.max(0, disponible - necesario));
+    const faltaMinimo = redondear(Math.max(0, (ing.stock_minimo ?? 0) - sobrante));
     const cantidad = redondear(faltaMenu + faltaMinimo);
     if (cantidad > 0) faltantes.push({ ingrediente_id: ing.id, cantidad, origen: faltaMenu > 0 ? "menu" : "stock_minimo" });
   }

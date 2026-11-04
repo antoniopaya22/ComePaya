@@ -23,7 +23,7 @@ import { PasarAUnidades } from "../productos/PasarAUnidades";
 import { Menu, MenuContenido, MenuDisparador, MenuEtiqueta, MenuOpcion } from "@/components/ui/menu";
 import { Boton } from "@/components/ui/boton";
 import { Entrada } from "@/components/ui/campos";
-import { Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
+import { ErrorCarga, Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
 import { describirCaducidad, estadoCaducidad, etiquetaCaducidad, hoyISO } from "@/dominio/caducidad";
 import { agruparPorProducto, describirQueda, organizarDespensa, type GrupoLotes, type OrdenDespensa } from "@/dominio/despensa";
 import { EMOJI_SECCION, emojiPara } from "@/dominio/ingredientes-base";
@@ -75,7 +75,7 @@ function leerOrden(): OrdenDespensa {
 }
 
 export function DespensaPage() {
-  const { data: lotes, isPending } = useLotes();
+  const { data: lotes, isPending, error: errorCarga, refetch: recargar } = useLotes();
 
   const { data: tiendas = [] } = useTiendas();
   const [filtro, setFiltro] = useState<Ubicacion | "todo">("todo");
@@ -290,6 +290,8 @@ export function DespensaPage() {
 
         {isPending ? (
           <ListaEsqueleto />
+        ) : errorCarga && !lotes ? (
+          <ErrorCarga error={errorCarga} onReintentar={() => void recargar()} />
         ) : !lotes?.length ? (
           <Vacio icono={<Package />} titulo="La despensa está vacía">
             Escanea lo que tienes en la nevera, el congelador o los armarios, o añade fruta, verdura, carne o pan con «Añadir».

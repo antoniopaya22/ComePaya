@@ -17,6 +17,7 @@ const receta = (id: string, ingredientes: [string, number][], extra: Partial<Rec
 const lentejas = receta("lentejas", [["lenteja", 200], ["chorizo", 100]]);
 const merluza = receta("merluza", [["merluza", 300]]);
 const tortilla = receta("tortilla", [["huevo", 4]]);
+const fabada = receta("fabada", [["faba", 200], ["chorizo", 100]]);
 
 const base = (extra: Partial<ContextoSemana> = {}): ContextoSemana => ({
   hoy: "2026-11-02",
@@ -57,6 +58,12 @@ describe("planificarSemana", () => {
     // El primer hueco usa el chorizo que caduca; el segundo ya no cuenta con ese chorizo.
     expect(plan[0].receta_id).toBe("lentejas");
     expect(plan[0].motivos.join(" ")).toMatch(/chorizo/);
+  });
+
+  it("no vuelve a premiar lo que caduca si un hueco anterior ya lo ha gastado", () => {
+    const plan = planificarSemana(huecos.slice(0, 2), [lentejas, fabada], base({ stock: new Map([["lenteja", 1000], ["faba", 500], ["chorizo", 100]]) }));
+    expect(plan.map((p) => p.receta_id)).toEqual(["lentejas", "fabada"]);
+    expect(plan[1].motivos.join(" ")).not.toMatch(/chorizo/i);
   });
 
   it("cubre los grupos que faltan en la semana", () => {

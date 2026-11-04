@@ -31,11 +31,12 @@ export function planificarSemana(huecos: Hueco[], recetas: RecetaSugerible[], ba
 
   const ordenados = [...huecos].sort((a, b) => a.fecha.localeCompare(b.fecha) || (a.tipo === b.tipo ? 0 : a.tipo === "comida" ? -1 : 1));
   for (const hueco of ordenados) {
-    // Las caducidades se miden desde el día del hueco: lo que ya habrá caducado no cuenta.
+    // Las caducidades se miden desde el día del hueco: lo que ya habrá caducado no cuenta,
+    // ni lo que ya se han gastado los huecos anteriores.
     const caducanPronto = new Map(
       [...base.caducanPronto]
         .map(([id, c]) => [id, { ...c, dias: diasHasta(c.fecha, hueco.fecha) }] as const)
-        .filter(([, c]) => c.dias >= 0),
+        .filter(([id, c]) => c.dias >= 0 && (stock.get(id) ?? 0) > 0),
     );
     // No repetir plato en la semana mientras haya otros (las sobras ya se planifican aparte).
     const sinRepetir = recetas.filter((r) => !propuestas.some((p) => p.receta_id === r.id));

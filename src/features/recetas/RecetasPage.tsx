@@ -9,7 +9,7 @@ import { Entrada } from "@/components/ui/campos";
 import { Fab } from "@/components/ui/fab";
 import { Menu, MenuContenido, MenuDisparador, MenuOpcion } from "@/components/ui/menu";
 import { Estrellas } from "@/components/ui/estrellas";
-import { Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
+import { ErrorCarga, Etiqueta, ListaEsqueleto, Tarjeta, Vacio } from "@/components/ui/varios";
 import { emojiPara } from "@/dominio/ingredientes-base";
 import { normalizar } from "@/dominio/texto";
 import type { RecetaCompleta } from "@/lib/tipos";
@@ -22,7 +22,7 @@ import { exportarTodas, importar } from "./markdown";
 export function RecetasPage() {
   const { hogar } = useHogar();
   const queryClient = useQueryClient();
-  const { data: recetas, isPending } = useRecetas();
+  const { data: recetas, isPending, error: errorCarga, refetch: recargar } = useRecetas();
   const { data: ingredientes = [] } = useIngredientes();
   const archivo = useRef<HTMLInputElement>(null);
   const [importando, setImportando] = useState(false);
@@ -134,6 +134,8 @@ export function RecetasPage() {
 
         {isPending ? (
           <ListaEsqueleto />
+        ) : errorCarga && !recetas ? (
+          <ErrorCarga error={errorCarga} onReintentar={() => void recargar()} />
         ) : !recetas?.length ? (
           <Vacio icono={<BookOpen />} titulo="Aún no hay recetas">
             Crea vuestros platos habituales o impórtalos desde vuestras webs de cocina favoritas: el menú y la lista de la compra salen de aquí.

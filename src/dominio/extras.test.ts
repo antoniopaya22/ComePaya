@@ -63,6 +63,12 @@ describe("recetas en Markdown", () => {
 
   it("ida y vuelta sin perder nada", () => {
     expect(markdownAReceta(recetaAMarkdown(lentejas))).toEqual(lentejas);
+    const rara: RecetaMarkdown = {
+      ...lentejas,
+      etiquetas: ["rápida, fácil", 'con "comillas"', "[bebé]", "cena"],
+      notas: "Primera línea\n\n## Truco\n\nMenos sal la próxima vez",
+    };
+    expect(markdownAReceta(recetaAMarkdown(rara))).toEqual(rara);
   });
 
   it("acepta recetas mínimas escritas a mano", () => {

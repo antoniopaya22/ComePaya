@@ -20,17 +20,21 @@ export interface RecetaMarkdown {
 export const SEPARADOR_RECETAS = "\n<!-- siguiente receta -->\n";
 
 const numero = (n: number) => String(Math.round(n * 1000) / 1000);
+/** La cabecera va línea a línea: un salto de línea en un valor la rompería. */
+const enLinea = (texto: string) => texto.replace(/\s*\n\s*/g, " ").trim();
+/** Una etiqueta con comas, comillas o corchetes va entre comillas para no partirse al leerla. */
+const etiqueta = (e: string) => (/[,"[\]\\]/.test(e) ? `"${e.replace(/["\\]/g, "\\$&")}"` : e);
 
 export function recetaAMarkdown(r: RecetaMarkdown): string {
   const frontmatter = [
     "---",
-    `nombre: ${r.nombre}`,
+    `nombre: ${enLinea(r.nombre)}`,
     `raciones: ${r.raciones}`,
     r.tiempo_prep_min !== null && `tiempo_prep_min: ${r.tiempo_prep_min}`,
     r.tiempo_coccion_min !== null && `tiempo_coccion_min: ${r.tiempo_coccion_min}`,
-    r.etiquetas.length > 0 && `etiquetas: [${r.etiquetas.join(", ")}]`,
+    r.etiquetas.length > 0 && `etiquetas: [${r.etiquetas.map(etiqueta).join(", ")}]`,
     r.valoracion !== null && `valoracion: ${r.valoracion}`,
-    r.preparacion_previa && `preparacion_previa: ${r.preparacion_previa}`,
+    r.preparacion_previa && `preparacion_previa: ${enLinea(r.preparacion_previa)}`,
     r.preparacion_previa && r.preparacion_previa_horas !== null && `preparacion_previa_horas: ${r.preparacion_previa_horas}`,
     "---",
   ].filter(Boolean);
@@ -52,6 +56,7 @@ export function recetaAMarkdown(r: RecetaMarkdown): string {
     "",
     ...ingredientes,
     ...(pasos.length ? ["", "## Pasos", "", ...pasos] : []),
+    // Las notas van al final: al leer, todo lo que sigue a «## Notas» es suyo, aunque traiga sus propios títulos.
     ...(r.notas ? ["", "## Notas", "", r.notas] : []),
     "",
   ].join("\n");
@@ -76,7 +81,7 @@ export function markdownAReceta(texto: string): RecetaMarkdown {
   const secciones = new Map<string, string[]>();
   let actual = "";
   for (const linea of coincidencia[2].split(/\r?\n/)) {
-    const titulo = /^##\s+(.+)$/.exec(linea);
+    const titulo = actual === "notas" ? null : /^##\s+(.+)$/.exec(linea);
     if (titulo) {
       actual = titulo[1].trim().toLowerCase();
       secciones.set(actual, []);
@@ -112,10 +117,8 @@ export function markdownAReceta(texto: string): RecetaMarkdown {
     });
 
   const notas = (secciones.get("notas") ?? []).join("\n").trim() || null;
-  const etiquetas = (meta.get("etiquetas") ?? "")
-    .replace(/^\[|\]$/g, "")
-    .split(",")
-    .map((e) => e.trim())
+  const etiquetas = [...(meta.get("etiquetas") ?? "").replace(/^\[|\]$/g, "").matchAll(/\s*(?:"((?:[^"\\]|\\.)*)"|([^,]+))\s*(?:,|$)/g)]
+    .map((m) => (m[1] !== undefined ? m[1].replace(/\\(.)/g, "$1") : m[2]).trim())
     .filter(Boolean);
   const valoracion = entero("valoracion");
 
