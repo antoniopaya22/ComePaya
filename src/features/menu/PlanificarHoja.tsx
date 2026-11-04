@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Sparkles, X } from "lucide-react";
+import { Check, RotateCcw, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Boton } from "@/components/ui/boton";
@@ -108,9 +108,9 @@ export function PlanificarHoja({ abierta, lunes, franjas, onCerrar }: { abierta:
                     else nuevas.add(clave(p));
                     setDescartadas(nuevas);
                   }}
-                  className="grid size-8 shrink-0 place-items-center rounded-lg text-suave hover:bg-superficie-2"
+                  className="grid size-11 shrink-0 place-items-center rounded-lg text-suave hover:bg-superficie-2"
                 >
-                  {fuera ? <Sparkles className="size-4" /> : <X className="size-4" />}
+                  {fuera ? <RotateCcw className="size-4" /> : <X className="size-4" />}
                 </button>
               </li>
             );

@@ -139,7 +139,7 @@ export function HoyPage() {
             <Hourglass className="size-4" /> Por preparar
           </h2>
           {preparaciones.map(({ franja, receta: r }) => (
-            <Link key={franja.id} to={`/recetas/${r.id}`} className="text-sm">
+            <Link key={franja.id} to={`/recetas/${r.id}`} className="flex min-h-11 items-center text-sm">
               <strong>{r.preparacion_previa}</strong> para {r.nombre.toLowerCase()} ({franja.tipo} de {franja.fecha === hoy ? "hoy" : "mañana"})
             </Link>
           ))}
@@ -227,7 +227,7 @@ function PlatoDeHoy({
   if (!receta) {
     return (
       <Link to="/menu">
-        <Tarjeta className="flex h-full items-center gap-3 border-dashed p-4 text-suave">
+        <Tarjeta className="flex h-full items-center gap-3 border border-dashed border-borde-control/60 p-4 text-suave">
           <span className="grid size-16 place-items-center rounded-2xl bg-superficie-2">
             <Plus className="size-6" />
           </span>
@@ -261,7 +261,7 @@ function PlatoDeHoy({
           {receta.nombre}
         </Link>
         {!franja?.cocinado && !franja?.es_sobra_de && (
-          <Boton asChild tamano="sm" className="self-start">
+          <Boton asChild className="self-start">
             <Link to={`/recetas/${receta.id}/cocinar?raciones=${franja?.raciones ?? receta.raciones}${franja ? `&franja=${franja.id}` : ""}`}>
               <CookingPot /> Cocinar
             </Link>

@@ -7,7 +7,7 @@ export function Estrellas({ valor, onChange, tamano = "sm" }: { valor: number | 
     <div className="flex items-center gap-0.5" role={onChange ? "radiogroup" : "img"} aria-label={valor ? `${valor} de 5` : "Sin valorar"}>
       {[1, 2, 3, 4, 5].map((n) => {
         const llena = valor !== null && n <= valor;
-        const icono = <Star className={cn(tamano === "lg" ? "size-7" : "size-3.5", llena ? "fill-amber-400 text-amber-400" : "text-borde")} />;
+        const icono = <Star className={cn(tamano === "lg" ? "size-7" : "size-3.5", llena ? "fill-valoracion text-valoracion" : "text-borde-control")} />;
         return onChange ? (
           <button key={n} type="button" role="radio" aria-checked={valor === n} aria-label={n === 1 ? "1 estrella" : `${n} estrellas`} onClick={() => onChange(valor === n ? null : n)} className="grid min-h-11 min-w-11 place-items-center active:scale-90">
             {icono}

@@ -33,7 +33,13 @@ createRoot(document.getElementById("root")!).render(
           <App />
         </ConfirmarProvider>
       </LazyMotion>
-      <Toaster position="top-center" richColors closeButton={false} toastOptions={{ className: "!rounded-2xl" }} />
+      <Toaster
+        position="bottom-center"
+        mobileOffset={{ bottom: "calc(env(safe-area-inset-bottom) + 4.75rem)" }}
+        richColors
+        closeButton={false}
+        toastOptions={{ className: "!rounded-2xl" }}
+      />
     </PersistQueryClientProvider>
   </StrictMode>,
 );

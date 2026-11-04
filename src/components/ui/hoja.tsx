@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Drawer } from "vaul";
 import { cn } from "@/lib/utils";
@@ -54,9 +55,20 @@ export function Hoja({
                 <Drawer.Description className="sr-only">{titulo}</Drawer.Description>
               )}
             </div>
-            {sucio && (
+            {sucio ? (
               <button type="button" onClick={descartar} className="-my-2 h-11 shrink-0 px-1 text-[15px] font-medium text-suave">
                 Descartar
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onAbiertaChange(false)}
+                aria-label="Cerrar"
+                className="-my-2 -mr-2 grid size-11 shrink-0 place-items-center rounded-full text-suave active:bg-superficie-2"
+              >
+                <span className="grid size-8 place-items-center rounded-full bg-superficie-2">
+                  <X className="size-4" />
+                </span>
               </button>
             )}
           </div>

@@ -122,7 +122,7 @@ export function PrimerosPasos({ franjas, className }: { franjas: FranjaMenu[]; c
                   </button>
                 </p>
               </div>
-              <button onClick={ocultar} aria-label="Ocultar primeros pasos" className="-mt-1 -mr-1 grid size-9 place-items-center rounded-full text-suave hover:bg-superficie-2">
+              <button onClick={ocultar} aria-label="Ocultar primeros pasos" className="-my-2 -mr-2 grid size-11 place-items-center rounded-full text-suave hover:bg-superficie-2">
                 <X className="size-4" />
               </button>
             </div>

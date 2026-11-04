@@ -8,7 +8,8 @@ import { emojiPara } from "@/dominio/ingredientes-base";
 import { useLotes } from "@/features/datos";
 import { useHogar } from "@/features/hogar/HogarProvider";
 import { iniciarRecorrido } from "@/features/recorrido/Recorrido";
-import { cerrarSesion, useUsuario } from "@/features/sesion/SesionProvider";
+import { cerrarSesionPreguntando, useUsuario } from "@/features/sesion/SesionProvider";
+import { useConfirmar } from "@/components/ui/confirmar";
 import { recargar } from "@/lib/actualizacion";
 import { urlReportarProblema } from "@/lib/errores";
 import type { LoteConProducto } from "@/lib/tipos";
@@ -88,6 +89,7 @@ export function MenuUsuario() {
   const usuario = useUsuario();
   const { hogar } = useHogar();
   const navigate = useNavigate();
+  const confirmar = useConfirmar();
   const nombre: string = usuario.user_metadata.full_name ?? usuario.user_metadata.name ?? usuario.email ?? "";
   return (
     <Menu>
@@ -120,7 +122,7 @@ export function MenuUsuario() {
           <Bug /> Reportar un problema
         </MenuOpcion>
         <MenuSeparador />
-        <MenuOpcion peligro onSelect={() => cerrarSesion()}>
+        <MenuOpcion peligro onSelect={() => cerrarSesionPreguntando(confirmar)}>
           <LogOut /> Cerrar sesión
         </MenuOpcion>
       </MenuContenido>

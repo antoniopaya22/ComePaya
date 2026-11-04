@@ -45,22 +45,19 @@ export function EquilibrioSemana({ franjas }: { franjas: FranjaMenu[] }) {
           return (
             <span
               key={r.grupo_alimento}
-              className={cn("rounded-full px-2.5 py-1 text-xs font-medium", mal ? "bg-aviso-suave text-aviso" : "bg-primario-suave text-primario")}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[13px] font-medium",
+                mal ? "bg-aviso-suave text-aviso" : "bg-primario-suave text-primario",
+              )}
             >
+              {mal ? <TriangleAlert className="size-3.5" aria-label="Fuera de lo que os habéis marcado" /> : <CircleCheck className="size-3.5" aria-hidden />}
               {texto}
             </span>
           );
         })}
       </div>
-      {avisos.length ? (
-        <ul className="flex flex-col gap-1">
-          {avisos.map((a) => (
-            <li key={`${a.grupo}-${a.tipo}`} className="flex items-center gap-2 text-sm">
-              <TriangleAlert className="size-4 shrink-0 text-aviso" /> {a.mensaje}
-            </li>
-          ))}
-        </ul>
-      ) : (
+      {/* Cada etiqueta ya dice lo que falta o sobra; aquí solo el resumen cuando todo cuadra. */}
+      {!avisos.length && (
         <p className="flex items-center gap-2 text-sm text-primario">
           <CircleCheck className="size-4" /> La semana cumple vuestras reglas.
         </p>

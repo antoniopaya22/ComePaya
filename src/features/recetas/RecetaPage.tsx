@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Baby, Check, Clock, CookingPot, Download, Hourglass, Pencil, Timer, Users } from "lucide-react";
+import { ArrowLeft, Baby, Check, Clock, CookingPot, Download, EllipsisVertical, Hourglass, Pencil, Timer, Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { BarraApp, BotonBarra, EnlaceBarra } from "@/components/BarraApp";
 import { Boton } from "@/components/ui/boton";
+import { Menu, MenuContenido, MenuDisparador, MenuOpcion } from "@/components/ui/menu";
 import { Contador } from "@/components/ui/campos";
 import { Estrellas } from "@/components/ui/estrellas";
 import { Etiqueta, Tarjeta, Vacio } from "@/components/ui/varios";
@@ -83,12 +84,21 @@ export function RecetaPage() {
         atras="/recetas"
         acciones={
           <>
-            <BotonBarra etiqueta="Exportar en Markdown" onClick={() => descargar(nombreArchivo(receta.nombre), aMarkdown(receta))}>
-              <Download />
-            </BotonBarra>
             <EnlaceBarra to={`/recetas/${receta.id}/editar`} etiqueta="Editar receta">
               <Pencil />
             </EnlaceBarra>
+            <Menu>
+              <MenuDisparador asChild>
+                <BotonBarra etiqueta="Más opciones">
+                  <EllipsisVertical />
+                </BotonBarra>
+              </MenuDisparador>
+              <MenuContenido>
+                <MenuOpcion onSelect={() => descargar(nombreArchivo(receta.nombre), aMarkdown(receta))}>
+                  <Download /> Descargar la receta (.md)
+                </MenuOpcion>
+              </MenuContenido>
+            </Menu>
           </>
         }
         principal={

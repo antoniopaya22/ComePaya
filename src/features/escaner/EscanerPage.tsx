@@ -248,7 +248,7 @@ export function EscanerPage() {
               {pendientes.map((p) => (
                 <li key={p.ean}>
                   <button onClick={() => abrir(p.ean)} className="w-full text-left">
-                    <Tarjeta className="flex items-center gap-3 border-aviso/40 p-3">
+                    <Tarjeta className="flex items-center gap-3 border border-aviso/40 bg-aviso-suave/50 p-3">
                       <ScanBarcode className="size-5 text-aviso" />
                       <span className="min-w-0 flex-1 truncate font-medium">{nombreEscaneado(p)}</span>
                       <span className="font-mono text-xs text-suave">{p.ean}</span>

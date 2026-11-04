@@ -3,6 +3,7 @@ import { AnimatePresence, m as motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Boton } from "@/components/ui/boton";
+import { useConfirmar } from "@/components/ui/confirmar";
 import { Cargando } from "@/components/ui/varios";
 import { escalar } from "@/dominio/menu";
 import { formatearTemporizador, segundosRestantes } from "@/dominio/recordatorios";
@@ -26,6 +27,7 @@ export function ModoCocinaPage() {
   const { id } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const confirmar = useConfirmar();
   const { data: recetas, isPending } = useRecetas();
   const receta = recetas?.find((r) => r.id === id);
   const raciones = Number(params.get("raciones")) || receta?.raciones || 1;
@@ -77,7 +79,17 @@ export function ModoCocinaPage() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-fondo">
       <header className="flex items-center gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3">
-        <Boton variante="fantasma" tamano="icono" aria-label="Salir del modo cocina" onClick={() => navigate(`/recetas/${receta.id}`)}>
+        <Boton
+          variante="fantasma"
+          tamano="icono"
+          aria-label="Salir del modo cocina"
+          onClick={async () => {
+            const activos = temporizadores.filter((t) => !t.sonando).length;
+            if (activos && !(await confirmar({ titulo: "¿Salir del modo cocina?", mensaje: `Hay ${activos === 1 ? "un temporizador en marcha" : `${activos} temporizadores en marcha`} y se perderán.`, aceptar: "Salir" })))
+              return;
+            navigate(`/recetas/${receta.id}`);
+          }}
+        >
           <X />
         </Boton>
         <div className="min-w-0 flex-1">
@@ -104,12 +116,12 @@ export function ModoCocinaPage() {
                 <span className="text-sm font-medium">{t.nombre}</span>
                 <span className="font-mono text-lg font-semibold tabular-nums">{formatearTemporizador(restante)}</span>
                 {!t.sonando && (
-                  <button aria-label={`Sumar un minuto a ${t.nombre}`} onClick={() => setTemporizadores((l) => l.map((x) => (x.id === t.id ? { ...x, fin: x.fin + 60_000 } : x)))}>
-                    <Plus className="size-4" />
+                  <button aria-label={`Sumar un minuto a ${t.nombre}`} className="-my-2 grid size-11 place-items-center rounded-full active:bg-black/10" onClick={() => setTemporizadores((l) => l.map((x) => (x.id === t.id ? { ...x, fin: x.fin + 60_000 } : x)))}>
+                    <Plus className="size-5" />
                   </button>
                 )}
-                <button aria-label={`Quitar ${t.nombre}`} onClick={() => setTemporizadores((l) => l.filter((x) => x.id !== t.id))}>
-                  {t.sonando ? <BellOff className="size-4" /> : <X className="size-4" />}
+                <button aria-label={t.sonando ? `Silenciar ${t.nombre}` : `Quitar ${t.nombre}`} className="-my-2 -mr-2 grid size-11 place-items-center rounded-full active:bg-black/10" onClick={() => setTemporizadores((l) => l.filter((x) => x.id !== t.id))}>
+                  {t.sonando ? <BellOff className="size-5" /> : <X className="size-5" />}
                 </button>
               </div>
             );

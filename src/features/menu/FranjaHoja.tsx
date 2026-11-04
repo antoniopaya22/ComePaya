@@ -295,7 +295,7 @@ export function FranjaHoja({
                   <span className="block font-medium">{s.nombre}</span>
                   <span className="block text-xs text-suave">{s.motivos.slice(0, 2).join(" · ") || "Sin datos para explicarla"}</span>
                 </button>
-                <Boton variante="fantasma" tamano="sm" className="h-8 shrink-0 px-2 text-xs text-suave" onClick={() => rechazar(s.receta_id)}>
+                <Boton variante="fantasma" tamano="sm" className="h-10 shrink-0 px-2 text-[13px] text-suave" onClick={() => rechazar(s.receta_id)}>
                   No me apetece
                 </Boton>
               </div>

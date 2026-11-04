@@ -1,5 +1,5 @@
 import { useMutation, useMutationState, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Check, CloudOff, ListChecks, Mic, Pencil, Plus, Refrigerator, Share2, Store } from "lucide-react";
+import { CalendarDays, Check, CloudOff, ListChecks, Mic, Pencil, Plus, Refrigerator, Share2, Store, Trash2 } from "lucide-react";
 import { AnimatePresence, m as motion } from "motion/react";
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router";
@@ -206,6 +206,7 @@ export function ListaPage() {
         {/* Móvil: abajo, sobre la navegación, al alcance del pulgar. Escritorio: arriba. */}
         <form
           onSubmit={anadir}
+          data-sobre-pestanas
           className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4rem)] z-20 flex items-center gap-2 border-t border-borde/70 bg-fondo/90 px-3 py-2 backdrop-blur-xl md:sticky md:top-16 md:bottom-auto md:z-10 md:border-0 md:px-0"
         >
           <Entrada
@@ -222,13 +223,15 @@ export function ListaPage() {
               variante={dictado.escuchando ? "peligro" : "secundario"}
               tamano="icono"
               aria-label={dictado.escuchando ? "Dejar de escuchar" : "Dictar por voz"}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={dictado.escuchando ? dictado.parar : dictado.empezar}
               className={cn("size-12 shrink-0 rounded-full md:size-11 md:rounded-xl", dictado.escuchando && "animate-pulse")}
             >
               <Mic />
             </Boton>
           )}
-          <Boton type="submit" tamano="icono" aria-label="Añadir" className="size-12 shrink-0 rounded-full md:size-11 md:rounded-xl">
+          {/* Sin quitar el foco al campo: el teclado sigue abierto para añadir otra cosa (y la barra no salta). */}
+          <Boton type="submit" tamano="icono" aria-label="Añadir" onMouseDown={(e) => e.preventDefault()} className="size-12 shrink-0 rounded-full md:size-11 md:rounded-xl">
             <Plus />
           </Boton>
         </form>
@@ -241,6 +244,9 @@ export function ListaPage() {
         ) : !visibles.length ? (
           <Vacio icono={<ListChecks />} titulo="Nada que comprar">
             Escribe lo que falta o complétala desde el menú. Se ordena sola por secciones del súper, en el orden de tu tienda.
+            <Boton variante="secundario" className="mt-4 md:hidden" onClick={desdeElMenu} disabled={generando}>
+              <CalendarDays /> {generando ? "Calculando…" : "Completar desde el menú"}
+            </Boton>
           </Vacio>
         ) : (
           <div className="flex flex-col gap-5">
@@ -260,17 +266,23 @@ export function ListaPage() {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="touch-pan-y border-b border-borde/70 bg-superficie last:border-b-0"
-                        // Deslizar hacia la izquierda quita el elemento (con deshacer).
-                        drag="x"
-                        dragConstraints={{ left: 0, right: 0 }}
-                        dragElastic={{ left: 0.6, right: 0 }}
-                        dragSnapToOrigin
-                        onDragEnd={(_e, info) => {
-                          if (info.offset.x < -110) borrar(item);
-                        }}
+                        className="relative overflow-hidden border-b border-borde/70 bg-peligro last:border-b-0"
                       >
-                        <div className="flex items-center">
+                        {/* Detrás de la fila: lo que pasa al deslizar. */}
+                        <span aria-hidden className="absolute inset-y-0 right-0 flex items-center pr-5 text-sobre-color">
+                          <Trash2 className="size-5" />
+                        </span>
+                        <motion.div
+                          className="relative flex touch-pan-y items-center bg-superficie"
+                          // Deslizar hacia la izquierda quita el elemento (con deshacer).
+                          drag="x"
+                          dragConstraints={{ left: 0, right: 0 }}
+                          dragElastic={{ left: 0.6, right: 0 }}
+                          dragSnapToOrigin
+                          onDragEnd={(_e, info) => {
+                            if (info.offset.x < -110) borrar(item);
+                          }}
+                        >
                           <button
                             onClick={() => alternar.mutate({ id: item.id, marcado: !item.marcado })}
                             className="flex min-h-14 flex-1 items-center gap-3 py-2 pl-4 text-left text-[16px]"
@@ -304,12 +316,12 @@ export function ListaPage() {
                           </button>
                           <button
                             onClick={() => setEditando(item)}
-                            className="grid h-14 w-12 place-items-center text-suave/70 active:bg-superficie-2"
+                            className="grid h-14 w-12 place-items-center text-suave active:bg-superficie-2"
                             aria-label={`Editar ${item.texto}`}
                           >
                             <Pencil className="size-4" />
                           </button>
-                        </div>
+                        </motion.div>
                       </motion.li>
                     ))}
                   </AnimatePresence>
@@ -332,7 +344,11 @@ export function ListaPage() {
               </motion.div>
             )}
             {marcados.length > 0 && (
-              <Boton onClick={() => setGuardandoCompra(true)} className="self-center">
+              <Boton
+                onClick={() => setGuardandoCompra(true)}
+                tamano="lg"
+                className="sticky bottom-[calc(env(safe-area-inset-bottom)+9rem)] z-10 self-center rounded-full shadow-lg md:static md:rounded-xl md:shadow-sm"
+              >
                 <Refrigerator /> Guardar compra ({marcados.length})
               </Boton>
             )}

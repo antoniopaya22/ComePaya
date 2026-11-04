@@ -6,6 +6,9 @@
   --superficie: #ffffff;
   --superficie-2: #efede6;
   --borde: #e2dfd5;
+  /* Bordes de controles que tienen que verse (≥ 3:1): interruptor apagado, estrellas vacías. */
+  --borde-control: #858a85;
+  --valoracion: #b97900;
   --texto: #1d2420;
   --texto-suave: #5f6661;
   --primario: #2f6b4f;
@@ -28,6 +31,8 @@
     --superficie: #19201c;
     --superficie-2: #212a25;
     --borde: #2c3630;
+    --borde-control: #6b766f;
+    --valoracion: #f5b83d;
     --texto: #e8ece9;
     --texto-suave: #98a29c;
     --primario: #6fbf93;
@@ -49,6 +54,8 @@
   --color-superficie: var(--superficie);
   --color-superficie-2: var(--superficie-2);
   --color-borde: var(--borde);
+  --color-borde-control: var(--borde-control);
+  --color-valoracion: var(--valoracion);
   --color-texto: var(--texto);
   --color-suave: var(--texto-suave);
   --color-primario: var(--primario);
@@ -129,6 +136,21 @@ header {
 }
 html {
   touch-action: manipulation;
+}
+
+/* Móvil con el teclado abierto: fuera la barra de pestañas (si no, flota sobre el teclado y quita sitio),
+   la barra de añadir de la lista baja a su sitio y los avisos no tapan lo que se escribe. */
+@media (max-width: 767px) {
+  body:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"]), textarea, select):focus) [data-oculta-con-teclado] {
+    display: none;
+  }
+  body:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"]), textarea, select):focus) [data-sobre-pestanas] {
+    bottom: env(safe-area-inset-bottom);
+  }
+  /* En la lista, los avisos ("Deshacer") van por encima de la barra de añadir. */
+  body:has([data-sobre-pestanas]) [data-sonner-toaster] {
+    --mobile-offset-bottom: calc(env(safe-area-inset-bottom) + 8.5rem) !important;
+  }
 }
 
 .pt-seguro {

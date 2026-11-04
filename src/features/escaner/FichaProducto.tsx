@@ -5,9 +5,8 @@ import type { Producto } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { useHogar } from "../hogar/HogarProvider";
 import { ChipsAlergenos } from "../salud/Alergenos";
+import { COLOR_NOVA, COLOR_NUTRISCORE, TEXTO_NOVA_COLOR, TEXTO_NUTRISCORE } from "@/lib/colores-salud";
 
-const COLOR_NUTRISCORE = { a: "#038141", b: "#85bb2f", c: "#fecb02", d: "#ee8100", e: "#e63e11" } as const;
-const COLOR_NOVA = { 1: "#00aa00", 2: "#ffcc00", 3: "#ff6600", 4: "#ff0000" } as const;
 const TEXTO_NOVA = { 1: "Sin procesar o mínimamente procesado", 2: "Ingrediente culinario procesado", 3: "Procesado", 4: "Ultraprocesado" } as const;
 const TEXTO_NIVEL: Record<"grasa" | "saturadas" | "azucares" | "sal", Record<NivelNutriente, string>> = {
   grasa: { bajo: "Poca grasa", moderado: "Grasa moderada", alto: "Mucha grasa" },
@@ -87,10 +86,10 @@ export function FichaProducto({ producto, compacta = false }: { producto: Produc
                     <span
                       key={letra}
                       className={cn(
-                        "grid place-items-center rounded font-bold text-white uppercase transition-all",
+                        "grid place-items-center rounded font-bold uppercase transition-all",
                         letra === producto.nutriscore ? "h-8 w-7 text-base" : "h-6 w-5 self-center text-xs opacity-35",
                       )}
-                      style={{ background: COLOR_NUTRISCORE[letra] }}
+                      style={{ background: COLOR_NUTRISCORE[letra], color: TEXTO_NUTRISCORE[letra] }}
                     >
                       {letra}
                     </span>
@@ -104,7 +103,7 @@ export function FichaProducto({ producto, compacta = false }: { producto: Produc
               <p className="text-xs font-medium text-suave">Grado de procesado (NOVA)</p>
               {producto.nova ? (
                 <div className="mt-1.5 flex items-center gap-2">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg font-bold text-white" style={{ background: COLOR_NOVA[producto.nova] }}>
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg font-bold" style={{ background: COLOR_NOVA[producto.nova], color: TEXTO_NOVA_COLOR[producto.nova] }}>
                     {producto.nova}
                   </span>
                   <span className="text-xs leading-tight">{TEXTO_NOVA[producto.nova]}</span>

@@ -9,8 +9,8 @@ import { normalizar } from "@/dominio/texto";
 import { formatearCantidad, formatearLote } from "@/dominio/unidades";
 import { cn } from "@/lib/utils";
 import { useLotes, useProductos } from "../datos";
+import { COLOR_NUTRISCORE, TEXTO_NUTRISCORE } from "@/lib/colores-salud";
 
-const COLOR_NUTRISCORE = { a: "#038141", b: "#85bb2f", c: "#fecb02", d: "#ee8100", e: "#e63e11" } as const;
 
 /** Todos los productos del hogar, también los que ahora no hay en casa. */
 export function ProductosPage() {
@@ -40,7 +40,9 @@ export function ProductosPage() {
       <div className="flex flex-col gap-4 px-4 md:px-0">
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-suave" />
-          <Entrada value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Nombre, marca o código" className="pl-10" type="search" />
+          <Entrada value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Nombre, marca o código" className="pl-10" type="search"
+              enterKeyHint="search"
+              autoComplete="off" />
         </div>
         <div className="flex gap-2">
           {[
@@ -88,7 +90,7 @@ export function ProductosPage() {
                         </span>
                       </span>
                       {p.nutriscore && (
-                        <span className="grid size-7 shrink-0 place-items-center rounded-md text-sm font-bold text-white uppercase" style={{ background: COLOR_NUTRISCORE[p.nutriscore] }}>
+                        <span className="grid size-7 shrink-0 place-items-center rounded-md text-sm font-bold uppercase" style={{ background: COLOR_NUTRISCORE[p.nutriscore], color: TEXTO_NUTRISCORE[p.nutriscore] }}>
                           {p.nutriscore}
                         </span>
                       )}

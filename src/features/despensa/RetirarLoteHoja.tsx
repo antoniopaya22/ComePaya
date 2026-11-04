@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronRight, ListPlus, PackageOpen, Pencil, Trash2, Utensils } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, ListPlus, PackageOpen, Pencil, Trash2, Utensils } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -41,7 +41,8 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
       setActual(lote);
       const envase = envaseQueSeCuenta(lote);
       setHay(baseAEnvases(lote.cantidad, envase));
-      setEnvases(baseAEnvases(lote.cantidad, envase));
+      // Lo habitual es coger uno o varios (sacar uno del congelador); lo que va a peso, todo.
+      setEnvases(envase || lote.producto.ingrediente.unidad_base === "ud" ? Math.min(1, baseAEnvases(lote.cantidad, envase)) : baseAEnvases(lote.cantidad, envase));
       setDesaparecido(false);
     }
   }, [lote]);
@@ -188,6 +189,7 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
     if (ok) onCerrar();
   }
 
+  // Lo de cada día: elegir cuántos y moverlos, gastarlos o tirarlos. Corregir la cantidad, lo empezado y la caducidad, en "Más opciones".
   return (
     <Hoja
       abierta={lote !== null}
@@ -211,69 +213,80 @@ export function RetirarLoteHoja({ lote, onCerrar }: { lote: LoteConProducto | nu
             Ya no está en la despensa: lo han cambiado desde otro móvil.
           </p>
         )}
-        <Campo etiqueta="Cuántos hay" ayuda={hay !== total ? "Guarda para que se vea igual en todos los móviles de casa." : undefined}>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Contador etiqueta="(cuántos hay)" valor={hay} onChange={(v) => setHay(Math.max(0, v))} min={0} paso={paso} sufijo={sufijo} />
-            </div>
-            {hay !== total && (
-              <Boton tamano="lg" onClick={guardarCantidad} disabled={guardando || desaparecido}>
-                <Check /> Guardar
-              </Boton>
-            )}
-          </div>
-        </Campo>
-        <Campo etiqueta="Cuántos gastar, tirar o mover">
-          <Contador etiqueta="(gastar, tirar o mover)" valor={envases} onChange={(v) => setEnvases(Math.min(v, total))} min={0} paso={paso} sufijo={sufijo} />
-        </Campo>
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium text-suave">
-            {actual.abierto_en
-              ? `Empezado el ${new Date(actual.abierto_en + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long" })}${
-                  describirQueda(actual.cantidad, producto.cantidad_envase) ? ` · ${describirQueda(actual.cantidad, producto.cantidad_envase)}` : ""
-                }. ¿Cuánto queda ahora?`
-              : "¿Está empezado? ¿Cuánto queda?"}
-          </p>
-          <div className="flex gap-2">
-            {FRACCIONES_QUEDA.map((f) => (
-              <button
-                key={f.valor}
-                type="button"
-                onClick={() => marcarQueda(f.valor)}
-                aria-label={`Queda ${f.etiqueta}`}
-                className="h-11 flex-1 rounded-xl border border-borde bg-superficie text-lg font-semibold transition-colors active:scale-95 active:bg-superficie-2"
-              >
-                {f.etiqueta}
-              </button>
-            ))}
-          </div>
-        </div>
-        {actual.abierto_en ? null : (
-          <Boton variante="secundario" onClick={abrir} className="self-start">
-            <PackageOpen /> Lo he abierto
-            {producto.ingrediente.dias_tras_abrir ? <span className="font-normal text-suave">· dura {producto.ingrediente.dias_tras_abrir} días</span> : null}
-          </Boton>
+        {total > 1 && (
+          <Campo etiqueta="¿Cuántos?">
+            <Contador etiqueta="(cuántos)" valor={envases} onChange={(v) => setEnvases(Math.min(v, total))} min={0} paso={paso} sufijo={`de ${total}${envase ? "" : ` ${unidad}`}`} />
+          </Campo>
         )}
-        <Campo etiqueta={envases < total ? `Mover ${envases} de ${total} a` : "Mover a"}>
-          <Opciones opciones={UBICACIONES} valor={actual.ubicacion} onChange={mover} />
+        <Campo etiqueta={total > 1 ? (envases < total ? `Mover ${envases} de ${total} a` : "Mover todos a") : "Mover a"}>
+          <Opciones opciones={UBICACIONES} valor={actual.ubicacion} onChange={mover} className="[&_button]:h-11 [&_button]:flex-1 [&_button]:text-[15px]" />
         </Campo>
-        <details className="rounded-xl border border-borde px-3.5 py-3">
-          <summary className="cursor-pointer text-sm font-medium">Corregir caducidad</summary>
-          <div className="mt-3">
-            <SelectorCaducidad valor={actual.fecha_caducidad} onChange={cambiarCaducidad} hoy={hoyISO()} />
+        <button type="button" onClick={anadirALista} className="inline-flex h-11 items-center gap-1.5 self-start text-[15px] font-medium text-primario">
+          <ListPlus className="size-4" /> Añadir a la lista
+        </button>
+
+        <details className="group rounded-xl border border-borde">
+          <summary className="flex h-12 cursor-pointer list-none items-center justify-between px-3.5 text-[15px] font-medium">
+            Más opciones <ChevronDown className="size-4 text-suave transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="flex flex-col gap-5 border-t border-borde px-3.5 pt-3 pb-4">
+            <Campo
+              etiqueta="Corregir cuántos hay"
+              ayuda={hay !== total ? "Guarda para que se vea igual en todos los móviles de casa." : "Si no cuadra con lo que hay de verdad. No cuenta como gastado ni tirado."}
+            >
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Contador etiqueta="(cuántos hay)" valor={hay} onChange={(v) => setHay(Math.max(0, v))} min={0} paso={paso} sufijo={sufijo} />
+                </div>
+                {hay !== total && (
+                  <Boton tamano="lg" onClick={guardarCantidad} disabled={guardando || desaparecido}>
+                    <Check /> Guardar
+                  </Boton>
+                )}
+              </div>
+            </Campo>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium text-suave">
+                {actual.abierto_en
+                  ? `Empezado el ${new Date(actual.abierto_en + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long" })}${
+                      describirQueda(actual.cantidad, producto.cantidad_envase) ? ` · ${describirQueda(actual.cantidad, producto.cantidad_envase)}` : ""
+                    }. ¿Cuánto queda ahora?`
+                  : "¿Está empezado? ¿Cuánto queda?"}
+              </p>
+              <div className="flex gap-2">
+                {FRACCIONES_QUEDA.map((f) => (
+                  <button
+                    key={f.valor}
+                    type="button"
+                    onClick={() => marcarQueda(f.valor)}
+                    aria-label={`Queda ${f.etiqueta}`}
+                    className="h-11 flex-1 rounded-xl border border-borde bg-superficie text-lg font-semibold transition-colors active:scale-95 active:bg-superficie-2"
+                  >
+                    {f.etiqueta}
+                  </button>
+                ))}
+              </div>
+              {!actual.abierto_en && (
+                <Boton variante="secundario" onClick={abrir} className="self-start">
+                  <PackageOpen /> Lo he abierto
+                  {producto.ingrediente.dias_tras_abrir ? <span className="font-normal text-suave">· dura {producto.ingrediente.dias_tras_abrir} días</span> : null}
+                </Boton>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium text-suave">Caducidad</p>
+              <SelectorCaducidad valor={actual.fecha_caducidad} onChange={cambiarCaducidad} hoy={hoyISO()} />
+            </div>
+            <div className="flex flex-wrap gap-x-5 gap-y-1">
+              <Link to={`/productos/${producto.id}?editar=1`} onClick={onCerrar} className="inline-flex h-11 items-center gap-1.5 text-[15px] font-medium text-primario">
+                <Pencil className="size-4" /> Cambiar nombre o datos
+              </Link>
+              <Link to={`/productos/${producto.id}`} onClick={onCerrar} className="inline-flex h-11 items-center gap-1 text-[15px] font-medium text-primario">
+                Ver ficha <ChevronRight className="size-4" />
+              </Link>
+            </div>
           </div>
         </details>
-        <div className="flex flex-wrap gap-x-5 gap-y-1">
-          <button type="button" onClick={anadirALista} className="inline-flex h-10 items-center gap-1.5 text-[15px] font-medium text-primario">
-            <ListPlus className="size-4" /> Añadir a la lista
-          </button>
-          <Link to={`/productos/${producto.id}?editar=1`} onClick={onCerrar} className="inline-flex h-10 items-center gap-1.5 text-[15px] font-medium text-primario">
-            <Pencil className="size-4" /> Cambiar nombre o datos
-          </Link>
-          <Link to={`/productos/${producto.id}`} onClick={onCerrar} className="inline-flex h-10 items-center gap-1 text-[15px] font-medium text-primario">
-            Ver ficha <ChevronRight className="size-4" />
-          </Link>
-        </div>
       </div>
     </Hoja>
   );

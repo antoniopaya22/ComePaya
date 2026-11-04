@@ -201,7 +201,7 @@ function Capa({ paso, onPaso, onTerminar }: { paso: number; onPaso: (n: number) 
               {actual.titulo}
             </h2>
           </div>
-          <button onClick={onTerminar} aria-label="Cerrar el recorrido" className="-mt-1 -mr-2 grid size-8 shrink-0 place-items-center rounded-full text-suave hover:bg-superficie-2">
+          <button onClick={onTerminar} aria-label="Cerrar el recorrido" className="-my-2 -mr-3 grid size-11 shrink-0 place-items-center rounded-full text-suave hover:bg-superficie-2">
             <X className="size-4" />
           </button>
         </div>

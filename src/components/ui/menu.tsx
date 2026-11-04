@@ -28,7 +28,7 @@ export function MenuOpcion({ className, peligro, ...props }: ComponentProps<type
   return (
     <Primitivo.Item
       className={cn(
-        "flex min-h-10 cursor-pointer items-center gap-3 rounded-xl px-3 text-sm outline-none select-none data-[highlighted]:bg-superficie-2 [&_svg]:size-4 [&_svg]:shrink-0",
+        "flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 text-sm outline-none select-none data-[highlighted]:bg-superficie-2 [&_svg]:size-4 [&_svg]:shrink-0",
         peligro ? "text-peligro" : "[&_svg]:text-suave",
         className,
       )}

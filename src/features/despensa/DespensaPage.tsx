@@ -156,6 +156,8 @@ export function DespensaPage() {
               placeholder="Buscar en casa"
               className="h-11 rounded-full border-transparent bg-superficie-2 pl-10 md:rounded-xl md:border-borde md:bg-superficie"
               type="search"
+              enterKeyHint="search"
+              autoComplete="off"
             />
           </div>
 
@@ -166,8 +168,9 @@ export function DespensaPage() {
                 <button
                   key={u.valor}
                   onClick={() => setFiltro(u.valor)}
+                  aria-pressed={activo}
                   className={cn(
-                    "relative h-9 shrink-0 rounded-full px-4 text-sm font-medium transition-colors",
+                    "relative h-10 shrink-0 rounded-full px-4 text-[15px] font-medium transition-colors",
                     activo ? "text-primario-texto" : "bg-superficie-2 text-suave",
                   )}
                 >
@@ -186,7 +189,9 @@ export function DespensaPage() {
               );
             })}
           </div>
-          <div className="flex items-center gap-2">
+        </div>
+        {/* Tipo y orden se cambian poco: no se quedan fijos, para que la lista tenga sitio al desplazar. */}
+        <div className="-mt-2 flex items-center gap-2">
             <Menu>
               <MenuDisparador className={cn(claseDesplegable, tipo && "bg-primario-suave text-primario")}>
                 {tipo ? `${EMOJI_SECCION[tipo] ?? "🧺"} ${tipo}` : "Todos los tipos"} <ChevronDown className="size-4" />
@@ -221,7 +226,6 @@ export function DespensaPage() {
                 ))}
               </MenuContenido>
             </Menu>
-          </div>
         </div>
 
         {isPending ? (
@@ -231,7 +235,20 @@ export function DespensaPage() {
             Escanea lo que tienes en la nevera, el congelador o los armarios, o añade fruta, verdura, carne o pan con «Añadir».
           </Vacio>
         ) : !grupos.length ? (
-          <p className="py-10 text-center text-sm text-suave">No hay nada que coincida.</p>
+          <Vacio icono={<Search />} titulo="Nada coincide">
+            {busqueda ? `No hay nada en casa que se llame «${busqueda}».` : "No hay nada con estos filtros."}
+            <Boton
+              variante="secundario"
+              className="mt-4"
+              onClick={() => {
+                setBusqueda("");
+                setFiltro("todo");
+                setTipo(null);
+              }}
+            >
+              Quitar filtros
+            </Boton>
+          </Vacio>
         ) : (
           <div className="flex flex-col gap-5">
             {organizado.map((bloque) => (

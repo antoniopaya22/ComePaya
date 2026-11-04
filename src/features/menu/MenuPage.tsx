@@ -124,11 +124,8 @@ export function MenuPage() {
         subtitulo={`${planificadas} de 14 comidas y cenas planificadas`}
         acciones={
           <>
-            <BotonBarra etiqueta="Rellenar la semana" onClick={() => setPlanificando(true)}>
+            <BotonBarra etiqueta="Rellenar la semana" onClick={() => setPlanificando(true)} className="hidden md:grid">
               <Sparkles />
-            </BotonBarra>
-            <BotonBarra etiqueta="Pasar a la lista" onClick={generarLista} disabled={generando} className={cn("md:hidden", generando && "animate-pulse")}>
-              <ListChecks />
             </BotonBarra>
           </>
         }
@@ -140,11 +137,20 @@ export function MenuPage() {
       />
 
       <div className="flex flex-col gap-4 px-4 md:px-0">
+        {/* Móvil: las acciones de la semana, con texto. */}
+        <div className="-mt-1 grid grid-cols-2 gap-2 md:hidden">
+          <Boton variante="secundario" onClick={() => setPlanificando(true)}>
+            <Sparkles className="text-primario" /> Rellenar la semana
+          </Boton>
+          <Boton variante="secundario" onClick={generarLista} disabled={generando} className={cn(generando && "animate-pulse")}>
+            <ListChecks className="text-primario" /> {generando ? "Calculando…" : "Pasar a la lista"}
+          </Boton>
+        </div>
         <div className="flex items-center justify-between gap-2 rounded-2xl bg-superficie-2 p-1">
           <Boton variante="fantasma" tamano="icono-sm" aria-label="Semana anterior" onClick={() => setLunes(sumarDias(lunes, -7))}>
             <ChevronLeft />
           </Boton>
-          <button onClick={() => setLunes(lunesDe(hoy))} className="text-sm font-semibold">
+          <button onClick={() => setLunes(lunesDe(hoy))} className="h-11 flex-1 text-sm font-semibold" aria-label={lunes === lunesDe(hoy) ? undefined : "Volver a esta semana"}>
             {lunes === lunesDe(hoy) ? "Esta semana" : rangoSemana(lunes)}
             {lunes === lunesDe(hoy) && <span className="ml-1.5 font-normal text-suave">{rangoSemana(lunes)}</span>}
           </button>
@@ -159,6 +165,8 @@ export function MenuPage() {
             <button
               key={fecha}
               onClick={() => document.getElementById(`dia-${fecha}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}
+              aria-label={`Ir al ${DIAS_SEMANA[i].toLowerCase()} ${Number(fecha.slice(8))}`}
+              aria-current={fecha === hoy ? "date" : undefined}
               className={cn("flex flex-col items-center rounded-2xl py-1.5", fecha === hoy ? "bg-primario text-primario-texto" : fecha < hoy ? "text-suave" : "")}
             >
               <span className="text-[11px] font-semibold">{DIAS_SEMANA[i].slice(0, 1)}</span>
@@ -316,8 +324,11 @@ function Franja({
   }
 
   return (
-    <button onClick={onClick} aria-label={etiqueta} className="flex min-h-14 w-full items-center gap-3 border-t border-borde px-4 py-2 text-left transition-colors first-of-type:border-t-0 active:bg-superficie-2">
-      <span className="w-14 shrink-0 text-xs font-semibold tracking-wide text-suave uppercase">{tipo}</span>
+    <button onClick={onClick} className="flex min-h-14 w-full items-center gap-3 border-t border-borde px-4 py-2 text-left transition-colors first-of-type:border-t-0 active:bg-superficie-2">
+      {etiqueta && <span className="sr-only">{etiqueta}: </span>}
+      <span className="w-14 shrink-0 text-xs font-semibold tracking-wide text-suave uppercase" aria-hidden={etiqueta ? true : undefined}>
+        {tipo}
+      </span>
       <span className="min-w-0 flex-1">{contenido}</span>
     </button>
   );

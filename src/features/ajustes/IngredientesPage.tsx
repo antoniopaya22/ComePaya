@@ -101,6 +101,8 @@ export function IngredientesPage() {
             placeholder="Buscar ingrediente"
             className="h-11 rounded-full border-transparent bg-superficie-2 pl-10 md:rounded-xl md:border-borde md:bg-superficie"
             type="search"
+              enterKeyHint="search"
+              autoComplete="off"
           />
         </div>
         {faltan > 0 && !busqueda && (

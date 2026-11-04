@@ -95,6 +95,7 @@ test("Menú: rellenar la semana siguiente con la planificación automática", as
 test("Despensa: marcar un producto como abierto acorta su caducidad", async ({ page }) => {
   await page.goto("/productos/p-tomate");
   await page.getByRole("button", { name: /2 × 400 g/ }).click();
+  await page.getByRole("dialog").getByText("Más opciones").click();
   await page.getByRole("button", { name: /Lo he abierto/ }).click();
   await expect(page.getByText("Marcado como abierto")).toBeVisible();
   // El envase abierto se separa del cerrado, pasa a la nevera y caduca en 4 días.
@@ -226,8 +227,7 @@ test("Despensa: repartir unidades de un lote entre despensa y nevera", async ({ 
   await page.goto("/productos/p-tomate");
   await page.getByRole("button", { name: /2 × 400 g/ }).click();
   const hoja = page.getByRole("dialog");
-  // El segundo contador: cuántos gastar, tirar o mover (el primero es cuántos hay).
-  await hoja.getByRole("button", { name: "Menos" }).nth(1).click();
+  // Por defecto se coge uno de los dos.
   await hoja.getByText("Nevera", { exact: true }).click();
   await expect(page.getByText("400 g a nevera")).toBeVisible();
   await expect(page.getByRole("button", { name: /^400 g\s*Nevera/ })).toBeVisible();
@@ -238,8 +238,9 @@ test("Despensa: cambiar cuántos hay, guardar y deshacer", async ({ page }) => {
   await page.goto("/productos/p-tomate");
   await page.getByRole("button", { name: /2 × 400 g/ }).click();
   const hoja = page.getByRole("dialog");
+  await hoja.getByText("Más opciones").click();
   await expect(hoja.getByRole("button", { name: "Guardar" })).toHaveCount(0);
-  await hoja.getByRole("button", { name: "Más" }).first().click();
+  await hoja.getByRole("button", { name: "Más (cuántos hay)" }).click();
   await hoja.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Tomate triturado: ahora hay 3 × 400 g")).toBeVisible();
   await expect(page.getByRole("button", { name: /^3 × 400 g\s*Despensa/ })).toBeVisible();
@@ -251,6 +252,7 @@ test("Despensa: cambiar cuántos hay, guardar y deshacer", async ({ page }) => {
 test("Despensa: tirar algo sin querer y deshacerlo", async ({ page }) => {
   await page.goto("/productos/p-tomate");
   await page.getByRole("button", { name: /2 × 400 g/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Más (cuántos)" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Tirado" }).click();
   await expect(page.getByText("Tomate triturado: tirado 2 × 400 g")).toBeVisible();
   await expect(page.getByRole("button", { name: /× 400 g\s*Despensa/ })).toHaveCount(0);
@@ -461,6 +463,7 @@ test("Escáner: si la cámara no lo lee, se puede escribir el código", async ({
 test("Despensa: marcar un producto empezado con lo que queda", async ({ page }) => {
   await page.goto("/productos/p-leche");
   await page.getByRole("button", { name: /2 × 1 l/ }).click();
+  await page.getByRole("dialog").getByText("Más opciones").click();
   await page.getByRole("button", { name: "Queda ½" }).click();
   await expect(page.getByText("Empezado · queda ½")).toBeVisible();
   // Se abre un envase (separado del resto) y lo gastado cuenta como consumido.

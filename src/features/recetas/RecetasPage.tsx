@@ -52,9 +52,6 @@ export function RecetasPage() {
         subtitulo={recetas ? `${recetas.length} en vuestro recetario` : undefined}
         acciones={
           <>
-            <BotonBarra etiqueta="Importar desde una web" onClick={() => setImportando(true)}>
-              <Globe />
-            </BotonBarra>
             <Menu>
               <MenuDisparador asChild>
                 <BotonBarra etiqueta="Más opciones">
@@ -62,6 +59,9 @@ export function RecetasPage() {
                 </BotonBarra>
               </MenuDisparador>
               <MenuContenido>
+                <MenuOpcion onSelect={() => setImportando(true)}>
+                  <Globe /> Importar desde una web
+                </MenuOpcion>
                 <MenuOpcion onSelect={() => archivo.current?.click()}>
                   <Upload /> Importar recetas (.md)
                 </MenuOpcion>
@@ -111,6 +111,8 @@ export function RecetasPage() {
             placeholder="Buscar por nombre o ingrediente"
             className="h-11 rounded-full border-transparent bg-superficie-2 pl-10 md:rounded-xl md:border-borde md:bg-superficie"
             type="search"
+              enterKeyHint="search"
+              autoComplete="off"
           />
         </div>
 
@@ -120,7 +122,8 @@ export function RecetasPage() {
               <button
                 key={e}
                 onClick={() => setEtiqueta(etiqueta === e ? null : e)}
-                className={cn("h-9 shrink-0 rounded-full px-4 text-sm font-medium", etiqueta === e ? "bg-primario text-primario-texto" : "bg-superficie-2 text-suave")}
+                aria-pressed={etiqueta === e}
+                className={cn("h-10 shrink-0 rounded-full px-4 text-[15px] font-medium", etiqueta === e ? "bg-primario text-primario-texto" : "bg-superficie-2 text-suave")}
               >
                 {e}
               </button>
@@ -136,6 +139,20 @@ export function RecetasPage() {
             Crea vuestros platos habituales o impórtalos desde vuestras webs de cocina favoritas: el menú y la lista de la compra salen de aquí.
             <Boton variante="secundario" className="mt-4" onClick={() => setImportando(true)}>
               <Globe /> Importar desde una web
+            </Boton>
+          </Vacio>
+        ) : !visibles.length ? (
+          <Vacio icono={<Search />} titulo="Ninguna receta coincide">
+            Prueba con otra palabra o quita el filtro.
+            <Boton
+              variante="secundario"
+              className="mt-4"
+              onClick={() => {
+                setBusqueda("");
+                setEtiqueta(null);
+              }}
+            >
+              Ver todas
             </Boton>
           </Vacio>
         ) : (

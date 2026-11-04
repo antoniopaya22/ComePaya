@@ -12,7 +12,7 @@ import { urlReportarProblema, VERSION } from "@/lib/errores";
 import { supabase } from "@/lib/supabase";
 import type { Tienda } from "@/lib/tipos";
 import { mensajeError } from "@/lib/utils";
-import { cerrarSesion, useUsuario } from "../sesion/SesionProvider";
+import { cerrarSesionPreguntando, useUsuario } from "../sesion/SesionProvider";
 import { claves, useMiembros, useTiendas } from "../datos";
 import { useHogar } from "../hogar/HogarProvider";
 import { SaludHoja } from "../salud/SaludHoja";
@@ -260,7 +260,7 @@ export function AjustesPage() {
 
         <Tarjeta>
           <button
-            onClick={() => cerrarSesion()}
+            onClick={() => cerrarSesionPreguntando(confirmar)}
             className="flex min-h-14 w-full items-center justify-center gap-2 font-medium text-peligro active:bg-superficie-2"
           >
             <LogOut className="size-5" /> Cerrar sesión

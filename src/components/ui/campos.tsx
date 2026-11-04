@@ -1,9 +1,9 @@
 import { Minus, Plus } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const baseCampo =
-  "w-full rounded-xl border border-borde bg-superficie px-3.5 text-[16px] text-texto placeholder:text-suave/70 outline-none transition-colors focus:border-primario focus:ring-3 focus:ring-primario/15";
+  "w-full rounded-xl border border-borde bg-superficie px-3.5 text-[16px] text-texto placeholder:text-suave/85 outline-none transition-colors focus:border-primario focus:ring-3 focus:ring-primario/15";
 
 export function Entrada({ className, ...props }: ComponentProps<"input">) {
   return <input className={cn(baseCampo, "h-11", className)} {...props} />;
@@ -19,7 +19,14 @@ export function Selector({ className, ...props }: ComponentProps<"select">) {
 
 export function Campo({ etiqueta, ayuda, children, className }: { etiqueta: string; ayuda?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <label className={cn("flex flex-col gap-1.5", className)}>
+    <label
+      className={cn("flex flex-col gap-1.5", className)}
+      onClick={(e) => {
+        // Un <label> activa su primer control: con un contador o unas opciones dentro, eso era pulsar "−" o elegir la primera.
+        const fuera = !(e.target as Element).closest("button, input, select, textarea, a");
+        if (fuera && e.currentTarget.control instanceof HTMLButtonElement) e.preventDefault();
+      }}
+    >
       <span className="text-sm font-medium text-suave">{etiqueta}</span>
       {children}
       {ayuda && <span className="text-xs text-suave">{ayuda}</span>}
@@ -44,8 +51,14 @@ export function Contador({
   paso?: number;
   sufijo?: ReactNode;
 }) {
+  // Se escribe como texto ("1,5" o vacío mientras se borra) y solo se avisa de números válidos.
+  const [texto, setTexto] = useState(String(valor));
+  useEffect(() => {
+    setTexto((t) => (Number(t.replace(",", ".")) === valor ? t : String(valor)));
+  }, [valor]);
+
   return (
-    <div className="flex h-12 items-center gap-1 rounded-xl border border-borde bg-superficie p-0.5">
+    <div className="flex h-12 items-center gap-1 rounded-xl border border-borde bg-superficie p-0.5 focus-within:border-primario focus-within:ring-3 focus-within:ring-primario/15">
       <button
         type="button"
         aria-label={etiqueta ? `Menos ${etiqueta}` : "Menos"}
@@ -57,12 +70,20 @@ export function Contador({
       </button>
       <div className="flex flex-1 items-baseline justify-center gap-1">
         <input
-          type="number"
+          type="text"
           inputMode="decimal"
-          aria-label={etiqueta}
+          autoComplete="off"
+          aria-label={etiqueta ?? "Cantidad"}
           className="w-14 bg-transparent text-center text-lg font-semibold outline-none"
-          value={Number.isFinite(valor) ? valor : ""}
-          onChange={(e) => onChange(Number(e.target.value.replace(",", ".")))}
+          value={texto}
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => {
+            const limpio = e.target.value.replace(/[^\d.,]/g, "");
+            setTexto(limpio);
+            const n = Number(limpio.replace(",", "."));
+            if (limpio !== "" && Number.isFinite(n)) onChange(Math.max(min, n));
+          }}
+          onBlur={() => setTexto(String(valor))}
         />
         {sufijo && <span className="self-center text-sm whitespace-nowrap text-suave">{sufijo}</span>}
       </div>
@@ -126,7 +147,7 @@ export function Interruptor({ marcado, onChange, etiqueta, ayuda }: { marcado: b
         <span className="block text-[15px] font-medium">{etiqueta}</span>
         {ayuda && <span className="block text-xs text-suave">{ayuda}</span>}
       </span>
-      <span className={cn("relative h-7 w-12 shrink-0 rounded-full transition-colors", marcado ? "bg-primario" : "bg-borde")}>
+      <span className={cn("relative h-7 w-12 shrink-0 rounded-full transition-colors", marcado ? "bg-primario" : "bg-borde-control")}>
         <span className={cn("absolute top-1 size-5 rounded-full bg-white shadow transition-[left]", marcado ? "left-6" : "left-1")} />
       </span>
     </button>

@@ -266,7 +266,7 @@ function BarraSuperior({ onBuscar }: { onBuscar: () => void }) {
 
 function NavegacionInferior({ contadores }: { contadores: Record<string, { n: number; aviso?: boolean }> }) {
   return (
-    <nav className="pb-seguro fixed inset-x-0 bottom-0 z-30 border-t border-borde bg-superficie/90 backdrop-blur-lg md:hidden" aria-label="Principal" data-recorrido="navegacion">
+    <nav className="pb-seguro fixed inset-x-0 bottom-0 z-30 border-t border-borde bg-superficie/90 backdrop-blur-lg md:hidden" aria-label="Principal" data-recorrido="navegacion" data-oculta-con-teclado>
       <div className="mx-auto flex max-w-md">
         {SECCIONES.map(({ ruta, etiqueta, icono: Icono }) => {
           const contador = contadores[ruta];

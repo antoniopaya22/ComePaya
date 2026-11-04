@@ -63,6 +63,11 @@ export function entrarConGoogle() {
   });
 }
 
+/** Pregunta y, si se confirma, cierra sesión. */
+export async function cerrarSesionPreguntando(confirmar: (o: { titulo: string; mensaje: string; aceptar: string; peligro?: boolean }) => Promise<boolean>) {
+  if (await confirmar({ titulo: "¿Cerrar sesión?", mensaje: "Tendrás que volver a entrar con tu cuenta en este móvil.", aceptar: "Cerrar sesión", peligro: true })) await cerrarSesion();
+}
+
 /** Cierra sesión sin dejar en el dispositivo avisos, datos del hogar ni cambios pendientes de esta cuenta. */
 export async function cerrarSesion() {
   await desactivarAvisos().catch(() => {});
