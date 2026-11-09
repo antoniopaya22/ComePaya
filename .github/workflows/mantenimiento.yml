@@ -17,7 +17,7 @@ jobs:
     outputs:
       subida: ${{ steps.cifrar.outputs.subir }}
     steps:
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
       - name: Volcar esquema y datos
@@ -66,7 +66,7 @@ jobs:
         run: |
           gpg --batch --pinentry-mode loopback --passphrase-fd 3 -d copia.tar.gz.gpg 3<<<"$BACKUP_PASSPHRASE" | tar xzf -
           ls -l copia
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
       - name: Supabase vacía
